@@ -1,3 +1,5 @@
+> **Historical v0.1.0 design document.** Current audited v0.2.0 rulebook and limitations: [interpretation-rule-audit-v02.md](interpretation-rule-audit-v02.md). The original 48 were **not** individually source-verified; the new pack remains symbolic and editorial.
+
 # AstroBirthChart — Rule Interpretation Engine v1
 
 ## Scope and epistemic boundary
