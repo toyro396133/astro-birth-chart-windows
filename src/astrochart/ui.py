@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         self.advanced_toggle = QPushButton("＋ הגדרות מיקום מתקדמות")
         self.advanced_toggle.setObjectName("advancedToggle")
         self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.advanced_toggle.clicked.connect(self._toggle_advanced)
+        self.advanced_toggle.clicked.connect(lambda: self._toggle_advanced())
         form.addWidget(self.advanced_toggle, 3, 0, 1, 2)
         self.conversion_label = QLabel("")
         self.conversion_label.setObjectName("conversionInfo")
