@@ -27,8 +27,9 @@ jobs:
       - name: Smoke test frozen EXE / offline core
         shell: pwsh
         run: |
-          & "dist/AstroBirthChart/AstroBirthChart.exe" --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Frozen EXE self-test failed" }
+          $exe = (Resolve-Path "dist/AstroBirthChart/AstroBirthChart.exe").Path
+          $proc = Start-Process -FilePath $exe -ArgumentList "--self-test" -PassThru -Wait
+          if ($proc.ExitCode -ne 0) { throw "Frozen EXE self-test failed: $($proc.ExitCode)" }
       - name: Smoke test graphical launch on Windows
         shell: pwsh
         run: |

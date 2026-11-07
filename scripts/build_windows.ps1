@@ -12,6 +12,7 @@ if ($LASTEXITCODE -ne 0) { throw "ephemeris download failed" }
 if ($LASTEXITCODE -ne 0) { throw "tests failed" }
 & $py -m PyInstaller --noconfirm --clean astro_app.spec
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
-& "dist\AstroBirthChart\AstroBirthChart.exe" --self-test
-if ($LASTEXITCODE -ne 0) { throw "EXE engine smoke test failed" }
+$exe = (Resolve-Path "dist\AstroBirthChart\AstroBirthChart.exe").Path
+$process = Start-Process -FilePath $exe -ArgumentList "--self-test" -PassThru -Wait
+if ($process.ExitCode -ne 0) { throw "EXE engine smoke test failed: $($process.ExitCode)" }
 Write-Host "Ready: dist\AstroBirthChart\AstroBirthChart.exe"
