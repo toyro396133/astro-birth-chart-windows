@@ -66,6 +66,28 @@ def main():
     assert all(window.table.item(i, j) is not None
                for i in range(10) for j in range(5))
     assert window.aspects.toPlainText(), "No aspects displayed"
+    # Table -> wheel: a row selection highlights its precise body anchor.
+    assert window.copy_button.isEnabled()
+    assert window.wheel.selected_body is None
+    window.table.setCurrentCell(0, 0)
+    assert window.wheel.selected_body == "שמש"
+    assert "שמש" in window.wheel_legend.text()
+    QTest.qWait(120)
+    # Wheel -> table: select a rendered marker, *not* its unshifted longitude.
+    marker = window.wheel._hit_targets.get("ירח")
+    assert marker is not None, "Real marker positions were not painted"
+    QTest.mouseClick(
+        window.wheel, Qt.MouseButton.LeftButton,
+        pos=QPoint(round(marker.x()), round(marker.y())))
+    assert window.wheel.selected_body == "ירח"
+    assert window.table.currentRow() == 1
+    assert "ירח" in window.wheel_legend.text()
+    # Export is user-initiated, offline and plain-text only.
+    window.copy_button.click()
+    report_text = QApplication.clipboard().text()
+    assert "שמש" in report_text and "ירח" in report_text
+    assert "היבטים:" in report_text
+    assert "התקציר הועתק" in window.chart_caption.text()
     last = window.table.visualRect(window.table.model().index(9, 0))
     assert last.isValid() and last.bottom() < window.table.viewport().height(), (
         "Ten table rows do not fit at 1024x790",
@@ -102,6 +124,10 @@ def main():
     assert all(b.house is None for b in unknown.bodies)
     assert all(window.table.item(i, 3).text() == "—" for i in range(10))
     assert "שעת הלידה אינה ידועה" in window.warnings.text()
+    assert window.wheel.selected_body is None, "A new calculation must clear old selections"
+    window.copy_button.click()
+    assert "בית: לא מחושב" in QApplication.clipboard().text()
+    assert "לא ידועה — תוצאות בקירוב" in QApplication.clipboard().text()
     snapshot(window, "unknown-time.png")
     unknown_summary = {
         "table_rows": window.table.rowCount(), "ascendant": unknown.ascendant,
