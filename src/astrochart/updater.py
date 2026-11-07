@@ -21,6 +21,8 @@ from zipfile import ZipFile, BadZipFile
 REPO = "toyro396133/astro-birth-chart-windows"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
 ASSET = "AstroBirthChart-Windows-x64.zip"
+SETUP_ASSET = "AstroBirthChart-Setup.exe"
+INSTALLED_MARKER = "installed-by-setup.marker"
 EXE = "AstroBirthChart.exe"
 HELPER = "AstroBirthChartUpdater.exe"
 MAX_ZIP = 350_000_000
@@ -68,15 +70,17 @@ def open_https(url, timeout=20):
         timeout=timeout)
 
 
-def parse_release(payload):
+def parse_release(payload, asset_name=ASSET):
     if not isinstance(payload, dict) or payload.get("draft") or payload.get("prerelease"):
         raise UpdateError("לא נמצאה גרסה יציבה")
     tag = payload.get("tag_name")
     if not isinstance(tag, str) or not TAG.fullmatch(tag):
         raise UpdateError("תג גרסה לא תקין")
-    expected_url = f"https://github.com/{REPO}/releases/download/{tag}/{ASSET}"
+    if asset_name not in (ASSET, SETUP_ASSET):
+        raise UpdateError("סוג חבילה לא מורשה")
+    expected_url = f"https://github.com/{REPO}/releases/download/{tag}/{asset_name}"
     items = [a for a in payload.get("assets", []) if isinstance(a, dict)
-             and a.get("name") == ASSET and a.get("state") == "uploaded"]
+             and a.get("name") == asset_name and a.get("state") == "uploaded"]
     if len(items) != 1 or items[0].get("browser_download_url") != expected_url:
         raise UpdateError("קובץ העדכון חסר או שמקורו אינו מורשה")
     item = items[0]
@@ -88,14 +92,14 @@ def parse_release(payload):
     return Release(tag[1:], expected_url, match.group(1), size)
 
 
-def latest_release():
+def latest_release(asset_name=ASSET):
     from urllib.error import HTTPError
     try:
         with open_https(API) as response:
             raw = response.read(512_001)
             if len(raw) > 512_000:
                 raise UpdateError("תגובת GitHub ארוכה מדי")
-            return parse_release(json.loads(raw))
+            return parse_release(json.loads(raw), asset_name=asset_name)
     except HTTPError as exc:
         if exc.code == 404:
             return None  # no releases published yet
@@ -229,3 +233,37 @@ def launch_install(stage, installed, version):
     shutil.copy2(helper, location)
     subprocess.Popen([str(location), "--apply", str(installed), str(stage),
                       str(os.getpid()), version], cwd=location.parent, close_fds=True)
+
+
+
+def is_installed_setup(install_dir):
+    """Official setup marker: never folder-swap a Windows-registered install."""
+    directory = Path(install_dir)
+    return (directory / INSTALLED_MARKER).is_file()
+
+
+def launch_setup_install(downloaded_setup, installed, version, expected_digest):
+    """Install with Inno Setup *without* invalidating Windows uninstall records.
+
+    A separate helper waits for the application to exit, rechecks the already
+    verified installer SHA-256 and invokes the genuine Inno Setup installer.
+    """
+    from astrochart import __version__
+    installed = Path(installed).resolve()
+    downloaded_setup = Path(downloaded_setup).resolve()
+    if not is_newer(version, __version__):
+        raise UpdateError("גרסת העדכון אינה חדשה יותר")
+    if (not is_installed_setup(installed)
+            or downloaded_setup.name != SETUP_ASSET
+            or not downloaded_setup.is_file()
+            or not HASH.fullmatch("sha256:" + str(expected_digest))):
+        raise UpdateError("מתקין העדכון אינו מאומת או שההתקנה אינה רשומה ב־Windows")
+    worker = installed / HELPER
+    if not worker.is_file():
+        raise UpdateError("רכיב העדכון העצמאי חסר")
+    location = Path(tempfile.mkdtemp(prefix="AstroChartUpdater-")) / HELPER
+    shutil.copy2(worker, location)
+    subprocess.Popen([
+        str(location), "--apply-setup", str(installed), str(downloaded_setup),
+        str(os.getpid()), version, expected_digest
+    ], cwd=location.parent, close_fds=True)
