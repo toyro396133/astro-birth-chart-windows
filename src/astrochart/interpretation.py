@@ -103,6 +103,12 @@ def _validate_rule(rule: dict):
         or any(not isinstance(v, str) or len(v) > 350 for v in detail.values())
     ):
         raise RulePackError("פרטי מקור לא תקינים: " + rule["id"])
+    if status == "approved" and (
+        not isinstance(detail, dict)
+        or detail.get("scope") != "rule-specific-verified"
+        or not rule.get("revision_note")
+    ):
+        raise RulePackError("אישור כלל מחייב מקור פרטני ותיעוד החלטת ביקורת: " + rule["id"])
     if not rule["enabled"]:
         return
     if (rule.get("type") not in ("placement", "aspect", "house", "composite")
@@ -160,6 +166,9 @@ def _validated_pack(data: dict) -> RulePack:
         if rule["id"] in seen:
             raise RulePackError("מזהה כלל כפול: " + rule["id"])
         seen.add(rule["id"])
+    for rule in data["rules"]:
+        if any(rid not in seen for rid in rule.get("related_rule_ids", [])):
+            raise RulePackError("הפניה לכלל שאינו קיים: " + rule["id"])
     return RulePack(data["pack_version"], data["tradition"],
                     tuple(rule for rule in data["rules"] if rule["enabled"]))
 
