@@ -78,6 +78,10 @@ def main():
     assert all(window.table.item(i, 3).text() == "—" for i in range(10))
     assert "שעת הלידה אינה ידועה" in window.warnings.text()
     snapshot(window, "unknown-time.png")
+    unknown_summary = {
+        "table_rows": window.table.rowCount(), "ascendant": unknown.ascendant,
+        "warnings": window.warnings.text(), "houses_present": False
+    }
     # Hebrew date mode: verify an actual button click, not only conversion helper.
     window.unknown.setChecked(False)
     window.date_mode.setCurrentIndex(window.date_mode.findData("hebrew"))
@@ -123,10 +127,7 @@ def main():
             "gui_pass": True,
         },
         "known": known,
-        "unknown": {
-            "table_rows": window.table.rowCount(), "ascendant": unknown.ascendant,
-            "warnings": window.warnings.text(), "houses_present": False
-        },
+        "unknown": unknown_summary,
         "gui_pass": True
     }
     output = ROOT / "qa-output" / "gui-report.json"
