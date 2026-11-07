@@ -66,3 +66,24 @@ jobs:
           name: AstroBirthChart-Windows-Release-ZIP
           path: AstroBirthChart-Windows-x64.zip
           if-no-files-found: error
+
+      - name: Install Inno Setup compiler
+        shell: pwsh
+        run: choco install innosetup -y --no-progress --limit-output
+      - name: Compile single-file Windows Setup.exe
+        shell: pwsh
+        run: |
+          $version = (Get-Content dist/AstroBirthChart/version.json -Raw | ConvertFrom-Json).version
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Missing Inno Setup compiler" }
+          & $iscc "/DAppVersion=$version" "installer\astrochart.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Installer compilation failed" }
+          if (-not (Test-Path "dist\installer\AstroBirthChart-Setup.exe")) { throw "Setup.exe missing" }
+      - name: Validate actual installation, upgrade and Windows uninstall
+        shell: pwsh
+        run: .\scripts\test_installer.ps1
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AstroBirthChart-Windows-Setup-EXE
+          path: dist/installer/AstroBirthChart-Setup.exe
+          if-no-files-found: error
