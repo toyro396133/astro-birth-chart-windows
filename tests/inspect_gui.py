@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from PySide6.QtCore import QDate, QTime, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame
 
 from astrochart.ui import MainWindow
 
@@ -33,6 +33,23 @@ def main():
     window.resize(1024, 790)
     window.show()
     QTest.qWait(200)
+    # Visual redesign is built from real native Qt widgets, not a mockup.
+    header = window.findChild(QFrame, "appHeader")
+    assert header is not None
+    assert "מפת לידה אסטרונומית" in header.findChild(
+        __import__("PySide6.QtWidgets", fromlist=["QLabel"]).QLabel, "appTitle").text()
+    assert window.styleSheet() and "panelCard" in window.styleSheet()
+    assert window.advanced.isHidden(), "Advanced coordinates should start collapsed"
+    window.advanced_toggle.click()
+    assert not window.advanced.isHidden(), "Advanced controls must open on click"
+    assert window.lat.isEnabled() and window.lon.isEnabled() and window.tz.isEnabled()
+    window.advanced_toggle.click()
+    assert window.advanced.isHidden(), "Advanced controls must close on click"
+    window.city.setCurrentText("הזנה ידנית")
+    assert not window.advanced.isHidden(), "Manual location must expose coordinate inputs"
+    window.city.setCurrentText("ירושלים")
+    window.advanced_toggle.click()
+    assert window.advanced.isHidden()
     assert window.day.layoutDirection() == Qt.LayoutDirection.LeftToRight
     assert window.hour.layoutDirection() == Qt.LayoutDirection.LeftToRight
     assert window.day.text() == "01.07.2024", window.day.text()
@@ -118,6 +135,11 @@ def main():
     assert window.wheel.chart is not None
     assert "16.09.2023" in window.warnings.text()
     snapshot(window, "hebrew-after-midnight.png")
+    # Wider display snapshot additionally checks the elastic dashboard split.
+    window.resize(1360, 860)
+    QTest.qWait(180)
+    assert window.wheel.width() >= 430
+    snapshot(window, "ui-wide.png")
 
     report = {
         "hebrew": {
