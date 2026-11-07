@@ -91,7 +91,7 @@ def test_overlay_disable_add_and_version_audit(tmp_path):
     overlay = {
         "schema_version": 1,
         "base_pack_version": "0.2.0",
-        "pack_version": "0.2.0",
+        "pack_version": "0.3.0",
         "rules": [
             {"id": "sun-sign-1", "enabled": False},
             {
@@ -106,7 +106,7 @@ def test_overlay_disable_add_and_version_audit(tmp_path):
     f = tmp_path / "overlay.json"
     f.write_text(json.dumps(overlay, ensure_ascii=False), encoding="utf-8")
     pack = load_rulepack(overlay_path=f)
-    assert pack.version == "0.2.0"
+    assert pack.version == "0.3.0"
     report = interpret_chart(sample_chart(), pack)
     ids = {s["rule_id"] for s in report["signals"]}
     assert "sun-sign-1" not in ids
@@ -126,7 +126,7 @@ def test_overlay_requires_version_match_and_explicit_source(tmp_path):
     write(bad)
     with pytest.raises(RulePackError):
         load_rulepack(overlay_path=p)
-    bad["base_pack_version"] = "0.1.0"
+    bad["base_pack_version"] = "0.2.0"
     bad["rules"] = [{"id": "sun-sign-1", "text": "נוסח מתוקן בלי מקור"}]
     write(bad)
     with pytest.raises(RulePackError, match="מקור"):
