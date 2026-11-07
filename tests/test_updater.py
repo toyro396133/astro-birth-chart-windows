@@ -1,5 +1,6 @@
 """Update security, extraction, version and rollback tests. No network."""
 import json
+from hashlib import sha256
 from pathlib import Path
 import sys
 from zipfile import ZipFile
@@ -7,11 +8,11 @@ from zipfile import ZipFile
 import pytest
 
 from astrochart.updater import (
-    ASSET, MAX_ZIP, UpdateError, extract_release, parse_release,
-    is_newer, auto_updates_enabled, save_auto_updates,
+    ASSET, SETUP_ASSET, MAX_ZIP, UpdateError, extract_release, parse_release,
+    is_newer, auto_updates_enabled, save_auto_updates, is_installed_setup,
 )
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from update_worker import install
+from update_worker import install, install_setup, InstallationError
 
 
 def release_payload(ver="0.2.0"):
@@ -155,3 +156,53 @@ def test_wrong_package_version_rejected(tmp_path):
     archive = create_zip(tmp_path, archive_items("0.1.0"))
     with pytest.raises(UpdateError):
         extract_release(archive, installed, "0.2.0")
+
+
+
+def test_inno_setup_release_is_selected_strictly():
+    data = release_payload("0.3.0")
+    asset = data["assets"][0]
+    asset["name"] = SETUP_ASSET
+    asset["browser_download_url"] = asset["browser_download_url"].replace(ASSET, SETUP_ASSET)
+    result = parse_release(data, asset_name=SETUP_ASSET)
+    assert result.version == "0.3.0"
+    assert result.url.endswith("/AstroBirthChart-Setup.exe")
+    with pytest.raises(UpdateError):
+        parse_release(data)  # portable updater must never accept installer by mistake
+
+
+def test_installed_mode_marker(tmp_path):
+    installed = installation(tmp_path)
+    assert not is_installed_setup(installed)
+    (installed / "installed-by-setup.marker").write_text("setup")
+    assert is_installed_setup(installed)
+
+
+def test_verified_inno_upgrade_preserves_install_folder(tmp_path):
+    installed = installation(tmp_path)
+    (installed / "installed-by-setup.marker").write_text("setup")
+    (installed / "version.json").write_text(
+        json.dumps({"version": "0.2.0", "platform": "windows-x64"}))
+    setup = tmp_path / SETUP_ASSET
+    setup.write_bytes(b"fake setup bytes for mocked command execution")
+    digest = sha256(setup.read_bytes()).hexdigest()
+    seen = []
+    def fake_inno_command(command):
+        seen.append(command)
+        assert "/VERYSILENT" in command and "/NORESTART" in command
+        assert "/DIR=" + str(installed.resolve()) in command
+        (installed / "version.json").write_text(
+            json.dumps({"version": "0.3.0", "platform": "windows-x64"}))
+    result = install_setup(installed, setup, "0.3.0", digest, invoke=fake_inno_command)
+    assert result == installed
+    assert len(seen) == 1
+    assert (installed / "AstroBirthChart.exe").read_bytes() == b"old-app"
+
+
+def test_inno_upgrade_blocks_modified_download(tmp_path):
+    installed = installation(tmp_path)
+    (installed / "installed-by-setup.marker").write_text("setup")
+    setup = tmp_path / SETUP_ASSET
+    setup.write_bytes(b"modified setup")
+    with pytest.raises(InstallationError):
+        install_setup(installed, setup, "0.3.0", "a" * 64, invoke=lambda args: None)
