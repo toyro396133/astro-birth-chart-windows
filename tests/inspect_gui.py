@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from PySide6.QtCore import QDate, QTime, Qt
+from PySide6.QtCore import QDate, QTime, Qt, QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFrame
 
@@ -71,6 +71,14 @@ def main():
         "Ten table rows do not fit at 1024x790",
         last.bottom(), window.table.viewport().height()
     )
+    # The final row must not visually collide with the following section
+    # heading. On CI, the real desktop is only 749px high.
+    last_screen_y = window.table.viewport().mapTo(
+        window, QPoint(0, last.bottom())).y()
+    next_section_y = window.aspects_title.mapTo(window, QPoint(0, 0)).y()
+    assert last_screen_y + 3 < next_section_y, (
+        "Chart table visually collides with the aspects section",
+        last_screen_y, next_section_y)
     assert "אופק:" in window.warnings.text()
     known = {
         "date": "2024-07-01", "time": "12:30", "city": "ירושלים",
