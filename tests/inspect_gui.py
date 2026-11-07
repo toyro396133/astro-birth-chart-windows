@@ -78,12 +78,56 @@ def main():
     assert all(window.table.item(i, 3).text() == "—" for i in range(10))
     assert "שעת הלידה אינה ידועה" in window.warnings.text()
     snapshot(window, "unknown-time.png")
+    unknown_summary = {
+        "table_rows": window.table.rowCount(), "ascendant": unknown.ascendant,
+        "warnings": window.warnings.text(), "houses_present": False
+    }
+    # Hebrew date mode: verify an actual button click, not only conversion helper.
+    window.unknown.setChecked(False)
+    window.date_mode.setCurrentIndex(window.date_mode.findData("hebrew"))
+    window.hebrew_year.setValue(5784)
+    window.hebrew_month.setCurrentIndex(window.hebrew_month.findData(7))
+    window.hebrew_day.setValue(1)
+    window.phase.setCurrentIndex(window.phase.findData("evening"))
+    assert window.hour.text() == "21:00", window.hour.text()
+    assert "15.09.2023" in window.conversion_label.text()
+    assert window.approx_hour.isChecked()
+    window.run.click()
+    QTest.qWait(150)
+    assert window.hebrew_year.text() == "5784", window.hebrew_year.text()
+    assert window.hebrew_day.text() == "1", window.hebrew_day.text()
+    assert window.hebrew_year.width() >= 100 and window.hebrew_day.width() >= 70
+    assert window.table.rowCount() == 10
+    last_row = window.table.visualRect(window.table.model().index(9, 0))
+    assert last_row.isValid() and last_row.bottom() < window.table.viewport().height(), (
+        "Hebrew mode must display all ten rows",
+        last_row.bottom(), window.table.viewport().height()
+    )
+    assert window.wheel.chart is not None
+    assert window.wheel.chart.ascendant is not None
+    assert "המרת תאריך עברי" in window.warnings.text()
+    assert "שעת הלידה משוערת" in window.warnings.text()
+    assert all(b.house is not None for b in window.wheel.chart.bodies)
+    snapshot(window, "hebrew-evening.png")
+
+    window.phase.setCurrentIndex(window.phase.findData("after_midnight"))
+    assert window.hour.text() == "01:00", window.hour.text()
+    assert "16.09.2023" in window.conversion_label.text()
+    window.run.click()
+    QTest.qWait(150)
+    assert window.wheel.chart is not None
+    assert "16.09.2023" in window.warnings.text()
+    snapshot(window, "hebrew-after-midnight.png")
+
     report = {
-        "known": known,
-        "unknown": {
-            "table_rows": window.table.rowCount(), "ascendant": unknown.ascendant,
-            "warnings": window.warnings.text(), "houses_present": False
+        "hebrew": {
+            "day_input": "01 תשרי 5784",
+            "evening_converted": "2023-09-15 21:00",
+            "after_midnight_converted": "2023-09-16 01:00",
+            "gui_pass": True,
         },
+        "known": known,
+        "unknown": unknown_summary,
         "gui_pass": True
     }
     output = ROOT / "qa-output" / "gui-report.json"
