@@ -119,9 +119,19 @@ def test_rolls_back_if_restart_fails(tmp_path):
 def test_zip_traversal_rejected(tmp_path, attack):
     installed = installation(tmp_path)
     entries = archive_items()
-    entries[attack] = b"attack"
+    if "\\" in attack:
+        # ZipInfo on Windows silently normalizes backslashes while writing.
+        # Patch the byte-level filename fields to exercise the real defender.
+        safe_name = attack.replace("\\", "/")
+        entries[safe_name] = b"attack"
+        archive = create_zip(tmp_path, entries)
+        archive.write_bytes(
+            archive.read_bytes().replace(safe_name.encode(), attack.encode()))
+    else:
+        entries[attack] = b"attack"
+        archive = create_zip(tmp_path, entries)
     with pytest.raises(UpdateError):
-        extract_release(create_zip(tmp_path, entries), installed, "0.2.0")
+        extract_release(archive, installed, "0.2.0")
     assert not (tmp_path / "evil.txt").exists()
 
 
