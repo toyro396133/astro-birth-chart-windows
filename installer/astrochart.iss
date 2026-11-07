@@ -18,6 +18,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
+SourceDir=..
 OutputDir=dist\installer
 OutputBaseFilename=AstroBirthChart-Setup
 SetupMutex=AstroBirthChart.Installer
