@@ -1,6 +1,7 @@
 # Smoke test the actual Inno Setup installer, Start Menu registration and uninstall.
 $ErrorActionPreference = 'Stop'
 $setup = (Resolve-Path 'dist\installer\AstroBirthChart-Setup.exe').Path
+$expectedVersion = (Get-Content 'dist\AstroBirthChart\version.json' -Raw | ConvertFrom-Json).version
 $install = Join-Path $env:RUNNER_TEMP 'AstroBirthChart-Install-QA\AstroBirthChart'
 $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AstroBirthChart.Windows_is1'
 if (Test-Path $key) { throw "Old Inno installer registration already exists on test runner" }
@@ -15,10 +16,10 @@ if (-not (Test-Path (Join-Path $install 'AstroBirthChart.exe'))) { throw 'EXE mi
 if (-not (Test-Path (Join-Path $install 'installed-by-setup.marker'))) { throw 'Installed marker missing' }
 if (-not (Test-Path $key)) { throw 'Windows Uninstall entry is missing' }
 $app = Get-ItemProperty $key
-if ($app.DisplayVersion -ne '0.2.0') { throw "Unexpected uninstall version: $($app.DisplayVersion)" }
+if ($app.DisplayVersion -ne $expectedVersion) { throw "Unexpected uninstall version: $($app.DisplayVersion)" }
 if (-not $app.UninstallString) { throw 'Missing uninstall command' }
 $manifest = Get-Content (Join-Path $install 'version.json') -Raw | ConvertFrom-Json
-if ($manifest.version -ne '0.2.0') { throw 'Installed version manifest mismatch' }
+if ($manifest.version -ne $expectedVersion) { throw 'Installed version manifest mismatch' }
 $process = Start-Process -FilePath (Join-Path $install 'AstroBirthChart.exe') -ArgumentList '--self-test' -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw 'Installed program self-test failed' }
 
