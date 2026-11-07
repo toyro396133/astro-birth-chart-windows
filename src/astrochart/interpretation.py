@@ -360,6 +360,10 @@ def format_interpretation(report: dict) -> str:
     lookup = {hit["rule_id"]: hit for hit in report["signals"]}
     for axis in report["axes"]:
         lines.append(f"◆ {axis['axis']}")
+        if axis.get("independent_fact_count", 0) >= 2 and not axis["has_tension"]:
+            lines.append(
+                f"  שילוב ראיות: {axis['independent_fact_count']} נתוני מפה שונים "
+                "מצביעים באותו כיוון במילון הסמלי; אין זה מדד אישיות.")
         if axis["has_tension"]:
             lines.append("  קיימות השפעות סמליות בכיוונים שונים; אין מסקנה חד־משמעית.")
             if axis.get("source_conflict_keys"):
