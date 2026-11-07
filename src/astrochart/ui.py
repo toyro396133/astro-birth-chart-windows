@@ -1,5 +1,5 @@
 from datetime import date, time
-from PySide6.QtCore import QDate, Qt, QTime
+from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
@@ -11,7 +11,35 @@ from .engine import Calculator
 from .hebrew_dates import (months_of_year, days_of_month, from_gregorian,
                            resolve_hebrew_date, sun_altitude, validate_phase_sun)
 from .locations import CITIES
+from . import __version__
+from .updater import (UpdateError, latest_release, is_newer, download_release,
+                      extract_release, install_directory, launch_install,
+                      auto_updates_enabled, save_auto_updates)
 from .wheel import Wheel
+
+
+
+class UpdateCheckThread(QThread):
+    result = Signal(object)
+    error = Signal(str)
+
+    def run(self):
+        import tempfile
+        from pathlib import Path
+        try:
+            latest = latest_release()
+            if latest is None or not is_newer(latest.version, __version__):
+                self.result.emit(None)
+                return
+            installed = install_directory()
+            with tempfile.TemporaryDirectory(prefix="AstroChart-Download-") as temp:
+                zip_path = Path(temp) / "update.zip"
+                download_release(latest, zip_path)
+                stage = extract_release(zip_path, installed, latest.version)
+            self.result.emit((latest.version, stage))
+        except Exception as exc:
+            self.error.emit(str(exc))
+
 
 
 class MainWindow(QMainWindow):
@@ -20,16 +48,35 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("מפת לידה — חישוב מקומי")
         self.resize(1160, 780)
         self.calc = None
+        self._updating = False
+        self._update_thread = None
         self._build()
+        QTimer.singleShot(1000, self._automatic_update_check)
 
     def _build(self):
         root = QWidget()
         root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.setCentralWidget(root)
         main = QVBoxLayout(root)
-        intro = QLabel("מפת לידה אסטרונומית | טרופי | Whole Sign | ללא אינטרנט")
+        intro = QLabel("מפת לידה אסטרונומית | טרופי | Whole Sign | חישוב מקומי")
         intro.setStyleSheet("font-size: 19px; font-weight: bold; color: #1e3a5f;")
-        main.addWidget(intro)
+        heading = QHBoxLayout()
+        heading.setSpacing(6)
+        heading.addWidget(intro, 1)
+        heading.addWidget(QLabel("v" + __version__))
+        self.auto_update = QCheckBox("עדכונים אוטומטיים")
+        self.auto_update.setToolTip(
+            "במצב פעיל התוכנה בודקת GitHub בעת פתיחתה. "
+            "קובצי המפה ונתוני הלידה אינם נשלחים.")
+        self.auto_update.setChecked(auto_updates_enabled())
+        self.auto_update.toggled.connect(self._toggle_auto_update)
+        heading.addWidget(self.auto_update)
+        self.update_button = QPushButton("בדוק עדכונים")
+        self.update_button.clicked.connect(self._manual_update_check)
+        heading.addWidget(self.update_button)
+        self.update_status = QLabel("")
+        heading.addWidget(self.update_status)
+        main.addLayout(heading)
 
         # A compact two-column form preserves room for all ten table rows.
         form_box = QGroupBox("נתוני חישוב")
@@ -187,6 +234,71 @@ class MainWindow(QMainWindow):
         split.addWidget(right)
         split.setSizes([490, 590])
         main.addWidget(split, 1)
+
+    def _toggle_auto_update(self, checked):
+        try:
+            save_auto_updates(checked)
+            self.update_status.setText(
+                "בדיקה אוטומטית בפתיחה" if checked else "עדכונים כבויים")
+        except OSError as exc:
+            QMessageBox.warning(self, "שמירת הגדרות", str(exc))
+
+    def _automatic_update_check(self):
+        if self.auto_update.isChecked():
+            self._start_update_check()
+
+    def _manual_update_check(self):
+        self._start_update_check()
+
+    def _start_update_check(self):
+        if self._update_thread is not None and self._update_thread.isRunning():
+            return
+        self.update_status.setText("בודק...")
+        self.update_button.setEnabled(False)
+        self._updating = True
+        self._update_thread = UpdateCheckThread(self)
+        self._update_thread.result.connect(self._on_update_checked)
+        self._update_thread.error.connect(self._on_update_error)
+        self._update_thread.finished.connect(self._on_update_finished)
+        self._update_thread.start()
+
+    def _on_update_checked(self, value):
+        if value is None:
+            self.update_status.setText("אין גרסה חדשה")
+            return
+        version, stage = value
+        self.update_status.setText("גרסה " + version + " מוכנה")
+        reply = QMessageBox.question(
+            self, "עדכון זמין", "גרסה " + version + " הורדה ואומתה. "
+            "להתקין אותה כעת ולהפעיל מחדש?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                launch_install(stage, install_directory(), version)
+                from PySide6.QtWidgets import QApplication
+                QApplication.quit()
+            except Exception as exc:
+                QMessageBox.warning(self, "התקנת עדכון", str(exc))
+        else:
+            import shutil
+            shutil.rmtree(stage, ignore_errors=True)
+            self.update_status.setText("העדכון נדחה")
+
+    def _on_update_error(self, message):
+        self.update_status.setText("בדיקת העדכון נכשלה")
+        if self.isVisible():
+            QMessageBox.warning(self, "עדכון תוכנה", message)
+
+    def _on_update_finished(self):
+        self._updating = False
+        self.update_button.setEnabled(True)
+
+    def closeEvent(self, event):
+        if self._updating and self._update_thread and self._update_thread.isRunning():
+            event.ignore()
+            self.update_status.setText("המתן לסיום בדיקת העדכון")
+            return
+        super().closeEvent(event)
 
     def _fill_hebrew_months(self, preferred=None):
         old = preferred if preferred is not None else self.hebrew_month.currentData()

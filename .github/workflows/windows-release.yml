@@ -1,0 +1,64 @@
+name: Publish stable Windows release
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify tag equals app version and points to current main
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = python -c "import sys; sys.path.insert(0, 'src'); import astrochart; print(astrochart.__version__)"
+          if ($tag -cne "v$version") { throw "Tag $tag is not v$version" }
+          git fetch origin main
+          $main = git rev-parse origin/main
+          if ("${{ github.sha }}" -cne $main) { throw "Only the current main commit can become a stable release" }
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+      - name: Fetch pinned JPL ephemeris
+        run: python scripts/download_ephemeris.py
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Package application
+        run: python -m PyInstaller --noconfirm --clean astro_app.spec
+      - name: Package independent updater
+        run: python -m PyInstaller --onefile --noconfirm --clean --name AstroBirthChartUpdater scripts/update_worker.py --distpath dist/update-helper --workpath build/update-helper
+      - name: Add updater and version manifest
+        shell: pwsh
+        run: |
+          python scripts/write_version.py
+          Copy-Item dist/update-helper/AstroBirthChartUpdater.exe dist/AstroBirthChart/AstroBirthChartUpdater.exe
+      - name: Test frozen app and updater
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path dist/AstroBirthChart/AstroBirthChart.exe).Path
+          $p = Start-Process -FilePath $exe -ArgumentList "--self-test" -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Frozen app failed" }
+          & dist/AstroBirthChart/AstroBirthChartUpdater.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Updater helper failed" }
+          python tests/inspect_gui.py
+      - name: Create release ZIP with fixed root folder
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/AstroBirthChart -DestinationPath AstroBirthChart-Windows-x64.zip -CompressionLevel Optimal
+          python scripts/verify_release_zip.py AstroBirthChart-Windows-x64.zip
+          Get-FileHash AstroBirthChart-Windows-x64.zip -Algorithm SHA256
+      - name: Publish release with GitHub-computed SHA256 digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          gh release create "${{ github.ref_name }}" AstroBirthChart-Windows-x64.zip --title "AstroBirthChart ${{ github.ref_name }}" --generate-notes --verify-tag
