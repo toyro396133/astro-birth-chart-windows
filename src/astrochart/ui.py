@@ -193,6 +193,12 @@ class MainWindow(QMainWindow):
         options.addWidget(self.unknown)
         options.addWidget(self.approx_hour)
         options.addStretch(1)
+        self.advanced_toggle = QPushButton("＋ מיקום מתקדם")
+        self.advanced_toggle.setObjectName("advancedToggle")
+        self.advanced_toggle.setToolTip("עריכה ידנית של קווי רוחב/אורך ואזור זמן")
+        self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.advanced_toggle.clicked.connect(lambda: self._toggle_advanced())
+        options.addWidget(self.advanced_toggle)
         form.addLayout(options, 1, 2, 1, 2)
 
         self.city = QComboBox()
@@ -213,25 +219,15 @@ class MainWindow(QMainWindow):
         form.addWidget(self.phase_label, 2, 2)
         form.addWidget(self.phase, 2, 3)
 
-        self.advanced_toggle = QPushButton("＋ הגדרות מיקום מתקדמות")
-        self.advanced_toggle.setObjectName("advancedToggle")
-        self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.advanced_toggle.clicked.connect(lambda: self._toggle_advanced())
-        form.addWidget(self.advanced_toggle, 3, 0, 1, 2)
         self.conversion_label = QLabel("")
         self.conversion_label.setObjectName("conversionInfo")
         self.conversion_label.setWordWrap(True)
-        form.addWidget(self.conversion_label, 3, 2, 1, 2)
-
-        footnote = QLabel("ללא חשבון וללא שליחת נתונים • החישוב מבוצע במחשב שלך")
-        footnote.setObjectName("helperText")
-        footnote.setWordWrap(True)
-        form.addWidget(footnote, 4, 0, 1, 2)
+        form.addWidget(self.conversion_label, 3, 0, 1, 2)
         self.run = QPushButton("חשב מפת לידה")
         self.run.setObjectName("calculateButton")
         self.run.setCursor(Qt.CursorShape.PointingHandCursor)
         self.run.clicked.connect(self._calculate)
-        form.addWidget(self.run, 4, 2, 1, 2)
+        form.addWidget(self.run, 3, 2, 1, 2)
 
         self.advanced = QFrame()
         self.advanced.setObjectName("advancedPanel")
@@ -260,7 +256,7 @@ class MainWindow(QMainWindow):
         self.tz.setAlignment(Qt.AlignmentFlag.AlignLeft)
         adv.addWidget(field_label("אזור זמן IANA"), 1, 0)
         adv.addWidget(self.tz, 1, 1, 1, 3)
-        form.addWidget(self.advanced, 5, 0, 1, 4)
+        form.addWidget(self.advanced, 4, 0, 1, 4)
         self.advanced.setVisible(False)
         main.addWidget(form_box)
 
@@ -322,7 +318,8 @@ class MainWindow(QMainWindow):
         self.table.setMinimumHeight(285)
         details_layout.addWidget(self.table, 1)
 
-        details_layout.addWidget(section_title("היבטים בין הגופים"))
+        self.aspects_title = section_title("היבטים בין הגופים")
+        details_layout.addWidget(self.aspects_title)
         self.aspects = QTextEdit()
         self.aspects.setObjectName("aspectText")
         self.aspects.setReadOnly(True)
@@ -361,8 +358,8 @@ class MainWindow(QMainWindow):
             expanded = not expanded
         self.advanced.setVisible(expanded)
         self.advanced_toggle.setText(
-            "− הסתר הגדרות מיקום מתקדמות" if expanded
-            else "＋ הגדרות מיקום מתקדמות")
+            "− הסתר מיקום מתקדם" if expanded
+            else "＋ מיקום מתקדם")
 
     def _toggle_auto_update(self, checked):
         try:
