@@ -112,7 +112,6 @@ def test_rolls_back_if_restart_fails(tmp_path):
 
 @pytest.mark.parametrize("attack", [
     "AstroBirthChart/../evil.txt",
-    "AstroBirthChart\\evil.txt",
     "../AstroBirthChart/evil.txt",
     "AstroBirthChart/C:/evil.txt",
 ])
@@ -132,6 +131,22 @@ def test_zip_traversal_rejected(tmp_path, attack):
         archive = create_zip(tmp_path, entries)
     with pytest.raises(UpdateError):
         extract_release(archive, installed, "0.2.0")
+    assert not (tmp_path / "evil.txt").exists()
+
+
+def test_backslash_zip_member_cannot_escape_staging(tmp_path):
+    # On Windows, Python's ZipInfo normalizes backslashes to separators.
+    # On Unix it keeps them verbatim, and the updater rejects the entry.
+    installed = installation(tmp_path)
+    entries = archive_items()
+    entries["AstroBirthChart\\evil.txt"] = b"attack"
+    archive = create_zip(tmp_path, entries)
+    if sys.platform == "win32":
+        stage = extract_release(archive, installed, "0.2.0")
+        assert (stage / "evil.txt").read_bytes() == b"attack"
+    else:
+        with pytest.raises(UpdateError):
+            extract_release(archive, installed, "0.2.0")
     assert not (tmp_path / "evil.txt").exists()
 
 
