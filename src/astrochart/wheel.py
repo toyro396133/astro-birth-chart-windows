@@ -22,7 +22,7 @@ class Wheel(QWidget):
     def __init__(self):
         super().__init__()
         self.chart = None
-        self.setMinimumSize(400, 400)
+        self.setMinimumSize(350, 350)
 
     def set_chart(self, chart):
         self.chart = chart
@@ -39,30 +39,40 @@ class Wheel(QWidget):
             return
 
         w, h = self.width(), self.height()
-        r = max(100.0, min(w, h) * 0.43)
+        r = max(95.0, min(w, h) * 0.438)
         center = QPointF(w / 2, h / 2)
         origin = self.chart.ascendant if self.chart.ascendant is not None else 0.0
+
+        # Pale dial and precise concentric guides; no photographic assets.
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor("#f8fbff"))
+        p.drawEllipse(center, r, r)
+        p.setBrush(Qt.BrushStyle.NoBrush)
 
         def point(lon, radius):
             a = math.radians((lon - origin) % 360)
             return QPointF(center.x() - radius * math.cos(a),
                            center.y() + radius * math.sin(a))
 
-        p.setPen(QPen(QColor("#334155"), 2))
-        for radius in (r, r * 0.80, r * 0.57):
+        for radius, stroke, width in (
+            (r, "#314968", 2.0),
+            (r * 0.80, "#829bb9", 1.5),
+            (r * 0.57, "#c8d8eb", 1.1),
+        ):
+            p.setPen(QPen(QColor(stroke), width))
             p.drawEllipse(center, radius, radius)
-        p.setFont(QFont("Arial", 10))
+        p.setFont(QFont("Segoe UI", 10))
         for s in range(12):
             lon = s * 30
-            p.setPen(QPen(QColor("#cbd5e1"), 1))
+            p.setPen(QPen(QColor("#d5e2f1"), 1))
             p.drawLine(point(lon, r * 0.80), point(lon, r))
             pos = point(lon + 15, r * 0.90)
-            p.setPen(QColor("#334155"))
+            p.setPen(QColor("#334d6d"))
             p.drawText(int(pos.x() - 28), int(pos.y() - 10), 56, 20,
                        Qt.AlignmentFlag.AlignCenter, SIGNS[s])
 
         if self.chart.ascendant is not None:
-            p.setPen(QPen(QColor("#2563eb"), 1.1))
+            p.setPen(QPen(QColor("#94b7e0"), 1.1))
             for i in range(12):
                 cusp = (int(origin // 30) + i) * 30
                 p.drawLine(point(cusp, r * 0.05), point(cusp, r * 0.55))
@@ -71,32 +81,54 @@ class Wheel(QWidget):
                            Qt.AlignmentFlag.AlignCenter, str(i + 1))
 
         lookup = {b.name: b for b in self.chart.bodies}
-        p.setPen(QPen(QColor("#d6a34e"), 1.1))
         for aspect in self.chart.aspects:
+            kind = aspect.kind
+            if "משולש" in kind or "שישית" in kind:
+                color = QColor("#5487d4")
+            elif ("ריבוע" in kind or "מרובע" in kind or
+                  "מולות" in kind or "ניגוד" in kind):
+                color = QColor("#d39a55")
+            else:
+                color = QColor("#a7b7c9")
+            color.setAlpha(175)
+            p.setPen(QPen(color, 1.25))
             p.drawLine(point(lookup[aspect.first].longitude, r * 0.52),
                        point(lookup[aspect.second].longitude, r * 0.52))
+
+        # The central disk keeps the interior uncluttered when lines converge.
+        p.setPen(QPen(QColor("#e0e9f5"), 1))
+        p.setBrush(QColor("#ffffff"))
+        p.drawEllipse(center, r * 0.07, r * 0.07)
+        p.setBrush(Qt.BrushStyle.NoBrush)
 
         # The anchor dots are exact; only symbol labels may move.
         angles = spread_marker_angles([b.longitude for b in self.chart.bodies], 15)
         p.setFont(QFont("Segoe UI Symbol", 15))
+        planet_colors = {
+            "שמש": "#c58538", "ירח": "#5272a6", "מרקורי": "#4d8091",
+            "ונוס": "#9d6594", "מאדים": "#b9665e", "צדק": "#567d63",
+            "שבתאי": "#7c7790", "אורנוס": "#488e93", "נפטון": "#647cab",
+            "פלוטו": "#786e9b",
+        }
         for body, label_lon in zip(self.chart.bodies, angles):
             anchor = point(body.longitude, r * 0.585)
             label = point(label_lon, r * 0.70)
-            p.setPen(QPen(QColor("#94a3b8"), 1))
+            p.setPen(QPen(QColor("#a6bad2"), 1))
             p.drawLine(anchor, label)
-            p.setPen(QPen(QColor("#334155"), 1))
-            p.setBrush(QColor("#334155"))
-            p.drawEllipse(anchor, 2.2, 2.2)
-            p.setPen(QPen(QColor("#e2e8f0"), 1))
+            symbol_color = QColor(planet_colors.get(body.name, "#314968"))
+            p.setPen(QPen(symbol_color, 1))
+            p.setBrush(symbol_color)
+            p.drawEllipse(anchor, 2.3, 2.3)
+            p.setPen(QPen(QColor("#dbe6f4"), 1.1))
             p.setBrush(QColor("#ffffff"))
-            p.drawEllipse(label, 14, 14)
-            p.setPen(QColor("#0f172a"))
+            p.drawEllipse(label, 14.5, 14.5)
+            p.setPen(symbol_color)
             p.drawText(int(label.x() - 14), int(label.y() - 14), 28, 28,
                        Qt.AlignmentFlag.AlignCenter, SYMBOLS[body.name])
 
         if self.chart.approximate:
             p.setFont(QFont("Arial", 9))
-            p.setPen(QColor("#b45309"))
+            p.setPen(QColor("#b77938"))
             p.drawText(int(center.x() - 110), int(center.y() - 14), 220, 28,
                        Qt.AlignmentFlag.AlignCenter, "שעה לא ידועה — ללא בתים")
         p.end()
