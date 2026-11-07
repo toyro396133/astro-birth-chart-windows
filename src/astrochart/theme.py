@@ -70,8 +70,8 @@ QGroupBox#inputCard {
     border: 1px solid #e2eaf4;
     border-radius: 15px;
     background-color: #ffffff;
-    margin-top: 10px;
-    padding-top: 11px;
+    margin-top: 7px;
+    padding-top: 7px;
     font-weight: normal;
 }
 QGroupBox#inputCard::title {
@@ -130,8 +130,8 @@ QComboBox, QDateEdit, QTimeEdit, QSpinBox, QDoubleSpinBox, QLineEdit {
     color: #233d58;
     border: 1px solid #d9e4f0;
     border-radius: 7px;
-    min-height: 25px;
-    padding: 2px 8px;
+    min-height: 20px;
+    padding: 2px 7px;
     selection-background-color: #377bd1;
 }
 QComboBox:hover, QDateEdit:hover, QTimeEdit:hover, QSpinBox:hover,
