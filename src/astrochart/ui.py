@@ -40,20 +40,21 @@ class MainWindow(QMainWindow):
 
         self.day = QDateEdit()
         self.day.setCalendarPopup(True)
+        # Qt reverses date sections when setDisplayFormat runs in RTL.
+        self.day.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.day.setDisplayFormat("dd.MM.yyyy")
         self.day.setDate(QDate.currentDate())
         self.day.setMinimumDate(QDate(1850, 1, 1))
         self.day.setMaximumDate(QDate(2149, 12, 31))
-        # Numeric date and time fields must not inherit the RTL text order.
-        self.day.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.day.setAlignment(Qt.AlignmentFlag.AlignLeft)
         form.addWidget(QLabel("תאריך:"), 0, 0)
         form.addWidget(self.day, 0, 1)
 
         self.hour = QTimeEdit()
+        # Set LTR *before* the format: Qt caches reversed RTL sections.
+        self.hour.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.hour.setDisplayFormat("HH:mm")
         self.hour.setTime(QTime(12, 0))
-        self.hour.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.hour.setAlignment(Qt.AlignmentFlag.AlignLeft)
         form.addWidget(QLabel("שעת לידה:"), 0, 2)
         form.addWidget(self.hour, 0, 3)
