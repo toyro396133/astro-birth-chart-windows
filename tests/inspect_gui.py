@@ -30,8 +30,13 @@ def main():
     window.day.setDate(QDate(2024, 7, 1))
     window.hour.setTime(QTime(12, 30))
     window.city.setCurrentText("ירושלים")
+    window.resize(1024, 790)
     window.show()
     QTest.qWait(200)
+    assert window.day.layoutDirection() == Qt.LayoutDirection.LeftToRight
+    assert window.hour.layoutDirection() == Qt.LayoutDirection.LeftToRight
+    assert window.day.text() == "01.07.2024", window.day.text()
+    assert window.hour.text() == "12:30", window.hour.text()
 
     # Click the actual calculate button (not a direct call to the core).
     window.run.click()
@@ -44,6 +49,11 @@ def main():
     assert all(window.table.item(i, j) is not None
                for i in range(10) for j in range(5))
     assert window.aspects.toPlainText(), "No aspects displayed"
+    last = window.table.visualRect(window.table.model().index(9, 0))
+    assert last.isValid() and last.bottom() < window.table.viewport().height(), (
+        "Ten table rows do not fit at 1024x790",
+        last.bottom(), window.table.viewport().height()
+    )
     assert "אופק:" in window.warnings.text()
     known = {
         "date": "2024-07-01", "time": "12:30", "city": "ירושלים",
