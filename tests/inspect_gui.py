@@ -11,6 +11,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFrame
 
 from astrochart.ui import MainWindow
+from astrochart.interpretation_dialog import RuleInterpretationDialog
 
 
 def snapshot(window, name):
@@ -66,6 +67,16 @@ def main():
     assert all(window.table.item(i, j) is not None
                for i in range(10) for j in range(5))
     assert window.aspects.toPlainText(), "No aspects displayed"
+    assert window.interpret_button.isEnabled()
+    dialog = RuleInterpretationDialog(chart, window)
+    assert dialog.report["signals"]
+    assert "גרסת כללים" in dialog.summary.toPlainText()
+    assert "sun-" in dialog.details.toPlainText()
+    assert '"rule_pack_version"' in dialog.payload.toPlainText()
+    dialog.copy_json_button.click()
+    copied = json.loads(QApplication.clipboard().text())
+    assert copied["generation_constraints"]["quote_rule_ids_for_claims"]
+    dialog.close()
     last = window.table.visualRect(window.table.model().index(9, 0))
     assert last.isValid() and last.bottom() < window.table.viewport().height(), (
         "Ten table rows do not fit at 1024x790",
@@ -102,6 +113,10 @@ def main():
     assert all(b.house is None for b in unknown.bodies)
     assert all(window.table.item(i, 3).text() == "—" for i in range(10))
     assert "שעת הלידה אינה ידועה" in window.warnings.text()
+    unknown_dialog = RuleInterpretationDialog(unknown, window)
+    assert unknown_dialog.report["time_uncertain"]
+    assert unknown_dialog.structured_payload["chart_facts"]["aspects"] == []
+    unknown_dialog.close()
     snapshot(window, "unknown-time.png")
     unknown_summary = {
         "table_rows": window.table.rowCount(), "ascendant": unknown.ascendant,

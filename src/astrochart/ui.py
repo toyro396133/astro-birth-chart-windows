@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         self.resize(1240, 830)
         self.setMinimumSize(980, 700)
         self.calc = None
+        self._interpretation_chart = None
         self._updating = False
         self._update_thread = None
         self._build()
@@ -308,6 +309,13 @@ class MainWindow(QMainWindow):
         self.chart_caption = QLabel("תוצאות החישוב יופיעו כאן")
         self.chart_caption.setObjectName("helperText")
         table_heading.addWidget(self.chart_caption)
+        self.interpret_button = QPushButton("פרשנות אופי (ניסוי)")
+        self.interpret_button.setObjectName("interpretationButton")
+        self.interpret_button.setToolTip(
+            "פרשנות סמלית לפי חבילת כללים מתפתחת, בנפרד מנתוני החישוב")
+        self.interpret_button.setEnabled(False)
+        self.interpret_button.clicked.connect(self._open_interpretation)
+        table_heading.addWidget(self.interpret_button)
         details_layout.addLayout(table_heading)
 
         self.table = QTableWidget(0, 5)
@@ -553,6 +561,8 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
     def _show_chart(self, chart):
+        self._interpretation_chart = chart
+        self.interpret_button.setEnabled(True)
         self.chart_caption.setText(
             f"{len(chart.bodies)} גופים · " +
             ("שעה לא ידועה" if chart.approximate else "מפה מחושבת"))
@@ -575,3 +585,10 @@ class MainWindow(QMainWindow):
             f" | ציר נגדי: {chart.descendant:.3f}°")
         self.warnings.setText("\n".join(chart.warnings) + angles)
         self.wheel.set_chart(chart)
+
+    def _open_interpretation(self):
+        if self._interpretation_chart is None:
+            return
+        from .interpretation_dialog import RuleInterpretationDialog
+        dialog = RuleInterpretationDialog(self._interpretation_chart, self)
+        dialog.exec()
