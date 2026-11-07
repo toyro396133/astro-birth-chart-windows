@@ -14,9 +14,9 @@ def test_sign_boundaries_and_wraparound():
 
 
 def test_whole_sign_houses():
-    assert house_of(300, 291) == 1
-    assert house_of(0, 291) == 3
-    assert house_of(270, 291) == 12
+    assert house_of(300, 291) == 2
+    assert house_of(0, 291) == 4
+    assert house_of(240, 291) == 12
 
 
 def test_separation_and_aspect_orb():

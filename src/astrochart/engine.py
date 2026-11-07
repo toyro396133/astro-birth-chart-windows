@@ -10,7 +10,7 @@ from .timeconv import full_local_day, local_to_utc
 EPHEMERIS_NAME = "de440s.bsp"
 TARGETS = (
     ("שמש", "sun"), ("ירח", "moon"), ("מרקורי", "mercury"),
-    ("ונוס", "venus"), ("מאדים", "mars"), ("צדק", "jupiter barycenter"),
+    ("ונוס", "venus"), ("מאדים", "mars barycenter"), ("צדק", "jupiter barycenter"),
     ("שבתאי", "saturn barycenter"), ("אורנוס", "uranus barycenter"),
     ("נפטון", "neptune barycenter"), ("פלוטו", "pluto barycenter"),
 )
@@ -76,7 +76,7 @@ class Calculator:
         if not (-90 < latitude < 90) or not (-180 <= longitude <= 180):
             raise ValueError("קו רוחב חייב להיות בין הקטבים, וקו אורך בין ‎-180 ל־180")
         warnings = [
-            "צדק עד פלוטו מחושבים לפי מרכזי המסה של המערכות הפלנטריות (JPL)."
+            "מאדים וצדק עד פלוטו מחושבים לפי מרכזי המסה של המערכות הפלנטריות (JPL)."
         ]
         if unknown_time:
             start, end = full_local_day(day, zone_name)
