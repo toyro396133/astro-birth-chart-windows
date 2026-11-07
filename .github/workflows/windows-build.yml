@@ -35,6 +35,13 @@ jobs:
         run: |
           $proc = Start-Process -FilePath "dist/AstroBirthChart/AstroBirthChart.exe" -ArgumentList "--smoke-gui" -PassThru -Wait
           if ($proc.ExitCode -ne 0) { throw "GUI process failed with code $($proc.ExitCode)" }
+      - name: Functional GUI interaction and visual snapshots (Windows)
+        run: python tests/inspect_gui.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AstroBirthChart-GUI-QA
+          path: qa-output/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: AstroBirthChart-Windows-offline
