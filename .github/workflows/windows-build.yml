@@ -10,8 +10,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -24,6 +24,15 @@ jobs:
         run: python -m pytest -q
       - name: Build offline Windows EXE (one-directory / LGPL friendly)
         run: python -m PyInstaller --noconfirm --clean astro_app.spec
+      - name: Bundle independent updater worker
+        run: python -m PyInstaller --onefile --noconfirm --clean --name AstroBirthChartUpdater scripts/update_worker.py --distpath dist/update-helper --workpath build/update-helper
+      - name: Add worker and version information to distribution
+        shell: pwsh
+        run: |
+          python scripts/write_version.py
+          Copy-Item dist/update-helper/AstroBirthChartUpdater.exe dist/AstroBirthChart/AstroBirthChartUpdater.exe
+          & dist/AstroBirthChart/AstroBirthChartUpdater.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Independent updater smoke check failed" }
       - name: Smoke test frozen EXE / offline core
         shell: pwsh
         run: |
@@ -37,13 +46,23 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "GUI process failed with code $($proc.ExitCode)" }
       - name: Functional GUI interaction and visual snapshots (Windows)
         run: python tests/inspect_gui.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-GUI-QA
           path: qa-output/
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-Windows-offline
           path: dist/AstroBirthChart/
+          if-no-files-found: error
+      - name: Create and validate downloadable Windows release ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/AstroBirthChart -DestinationPath AstroBirthChart-Windows-x64.zip -CompressionLevel Optimal
+          python scripts/verify_release_zip.py AstroBirthChart-Windows-x64.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AstroBirthChart-Windows-Release-ZIP
+          path: AstroBirthChart-Windows-x64.zip
           if-no-files-found: error
