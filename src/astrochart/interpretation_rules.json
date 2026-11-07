@@ -2276,7 +2276,11 @@
         "url": "https://www.astro.com/astrowiki/en/Planets",
         "section": "Astrology",
         "scope": "general planetary framework only; placement-specific claim not established"
-      }
+      },
+      "related_rule_ids": [
+        "sun-sign-1",
+        "moon-sign-2"
+      ]
     },
     {
       "id": "mercury-virgo-saturn-capricorn",
@@ -2308,7 +2312,11 @@
         "url": "https://www.astro.com/astrowiki/en/Mercury",
         "section": "Interpretation",
         "scope": "general framework; composite/aspect/house synthesis"
-      }
+      },
+      "related_rule_ids": [
+        "mercury-sign-6",
+        "saturn-sign-10"
+      ]
     },
     {
       "id": "venus-libra-mars-libra",
@@ -2340,7 +2348,11 @@
         "url": "https://www.astro.com/astrowiki/en/Venus",
         "section": "Interpretation",
         "scope": "general framework; composite/aspect/house synthesis"
-      }
+      },
+      "related_rule_ids": [
+        "venus-sign-7",
+        "mars-sign-7"
+      ]
     },
     {
       "id": "sun-sagittarius-mercury-sagittarius",
@@ -2372,7 +2384,11 @@
         "url": "https://www.astro.com/astrowiki/en/Planets",
         "section": "Astrology",
         "scope": "general planetary framework only; placement-specific claim not established"
-      }
+      },
+      "related_rule_ids": [
+        "sun-sign-9",
+        "mercury-sign-9"
+      ]
     }
   ]
 }
