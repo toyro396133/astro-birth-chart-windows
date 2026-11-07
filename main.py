@@ -17,6 +17,9 @@ def self_test():
     from astrochart.hebrew_dates import resolve_hebrew_date
     resolved = resolve_hebrew_date(5784, 7, 1, "evening", time(21))
     assert resolved.civil_day == date(2023, 9, 15)
+    from astrochart.updater import is_newer
+    assert is_newer("0.3.0", "0.2.0")
+    print("UPDATE_ENGINE_OK")
     print("HEBREW_DATE_OK")
     print("OFFLINE_ENGINE_OK")
     return 0
