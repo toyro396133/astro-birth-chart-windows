@@ -5,11 +5,11 @@ When several bodies are near each other, labels are spread tangentially and
 connected to their *true* angles instead of letting the symbols overlap.
 """
 import math
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtCore import Qt, QPointF, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
-from .domain import SIGNS, spread_marker_angles
+from .domain import SIGNS, degree_in_sign, spread_marker_angles
 
 SYMBOLS = {
     "שמש": "☉", "ירח": "☽", "מרקורי": "☿", "ונוס": "♀",
@@ -19,19 +19,73 @@ SYMBOLS = {
 
 
 class Wheel(QWidget):
+    """Chart labels can be inspected directly; exact coordinates never move."""
+
+    bodySelected = Signal(str)
+
     def __init__(self):
         super().__init__()
         self.chart = None
+        self.selected_body = None
+        self._hit_targets = {}
         self.setMinimumSize(350, 350)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMouseTracking(True)
+        self.setAccessibleName("גלגל מפה אינטראקטיבי")
+        self.setToolTip("לחץ על סמל בגוף במפה כדי לבחור אותו בטבלה")
 
     def set_chart(self, chart):
         self.chart = chart
+        self.selected_body = None
+        self._hit_targets = {}
         self.update()
+
+    def set_selected_body(self, name):
+        valid = bool(self.chart and any(b.name == name for b in self.chart.bodies))
+        selected = name if valid else None
+        if self.selected_body != selected:
+            self.selected_body = selected
+            self.update()
+
+    def nearest_marker(self, point):
+        """Use the actual rendered label positions, not raw longitudes."""
+        if not self.chart:
+            return None
+        closest, distance = None, 21.0
+        for name, position in self._hit_targets.items():
+            delta = math.hypot(point.x() - position.x(), point.y() - position.y())
+            if delta < distance:
+                closest, distance = name, delta
+        return closest
+
+    def mouseMoveEvent(self, event):
+        name = self.nearest_marker(event.position())
+        if name:
+            body = next(b for b in self.chart.bodies if b.name == name)
+            self.setToolTip(
+                f"{name} · {body.sign} · {degree_in_sign(body.longitude):.2f}°"
+                + (f" · בית {body.house}" if body.house is not None else ""))
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.setToolTip("לחץ על סמל במפה כדי לבחור גוף")
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            name = self.nearest_marker(event.position())
+            if name is not None:
+                self.set_selected_body(name)
+                self.bodySelected.emit(name)
+                event.accept()
+                return
+        super().mousePressEvent(event)
 
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#ffffff"))
+        self._hit_targets = {}
         if self.chart is None:
             p.setPen(QColor("#64748b"))
             p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "חשב מפה להצגת הגלגל")
@@ -90,8 +144,9 @@ class Wheel(QWidget):
                 color = QColor("#d39a55")
             else:
                 color = QColor("#a7b7c9")
-            color.setAlpha(175)
-            p.setPen(QPen(color, 1.25))
+            connected = self.selected_body in (aspect.first, aspect.second)
+            color.setAlpha(220 if connected else (45 if self.selected_body else 175))
+            p.setPen(QPen(color, 1.8 if connected else 1.1))
             p.drawLine(point(lookup[aspect.first].longitude, r * 0.52),
                        point(lookup[aspect.second].longitude, r * 0.52))
 
@@ -113,13 +168,21 @@ class Wheel(QWidget):
         for body, label_lon in zip(self.chart.bodies, angles):
             anchor = point(body.longitude, r * 0.585)
             label = point(label_lon, r * 0.70)
-            p.setPen(QPen(QColor("#a6bad2"), 1))
+            self._hit_targets[body.name] = label
+            chosen = body.name == self.selected_body
+            p.setPen(QPen(QColor("#4e8fda" if chosen else "#a6bad2"),
+                           1.8 if chosen else 1))
             p.drawLine(anchor, label)
             symbol_color = QColor(planet_colors.get(body.name, "#314968"))
             p.setPen(QPen(symbol_color, 1))
             p.setBrush(symbol_color)
             p.drawEllipse(anchor, 2.3, 2.3)
-            p.setPen(QPen(QColor("#dbe6f4"), 1.1))
+            if chosen:
+                p.setPen(QPen(QColor("#2879d4"), 2))
+                p.setBrush(QColor("#dfedff"))
+                p.drawEllipse(label, 19, 19)
+            p.setPen(QPen(QColor("#4289d3" if chosen else "#dbe6f4"),
+                          1.4 if chosen else 1.1))
             p.setBrush(QColor("#ffffff"))
             p.drawEllipse(label, 14.5, 14.5)
             p.setPen(symbol_color)
