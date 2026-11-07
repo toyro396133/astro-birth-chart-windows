@@ -26,7 +26,9 @@ def sample_chart(*, unknown=False, estimated=False):
 
 def test_builtin_pack_has_stable_evidence_schema():
     pack = load_rulepack()
-    assert pack.version == "0.1.0"
+    assert pack.version == "0.2.0"
+    assert len(pack.rules) == 96
+    assert all(rule.get("review_status") in {"reviewed", "unverified"} for rule in pack.rules)
     assert pack.tradition == "western-tropical-whole-sign"
     assert len(pack.rules) >= 40
     assert len({r["id"] for r in pack.rules}) == len(pack.rules)
@@ -88,7 +90,7 @@ def test_no_chart_raises_and_missing_facts_dont_generate_rules():
 def test_overlay_disable_add_and_version_audit(tmp_path):
     overlay = {
         "schema_version": 1,
-        "base_pack_version": "0.1.0",
+        "base_pack_version": "0.2.0",
         "pack_version": "0.2.0",
         "rules": [
             {"id": "sun-sign-1", "enabled": False},
@@ -109,7 +111,7 @@ def test_overlay_disable_add_and_version_audit(tmp_path):
     ids = {s["rule_id"] for s in report["signals"]}
     assert "sun-sign-1" not in ids
     assert "custom-focus-aries" in ids
-    assert report["pack_version"] == "0.2.0"
+    assert report["pack_version"] == "0.3.0"
     signal = next(x for x in report["signals"] if x["rule_id"] == "custom-focus-aries")
     assert signal["polarity"] == -1
     assert signal["source"] == "בדיקה עריכתית ידנית, גרסה חדשה"
@@ -120,7 +122,7 @@ def test_overlay_requires_version_match_and_explicit_source(tmp_path):
     def write(data):
         p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     bad = {"schema_version": 1, "base_pack_version": "9.0.0",
-           "pack_version": "0.2.0", "rules": []}
+           "pack_version": "0.3.0", "rules": []}
     write(bad)
     with pytest.raises(RulePackError):
         load_rulepack(overlay_path=p)
@@ -175,3 +177,102 @@ def test_rulepack_file_size_limit(tmp_path):
     path.write_bytes(b"x" * 260_000)
     with pytest.raises(RulePackError):
         load_rulepack(path=path)
+
+
+def test_axis_heading_is_human_readable_not_python_dict():
+    result = format_interpretation(interpret_chart(sample_chart()))
+    assert "◆ יוזמה" in result
+    assert "◆ {'axis':" not in result
+
+
+def test_unknown_hour_never_exports_noon_sample_as_natal_longitude():
+    chart = sample_chart(unknown=True)
+    report = interpret_chart(chart)
+    assert report["time_mode"] == "unknown"
+    assert all("12.40°" not in h["evidence"] for h in report["signals"])
+    bodies = model_input(chart, report)["chart_facts"]["bodies"]
+    assert all(b["longitude"] is None and b["longitude_is_sample"] for b in bodies)
+    assert all(not b["sign_is_confirmed"] for b in bodies)
+
+
+def test_estimated_time_near_sign_boundary_is_not_reported_as_certain():
+    chart = sample_chart(estimated=True)
+    chart.bodies[0].longitude = 0.1
+    report = interpret_chart(chart)
+    assert report["time_mode"] == "estimated"
+    assert "sun-sign-1" not in {h["rule_id"] for h in report["signals"]}
+    assert all("°)" not in h["evidence"] for h in report["signals"])
+
+
+def test_same_fact_multiple_rules_count_once_and_keep_traceability():
+    from astrochart.interpretation import RulePack
+    base = load_rulepack()
+    duplicate = {
+        "id": "synthetic-duplicate-aries", "type": "placement",
+        "when": {"body": "שמש", "sign": "טלה"},
+        "axis": "יוזמה", "polarity": 1, "weight": 4,
+        "text": "כפילות יזומה לבדיקת ספירה עצמאית.",
+        "source": "מקרה סינתטי בלבד"
+    }
+    report = interpret_chart(sample_chart(), RulePack(
+        base.version, base.tradition, base.rules + (duplicate,)))
+    axis = next(a for a in report["axes"] if a["axis"] == "יוזמה")
+    assert axis["support"] == 4
+    assert axis["duplicated_rule_count"] == 1
+    assert {"sun-sign-1", "synthetic-duplicate-aries"} <= set(axis["evidence_ids"])
+
+
+def test_same_fact_opposing_polarity_is_explicit_source_conflict():
+    from astrochart.interpretation import RulePack
+    base = load_rulepack()
+    counter = {
+        "id": "synthetic-counter-aries", "type": "placement",
+        "when": {"body": "שמש", "sign": "טלה"},
+        "axis": "יוזמה", "polarity": -1, "weight": 1,
+        "text": "פרשנות נוגדת לסימולציה.",
+        "source": "מקרה סינתטי בלבד"
+    }
+    report = interpret_chart(sample_chart(), RulePack(
+        base.version, base.tradition, base.rules + (counter,)))
+    axis = next(a for a in report["axes"] if a["axis"] == "יוזמה")
+    assert axis["tension_kind"] == "same-fact-conflict"
+    assert axis["source_conflict_keys"] == ["placement:שמש:טלה"]
+
+
+def test_composite_requires_both_facts_and_adds_no_independent_score():
+    chart = sample_chart()
+    report = interpret_chart(chart)
+    axis = next(a for a in report["axes"] if a["axis"] == "יוזמה")
+    assert "sun-aries-moon-taurus" in axis["modifier_rule_ids"]
+    composite = next(h for h in report["signals"] if h["rule_id"] == "sun-aries-moon-taurus")
+    assert composite["modifier_only"] and composite["weight"] == 0
+    chart.bodies[1].longitude = 70
+    changed = interpret_chart(chart)
+    assert "sun-aries-moon-taurus" not in {h["rule_id"] for h in changed["signals"]}
+
+
+def test_aspect_must_agree_with_positions_and_orb_cutoff():
+    from astrochart.domain import calculate_aspects
+    chart = sample_chart()
+    assert "sun-moon-square" not in {h["rule_id"] for h in interpret_chart(chart)["signals"]}
+    chart.bodies[1].longitude = chart.bodies[0].longitude + 96
+    chart.aspects = calculate_aspects(chart.bodies)
+    ids = {h["rule_id"] for h in interpret_chart(chart)["signals"]}
+    assert "sun-moon-square" in ids
+    chart.bodies[1].longitude += 0.1
+    chart.aspects = calculate_aspects(chart.bodies)
+    ids = {h["rule_id"] for h in interpret_chart(chart)["signals"]}
+    assert "sun-moon-square" not in ids
+
+
+def test_rejected_rule_fails_closed_and_legacy_pack_stays_compatible(tmp_path):
+    base = json.loads((__import__("pathlib").Path(__file__).parents[1]
+                       / "src/astrochart/interpretation_rules.json").read_text(encoding="utf-8"))
+    base["rules"][0]["review_status"] = "rejected"
+    target = tmp_path / "bad-pack.json"
+    target.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(RulePackError, match="סטטוס"):
+        load_rulepack(path=target)
+    base["rules"][0]["enabled"] = False
+    target.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+    assert len(load_rulepack(path=target).rules) == 95
