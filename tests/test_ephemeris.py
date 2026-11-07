@@ -19,7 +19,7 @@ def test_skyfield_published_reference_2020(calculator):
     # JPL DE440s should agree well within 0.1 degree.
     moment = datetime(2020, 10, 13, 23, 25, 55, tzinfo=timezone.utc)
     assert abs(calculator.position(moment, "sun") - 201.07794) < 0.1
-    assert abs(calculator.position(moment, "mars") - 21.07794) < 0.1
+    assert abs(calculator.position(moment, "mars barycenter") - 21.07794) < 0.1
 
 
 def test_known_hour_has_houses_and_angles(calculator):

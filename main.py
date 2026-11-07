@@ -1,5 +1,9 @@
 """App entry point. --self-test allows offline validation of frozen Windows executable."""
 import sys
+from pathlib import Path
+
+if not getattr(sys, "frozen", False):
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 
 def self_test():
