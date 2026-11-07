@@ -276,3 +276,30 @@ def test_rejected_rule_fails_closed_and_legacy_pack_stays_compatible(tmp_path):
     base["rules"][0]["enabled"] = False
     target.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
     assert len(load_rulepack(path=target).rules) == 95
+
+
+def test_approved_status_requires_specific_provenance(tmp_path):
+    from pathlib import Path
+    base = json.loads((Path(__file__).parents[1] / "src/astrochart/interpretation_rules.json")
+                      .read_text(encoding="utf-8"))
+    base["rules"][0]["review_status"] = "approved"
+    target = tmp_path / "audit.json"
+    target.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(RulePackError, match="מקור פרטני"):
+        load_rulepack(path=target)
+
+
+def test_composite_links_have_real_rule_ids_and_missing_link_is_rejected(tmp_path):
+    from pathlib import Path
+    base = json.loads((Path(__file__).parents[1] / "src/astrochart/interpretation_rules.json")
+                      .read_text(encoding="utf-8"))
+    ids = {r["id"] for r in base["rules"]}
+    links = [r for r in base["rules"] if r["type"] == "composite"]
+    assert len(links) == 4
+    assert all(len(r["related_rule_ids"]) == 2 and
+               set(r["related_rule_ids"]) <= ids for r in links)
+    links[0]["related_rule_ids"].append("missing-rule-reference")
+    target = tmp_path / "missing-link.json"
+    target.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(RulePackError, match="שאינו קיים"):
+        load_rulepack(path=target)
