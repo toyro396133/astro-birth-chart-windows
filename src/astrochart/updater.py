@@ -166,6 +166,8 @@ def extract_release(archive, installation, version):
             total, seen = 0, set()
             for info in z.infolist():
                 name = info.filename
+                if name == "AstroBirthChart/" and info.is_dir():
+                    continue
                 if "\\" in name or "\x00" in name:
                     raise UpdateError("שם לא חוקי בחבילת עדכון")
                 segments = name.rstrip("/").split("/")
