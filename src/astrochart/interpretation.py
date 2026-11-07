@@ -285,7 +285,7 @@ def interpret_chart(chart, pack: RulePack | None = None) -> dict:
             provisional=uncertain_time,
             review_status=rule.get("review_status", "unverified"),
             evidence_key=rule.get("evidence_group", fact_key),
-            source_url=rule.get("source_detail", {}).get("url"),
+            source_url=(rule.get("source_detail") or {}).get("url"),
             modifier_only=modifier_only,
         ))
     hits.sort(key=lambda h: (h.axis, -h.weight, h.rule_id))
@@ -375,17 +375,25 @@ def model_input(chart, report: dict) -> dict:
         "tradition": report["tradition"],
         "chart_facts": {
             "bodies": [{
-                "name": b.name, "longitude": None if chart.approximate else round(b.longitude, 5),
+                "name": b.name, "longitude": None if report["time_uncertain"] else round(b.longitude, 5),
                 "possible_signs": [SIGNS[s] for s in b.signs_possible] if chart.approximate
                                   else [b.sign],
                 "house": None if report["time_uncertain"] else b.house,
                 "sign_is_confirmed": not report["time_uncertain"],
-                "longitude_is_sample": chart.approximate,
+                "longitude_is_sample": report["time_uncertain"],
             } for b in chart.bodies],
             "aspects": [] if report["time_uncertain"] else [{
                 "first": a.first, "second": a.second, "kind": a.kind,
                 "orb": round(a.orb, 3),
-            } for a in chart.aspects],
+            } for a in chart.aspects
+            if (a.first in {b.name for b in chart.bodies}
+                and a.second in {b.name for b in chart.bodies}
+                and a.kind in MAX_ORBS and math.isfinite(a.orb)
+                and 0 <= a.orb <= MAX_ORBS[a.kind]
+                and abs(abs(short_separation(
+                    next(b.longitude for b in chart.bodies if b.name == a.first),
+                    next(b.longitude for b in chart.bodies if b.name == a.second)
+                ) - ASPECT_ANGLES[a.kind]) - a.orb) <= 0.02)],
             "time_uncertain": report["time_uncertain"],
             "time_mode": report["time_mode"],
         },
