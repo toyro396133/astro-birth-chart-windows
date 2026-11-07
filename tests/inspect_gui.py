@@ -90,7 +90,15 @@ def main():
     assert window.approx_hour.isChecked()
     window.run.click()
     QTest.qWait(150)
+    assert window.hebrew_year.text() == "5784", window.hebrew_year.text()
+    assert window.hebrew_day.text() == "1", window.hebrew_day.text()
+    assert window.hebrew_year.width() >= 100 and window.hebrew_day.width() >= 70
     assert window.table.rowCount() == 10
+    last_row = window.table.visualRect(window.table.model().index(9, 0))
+    assert last_row.isValid() and last_row.bottom() < window.table.viewport().height(), (
+        "Hebrew mode must display all ten rows",
+        last_row.bottom(), window.table.viewport().height()
+    )
     assert window.wheel.chart is not None
     assert window.wheel.chart.ascendant is not None
     assert "המרת תאריך עברי" in window.warnings.text()
