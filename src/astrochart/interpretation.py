@@ -74,7 +74,9 @@ def _validate_rule(rule: dict):
     if not rule["enabled"]:
         return
     if (rule.get("type") not in ("placement", "aspect", "house")
-            or rule.get("axis") not in AXES
+            or not isinstance(rule.get("axis"), str)
+            or not 2 <= len(rule["axis"]) <= 32
+            or any(ord(ch) < 32 for ch in rule["axis"])
             or type(rule.get("polarity")) is not int
             or rule["polarity"] not in (-1, 1)
             or type(rule.get("weight")) not in (float, int)
@@ -99,6 +101,7 @@ def _validate_rule(rule: dict):
     else:
         if (set(when) != {"pair", "kind"} or
                 not isinstance(when["pair"], list) or len(when["pair"]) != 2 or
+                not all(isinstance(body, str) for body in when["pair"]) or
                 len(set(when["pair"])) != 2 or
                 any(body not in BODIES for body in when["pair"]) or
                 when["kind"] not in ASPECT_KINDS):
@@ -136,6 +139,7 @@ def load_rulepack(*, path: Path | None = None, overlay_path: Path | None = None)
     if (overlay.get("schema_version") != SCHEMA_VERSION
             or overlay.get("base_pack_version") != base["pack_version"]
             or not _version(overlay.get("pack_version"))
+            or overlay.get("pack_version") == base["pack_version"]
             or not isinstance(overlay.get("rules"), list)
             or len(overlay["rules"]) > 100):
         raise RulePackError("שכבת השינויים אינה תואמת לחבילת הבסיס")
@@ -147,6 +151,9 @@ def load_rulepack(*, path: Path | None = None, overlay_path: Path | None = None)
         if rule["id"] in seen:
             raise RulePackError("שינוי כפול לאותו כלל")
         seen.add(rule["id"])
+        if (any(field in rule for field in ("text", "when", "polarity", "weight"))
+                and "source" not in rule):
+            raise RulePackError("שינוי תוכן מחייב מקור עריכתי מפורש")
         updated = dict(by_id.get(rule["id"], {}))
         updated.update(rule)
         _validate_rule(updated)
