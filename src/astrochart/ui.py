@@ -13,7 +13,8 @@ from .hebrew_dates import (months_of_year, days_of_month, from_gregorian,
 from .locations import CITIES
 from . import __version__
 from .updater import (UpdateError, latest_release, is_newer, download_release,
-                      extract_release, install_directory, launch_install,
+                      extract_release, install_directory, launch_install, launch_setup_install,
+                      is_installed_setup, SETUP_ASSET, ASSET,
                       auto_updates_enabled, save_auto_updates)
 from .wheel import Wheel
 
@@ -27,16 +28,30 @@ class UpdateCheckThread(QThread):
         import tempfile
         from pathlib import Path
         try:
-            latest = latest_release()
+            installed = install_directory()
+            is_setup = is_installed_setup(installed)
+            latest = latest_release(SETUP_ASSET if is_setup else ASSET)
             if latest is None or not is_newer(latest.version, __version__):
                 self.result.emit(None)
                 return
-            installed = install_directory()
-            with tempfile.TemporaryDirectory(prefix="AstroChart-Download-") as temp:
-                zip_path = Path(temp) / "update.zip"
-                download_release(latest, zip_path)
-                stage = extract_release(zip_path, installed, latest.version)
-            self.result.emit((latest.version, stage))
+            if is_setup:
+                # Retain a verified installer until the external worker
+                # takes over after the GUI has fully exited.
+                folder = Path(tempfile.mkdtemp(prefix="AstroChart-Setup-"))
+                setup = folder / SETUP_ASSET
+                try:
+                    download_release(latest, setup)
+                except BaseException:
+                    import shutil
+                    shutil.rmtree(folder, ignore_errors=True)
+                    raise
+                self.result.emit((latest.version, setup, "setup", latest.digest))
+            else:
+                with tempfile.TemporaryDirectory(prefix="AstroChart-Download-") as temp:
+                    zip_path = Path(temp) / "update.zip"
+                    download_release(latest, zip_path)
+                    stage = extract_release(zip_path, installed, latest.version)
+                self.result.emit((latest.version, stage, "portable", None))
         except Exception as exc:
             self.error.emit(str(exc))
 
@@ -266,7 +281,7 @@ class MainWindow(QMainWindow):
         if value is None:
             self.update_status.setText("אין גרסה חדשה")
             return
-        version, stage = value
+        version, prepared, mode, digest = value
         self.update_status.setText("גרסה " + version + " מוכנה")
         reply = QMessageBox.question(
             self, "עדכון זמין", "גרסה " + version + " הורדה ואומתה. "
@@ -274,14 +289,20 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                launch_install(stage, install_directory(), version)
+                if mode == "setup":
+                    launch_setup_install(prepared, install_directory(), version, digest)
+                else:
+                    launch_install(prepared, install_directory(), version)
                 from PySide6.QtWidgets import QApplication
                 QApplication.quit()
             except Exception as exc:
                 QMessageBox.warning(self, "התקנת עדכון", str(exc))
         else:
             import shutil
-            shutil.rmtree(stage, ignore_errors=True)
+            if mode == "setup":
+                shutil.rmtree(prepared.parent, ignore_errors=True)
+            else:
+                shutil.rmtree(prepared, ignore_errors=True)
             self.update_status.setText("העדכון נדחה")
 
     def _on_update_error(self, message):
