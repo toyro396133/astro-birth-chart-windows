@@ -48,10 +48,10 @@ def main():
     known = {
         "date": "2024-07-01", "time": "12:30", "city": "ירושלים",
         "latitude": window.lat.value(), "longitude": window.lon.value(),
-        "tz": window.tz.text(), "ascendant": chart.ascendant, "mc": chart.mc,
+        "tz": window.tz.text(), "ascendant": float(chart.ascendant), "mc": float(chart.mc),
         "bodies": [{
-            "name": b.name, "longitude": b.longitude, "house": b.house,
-            "retrograde": b.retrograde} for b in chart.bodies],
+            "name": b.name, "longitude": float(b.longitude), "house": int(b.house),
+            "retrograde": bool(b.retrograde)} for b in chart.bodies],
         "aspects": len(chart.aspects),
         "table_rows": window.table.rowCount()
     }
