@@ -182,6 +182,25 @@ QPushButton#calculateButton:hover {
 QPushButton#calculateButton:pressed {
     background-color: #153e77;
 }
+QPushButton#interpretationButton {
+    color: #244f85;
+    background-color: #eef6ff;
+    border: 1px solid #b7d1ee;
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-weight: 650;
+    font-size: 11px;
+    min-height: 23px;
+}
+QPushButton#interpretationButton:hover {
+    background-color: #dbeafa;
+    border-color: #6d9dcc;
+}
+QPushButton#interpretationButton:disabled {
+    color: #98a9bc;
+    background: #f5f8fc;
+    border-color: #e1e8f0;
+}
 QPushButton#advancedToggle {
     color: #2b619a;
     border: none;
