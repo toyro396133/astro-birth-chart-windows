@@ -14,6 +14,10 @@ def self_test():
     assert len(result.bodies) == 10
     assert result.ascendant is not None
     assert len(result.aspects) > 0
+    from astrochart.hebrew_dates import resolve_hebrew_date
+    resolved = resolve_hebrew_date(5784, 7, 1, "evening", time(21))
+    assert resolved.civil_day == date(2023, 9, 15)
+    print("HEBREW_DATE_OK")
     print("OFFLINE_ENGINE_OK")
     return 0
 
