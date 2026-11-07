@@ -80,7 +80,8 @@ def parse_release(payload):
     if len(items) != 1 or items[0].get("browser_download_url") != expected_url:
         raise UpdateError("קובץ העדכון חסר או שמקורו אינו מורשה")
     item = items[0]
-    match = HASH.fullmatch(item.get("digest", ""))
+    digest = item.get("digest")
+    match = HASH.fullmatch(digest) if isinstance(digest, str) else None
     size = item.get("size")
     if not match or type(size) is not int or not 0 < size <= MAX_ZIP:
         raise UpdateError("העדכון חסר חותמת SHA-256 או גודל תקין")
