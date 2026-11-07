@@ -137,24 +137,46 @@ def settings_path():
     return Path(base) / "AstroBirthChart" / "settings.json"
 
 
-def auto_updates_enabled(path=None):
+def _read_settings(path):
+    """Read preferences defensively; malformed files have safe opt-out defaults."""
     try:
-        return json.loads(Path(path or settings_path()).read_text("utf-8")).get("auto_updates") is True
-    except (OSError, ValueError, AttributeError):
-        return False
+        value = json.loads(Path(path).read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, UnicodeError):
+        return {}
 
 
-def save_auto_updates(enabled, path=None):
+def auto_updates_enabled(path=None):
+    """Opt-in for checking on app launch; NEVER means automatic downloading."""
+    return _read_settings(path or settings_path()).get("auto_updates") is True
+
+
+def auto_install_enabled(path=None):
+    """Opt-in for installation after an explicit Download click."""
+    return _read_settings(path or settings_path()).get("auto_install") is True
+
+
+def _save_setting(name, enabled, path=None):
     path = Path(path or settings_path())
     path.parent.mkdir(parents=True, exist_ok=True)
+    values = _read_settings(path)
+    values[name] = bool(enabled)
     with tempfile.NamedTemporaryFile(dir=path.parent, mode="w", encoding="utf-8",
                                      prefix=".settings-", delete=False) as handle:
         temporary = Path(handle.name)
-        json.dump({"auto_updates": bool(enabled)}, handle)
+        json.dump(values, handle)
     try:
         temporary.replace(path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def save_auto_updates(enabled, path=None):
+    _save_setting("auto_updates", enabled, path)
+
+
+def save_auto_install(enabled, path=None):
+    _save_setting("auto_install", enabled, path)
 
 
 def extract_release(archive, installation, version):
