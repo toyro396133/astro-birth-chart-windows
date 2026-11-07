@@ -58,7 +58,11 @@ class RuleInterpretationDialog(QDialog):
                 f"ציר: {hit['axis']} | משקל עריכתי: {hit['weight']}",
                 f"נתון תומך: {hit['evidence']}",
                 f"משמעות: {hit['text']}",
+                f"סטטוס ביקורת: {hit.get('review_status', 'unverified')}",
+                f"קבוצת ראיה: {hit.get('evidence_key', '')}",
+                "השלמה מותנית — ללא משקל נפרד" if hit.get("modifier_only") else "",
                 f"מקור: {hit['source']}",
+                f"קישור למקור: {hit.get('source_url') or 'טרם אומת'}",
                 "",
             ])
         self.details.setPlainText(
