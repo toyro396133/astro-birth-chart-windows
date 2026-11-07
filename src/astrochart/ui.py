@@ -1,7 +1,7 @@
 from datetime import date, time
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
+    QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
@@ -18,6 +18,7 @@ from .updater import (UpdateError, latest_release, is_newer, download_release,
                       auto_updates_enabled, save_auto_updates)
 from .wheel import Wheel
 from .theme import apply_theme
+from .report import format_chart_report
 
 
 
@@ -65,6 +66,7 @@ class MainWindow(QMainWindow):
         self.resize(1240, 830)
         self.setMinimumSize(980, 700)
         self.calc = None
+        self._active_chart = None
         self._updating = False
         self._update_thread = None
         self._build()
@@ -290,11 +292,14 @@ class MainWindow(QMainWindow):
         wheel_layout.setSpacing(4)
         wheel_heading = QHBoxLayout()
         wheel_heading.addWidget(section_title("גלגל המפה"), 1)
-        wheel_legend = QLabel("מיקומים והיבטים")
-        wheel_legend.setObjectName("helperText")
-        wheel_heading.addWidget(wheel_legend)
+        self.wheel_legend = QLabel("לחץ על סמל במפה כדי לבחור גוף")
+        self.wheel_legend.setObjectName("helperText")
+        self.wheel_legend.setMinimumWidth(120)
+        self.wheel_legend.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        wheel_heading.addWidget(self.wheel_legend)
         wheel_layout.addLayout(wheel_heading)
         self.wheel = Wheel()
+        self.wheel.bodySelected.connect(self._on_wheel_selection)
         wheel_layout.addWidget(self.wheel, 1)
         split.addWidget(wheel_card)
 
@@ -308,6 +313,13 @@ class MainWindow(QMainWindow):
         self.chart_caption = QLabel("תוצאות החישוב יופיעו כאן")
         self.chart_caption.setObjectName("helperText")
         table_heading.addWidget(self.chart_caption)
+        self.copy_button = QPushButton("העתק תקציר")
+        self.copy_button.setObjectName("copyReportButton")
+        self.copy_button.setToolTip("העתק את נתוני המפה המחושבים, כולל מגבלות הדיוק")
+        self.copy_button.setAccessibleName("העתקת תקציר מפה")
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self._copy_report)
+        table_heading.addWidget(self.copy_button)
         details_layout.addLayout(table_heading)
 
         self.table = QTableWidget(0, 5)
@@ -321,6 +333,11 @@ class MainWindow(QMainWindow):
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
         self.table.setMinimumHeight(275)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.currentCellChanged.connect(self._on_table_selection)
+        self.table.setToolTip("בחירת שורה מסמנת את הגוף המתאים בגלגל המפה")
         details_layout.addWidget(self.table, 1)
 
         self.aspects_title = section_title("היבטים בין הגופים")
@@ -553,9 +570,13 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
     def _show_chart(self, chart):
+        self._active_chart = chart
+        self.copy_button.setEnabled(True)
+        self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
         self.chart_caption.setText(
             f"{len(chart.bodies)} גופים · " +
             ("שעה לא ידועה" if chart.approximate else "מפה מחושבת"))
+        self.table.blockSignals(True)
         self.table.setRowCount(len(chart.bodies))
         for row, b in enumerate(chart.bodies):
             signs = " / ".join(SIGNS[i] for i in b.signs_possible) if chart.approximate else b.sign
@@ -565,8 +586,14 @@ class MainWindow(QMainWindow):
                 f"{degree_in_sign(b.longitude):.3f}°" + (" (דגימה)" if chart.approximate else ""),
                 "—" if b.house is None else str(b.house), motion
             ]
+            tooltip = f"{b.name} · {signs} · {degree_in_sign(b.longitude):.3f}°"
             for column, value in enumerate(values):
-                self.table.setItem(row, column, QTableWidgetItem(value))
+                item = QTableWidgetItem(value)
+                item.setToolTip(tooltip)
+                self.table.setItem(row, column, item)
+        self.table.clearSelection()
+        self.table.setCurrentCell(-1, -1)
+        self.table.blockSignals(False)
         self.aspects.setPlainText("\n".join(
             f"{a.first} – {a.second}: {a.kind}, מרחק {a.separation:.2f}°, סטייה {a.orb:.2f}°"
             for a in chart.aspects))
@@ -575,3 +602,32 @@ class MainWindow(QMainWindow):
             f" | ציר נגדי: {chart.descendant:.3f}°")
         self.warnings.setText("\n".join(chart.warnings) + angles)
         self.wheel.set_chart(chart)
+
+    def _on_table_selection(self, row, column, previous_row, previous_column):
+        chart = self._active_chart
+        if chart is None or not 0 <= row < len(chart.bodies):
+            self.wheel.set_selected_body(None)
+            self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
+            return
+        body = chart.bodies[row]
+        self.wheel.set_selected_body(body.name)
+        house = f" · בית {body.house}" if body.house is not None else ""
+        if chart.approximate:
+            house = " · שעה לא ידועה"
+        self.wheel_legend.setText(
+            f"{body.name} · {body.sign} · {degree_in_sign(body.longitude):.1f}°{house}")
+
+    def _on_wheel_selection(self, name):
+        chart = self._active_chart
+        if chart is None:
+            return
+        for row, body in enumerate(chart.bodies):
+            if body.name == name:
+                self.table.setCurrentCell(row, 0)
+                return
+
+    def _copy_report(self):
+        if self._active_chart is None:
+            return
+        QApplication.clipboard().setText(format_chart_report(self._active_chart))
+        self.chart_caption.setText("התקציר הועתק ללוח")
