@@ -182,6 +182,29 @@ QPushButton#calculateButton:hover {
 QPushButton#calculateButton:pressed {
     background-color: #153e77;
 }
+QPushButton#copyReportButton {
+    color: #275f9c;
+    background-color: #f2f7fe;
+    border: 1px solid #c9dbef;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 650;
+    min-height: 24px;
+    padding: 3px 8px;
+}
+QPushButton#copyReportButton:hover {
+    color: #174877;
+    background-color: #e5f0fc;
+    border-color: #83afd8;
+}
+QPushButton#copyReportButton:disabled {
+    color: #9badbf;
+    background-color: #f8faff;
+    border-color: #e6edf5;
+}
+QTableWidget#bodyTable::item:selected {
+    border-bottom: 1px solid #90b9e1;
+}
 QPushButton#advancedToggle {
     color: #2b619a;
     border: none;
