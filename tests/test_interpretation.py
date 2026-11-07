@@ -303,3 +303,16 @@ def test_composite_links_have_real_rule_ids_and_missing_link_is_rejected(tmp_pat
     target.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(RulePackError, match="שאינו קיים"):
         load_rulepack(path=target)
+
+
+def test_multiple_different_facts_get_an_explicit_combined_reading():
+    chart = Chart([
+        BodyPosition("שמש", 160.0, False, house=1),
+        BodyPosition("מרקורי", 161.0, False, house=1),
+    ], [], 160.0, 190.0, False, [])
+    report = interpret_chart(chart)
+    thinking = next(a for a in report["axes"] if a["axis"] == "חשיבה")
+    assert thinking["independent_fact_count"] == 2
+    assert thinking["support"] > 0 and not thinking["has_tension"]
+    output = format_interpretation(report)
+    assert "שילוב ראיות: 2 נתוני מפה שונים" in output
