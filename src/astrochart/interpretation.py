@@ -12,7 +12,7 @@ import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from .domain import ASPECTS, BODIES, SIGNS, degree_in_sign
+from .domain import ASPECTS, BODIES, SIGNS, degree_in_sign, short_separation
 
 SCHEMA_VERSION = 1
 MAX_PACK_BYTES = 256_000
@@ -26,6 +26,7 @@ AXES = {
 ASPECT_KINDS = {"צמידות", "שישים", "ריבוע", "משולש", "ניגוד"}
 REVIEW_STATUSES = {"unverified", "reviewed", "approved", "conflicting", "rejected"}
 MAX_ORBS = {name: orb for _, name, orb in ASPECTS}
+ASPECT_ANGLES = {name: angle for angle, name, _ in ASPECTS}
 
 
 class RulePackError(ValueError):
@@ -245,6 +246,12 @@ def _match(rule, chart, bodies, uncertain_time):
             if (not math.isfinite(aspect.orb) or aspect.orb < 0
                     or aspect.orb > MAX_ORBS[aspect.kind]):
                 continue
+            first, second = when["pair"]
+            calculated_orb = abs(short_separation(bodies[first].longitude,
+                                                  bodies[second].longitude)
+                                 - ASPECT_ANGLES[aspect.kind])
+            if abs(calculated_orb - aspect.orb) > 0.02:
+                continue  # Never trust an aspect contradicted by body positions.
             return (f"{aspect.first}–{aspect.second}: {aspect.kind}, "
                     f"סטייה {aspect.orb:.2f}°", max(.35, 1 - aspect.orb / 10),
                     "aspect:" + ":".join(sorted(pair)) + ":" + aspect.kind)
