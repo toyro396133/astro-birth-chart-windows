@@ -1,9 +1,9 @@
 from datetime import date, time
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QGridLayout, QGroupBox,
+    QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
-    QPushButton, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
+    QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
 )
 from .domain import SIGNS, degree_in_sign
@@ -17,6 +17,7 @@ from .updater import (UpdateError, latest_release, is_newer, download_release,
                       is_installed_setup, SETUP_ASSET, ASSET,
                       auto_updates_enabled, save_auto_updates)
 from .wheel import Wheel
+from .theme import apply_theme
 
 
 
@@ -60,8 +61,9 @@ class UpdateCheckThread(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("מפת לידה — חישוב מקומי")
-        self.resize(1160, 780)
+        self.setWindowTitle("AstroBirthChart — מפת לידה")
+        self.resize(1240, 830)
+        self.setMinimumSize(980, 700)
         self.calc = None
         self._updating = False
         self._update_thread = None
@@ -70,46 +72,78 @@ class MainWindow(QMainWindow):
 
     def _build(self):
         root = QWidget()
+        root.setObjectName("rootSurface")
         root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.setCentralWidget(root)
         main = QVBoxLayout(root)
-        intro = QLabel("מפת לידה אסטרונומית | טרופי | Whole Sign | חישוב מקומי")
-        intro.setStyleSheet("font-size: 19px; font-weight: bold; color: #1e3a5f;")
-        heading = QHBoxLayout()
-        heading.setSpacing(6)
-        heading.addWidget(intro, 1)
-        heading.addWidget(QLabel("v" + __version__))
+        main.setContentsMargins(13, 11, 13, 11)
+        main.setSpacing(9)
+
+        def field_label(text):
+            label = QLabel(text)
+            label.setObjectName("fieldLabel")
+            label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+            return label
+
+        def section_title(text):
+            label = QLabel(text)
+            label.setObjectName("sectionTitle")
+            return label
+
+        # Elevated application header: identity, status, version and updates.
+        header = QFrame()
+        header.setObjectName("appHeader")
+        heading = QHBoxLayout(header)
+        heading.setContentsMargins(18, 11, 18, 11)
+        heading.setSpacing(11)
+        brand = QVBoxLayout()
+        brand.setSpacing(2)
+        title = QLabel("מפת לידה אסטרונומית")
+        title.setObjectName("appTitle")
+        subtitle = QLabel("טרופי  ·  Whole Sign  ·  חישוב מקומי ופרטי")
+        subtitle.setObjectName("appSubtitle")
+        brand.addWidget(title)
+        brand.addWidget(subtitle)
+        heading.addLayout(brand, 1)
+        version = QLabel("v" + __version__)
+        version.setObjectName("versionPill")
+        heading.addWidget(version)
         self.auto_update = QCheckBox("עדכונים אוטומטיים")
         self.auto_update.setToolTip(
-            "במצב פעיל התוכנה בודקת GitHub בעת פתיחתה. "
-            "קובצי המפה ונתוני הלידה אינם נשלחים.")
+            "בדיקת גרסאות ב־GitHub בעת פתיחה רק אם מופעלת אפשרות זו. "
+            "נתוני המפה אינם נשלחים.")
         self.auto_update.setChecked(auto_updates_enabled())
         self.auto_update.toggled.connect(self._toggle_auto_update)
         heading.addWidget(self.auto_update)
         self.update_button = QPushButton("בדוק עדכונים")
+        self.update_button.setObjectName("updateButton")
         self.update_button.clicked.connect(self._manual_update_check)
         heading.addWidget(self.update_button)
         self.update_status = QLabel("")
+        self.update_status.setObjectName("updateStatus")
         heading.addWidget(self.update_status)
-        main.addLayout(heading)
+        main.addWidget(header)
 
-        # A compact two-column form preserves room for all ten table rows.
-        form_box = QGroupBox("נתוני חישוב")
+        # Clean, progressive-disclosure input card. Common fields stay visible;
+        # coordinates and IANA zone remain one click away for power users.
+        form_box = QGroupBox("פרטי לידה")
+        form_box.setObjectName("inputCard")
         form = QGridLayout(form_box)
-        form.setContentsMargins(10, 5, 10, 5)
-        form.setHorizontalSpacing(10)
-        form.setVerticalSpacing(3)
+        form.setContentsMargins(14, 13, 14, 9)
+        form.setHorizontalSpacing(11)
+        form.setVerticalSpacing(5)
         form.setColumnStretch(1, 1)
-        form.setColumnStretch(3, 1)
+        form.setColumnStretch(3, 2)
 
-        # Switch between Gregorian date and a fully local Hebrew-date editor.
         self.date_mode = QComboBox()
         self.date_mode.addItem("לועזי", "gregorian")
         self.date_mode.addItem("עברי", "hebrew")
-        form.addWidget(QLabel("סוג תאריך:"), 0, 0)
+        self.date_mode.setMaximumWidth(215)
+        form.addWidget(field_label("סוג תאריך"), 0, 0)
         form.addWidget(self.date_mode, 0, 1)
-        form.addWidget(QLabel("תאריך:"), 0, 2)
+        form.addWidget(field_label("תאריך הלידה"), 0, 2)
         self.date_stack = QStackedWidget()
+
         self.day = QDateEdit()
         self.day.setCalendarPopup(True)
         self.day.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
@@ -123,17 +157,17 @@ class MainWindow(QMainWindow):
         hebrew_input = QWidget()
         hrow = QHBoxLayout(hebrew_input)
         hrow.setContentsMargins(0, 0, 0, 0)
-        hrow.setSpacing(3)
+        hrow.setSpacing(6)
         self.hebrew_year = QSpinBox()
         self.hebrew_year.setRange(5500, 6100)
-        self.hebrew_year.setFixedWidth(114)
+        self.hebrew_year.setFixedWidth(112)
         self.hebrew_year.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hebrew_year.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.hebrew_month = QComboBox()
-        self.hebrew_month.setMinimumWidth(120)
+        self.hebrew_month.setMinimumWidth(105)
         self.hebrew_day = QSpinBox()
         self.hebrew_day.setRange(1, 30)
-        self.hebrew_day.setFixedWidth(78)
+        self.hebrew_day.setFixedWidth(76)
         self.hebrew_day.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hebrew_day.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         hrow.addWidget(self.hebrew_day)
@@ -147,22 +181,28 @@ class MainWindow(QMainWindow):
         self.hour.setDisplayFormat("HH:mm")
         self.hour.setTime(QTime(12, 0))
         self.hour.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        form.addWidget(QLabel("שעת לידה:"), 1, 0)
+        self.hour.setMaximumWidth(215)
+        form.addWidget(field_label("שעת לידה"), 1, 0)
         form.addWidget(self.hour, 1, 1)
 
+        options = QHBoxLayout()
+        options.setSpacing(16)
         self.unknown = QCheckBox("השעה אינה ידועה")
         self.unknown.toggled.connect(self._unknown_changed)
-        form.addWidget(self.unknown, 1, 2)
         self.approx_hour = QCheckBox("שעה בקירוב")
-        form.addWidget(self.approx_hour, 1, 3)
+        options.addWidget(self.unknown)
+        options.addWidget(self.approx_hour)
+        options.addStretch(1)
+        form.addLayout(options, 1, 2, 1, 2)
 
         self.city = QComboBox()
         self.city.addItems(["הזנה ידנית", *CITIES])
         self.city.setCurrentText("ירושלים")
         self.city.currentTextChanged.connect(self._city_changed)
-        form.addWidget(QLabel("מקום:"), 2, 0)
+        self.city.setMaximumWidth(300)
+        form.addWidget(field_label("מקום לידה"), 2, 0)
         form.addWidget(self.city, 2, 1)
-        self.phase_label = QLabel("יום / לילה:")
+        self.phase_label = field_label("יום או לילה")
         self.phase = QComboBox()
         for key, label in (
             ("day", "יום"),
@@ -173,6 +213,35 @@ class MainWindow(QMainWindow):
         form.addWidget(self.phase_label, 2, 2)
         form.addWidget(self.phase, 2, 3)
 
+        self.advanced_toggle = QPushButton("＋ הגדרות מיקום מתקדמות")
+        self.advanced_toggle.setObjectName("advancedToggle")
+        self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.advanced_toggle.clicked.connect(self._toggle_advanced)
+        form.addWidget(self.advanced_toggle, 3, 0, 1, 2)
+        self.conversion_label = QLabel("")
+        self.conversion_label.setObjectName("conversionInfo")
+        self.conversion_label.setWordWrap(True)
+        form.addWidget(self.conversion_label, 3, 2, 1, 2)
+
+        footnote = QLabel("ללא חשבון וללא שליחת נתונים • החישוב מבוצע במחשב שלך")
+        footnote.setObjectName("helperText")
+        footnote.setWordWrap(True)
+        form.addWidget(footnote, 4, 0, 1, 2)
+        self.run = QPushButton("חשב מפת לידה")
+        self.run.setObjectName("calculateButton")
+        self.run.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.run.clicked.connect(self._calculate)
+        form.addWidget(self.run, 4, 2, 1, 2)
+
+        self.advanced = QFrame()
+        self.advanced.setObjectName("advancedPanel")
+        adv = QGridLayout(self.advanced)
+        adv.setContentsMargins(10, 7, 10, 7)
+        adv.setHorizontalSpacing(10)
+        adv.setVerticalSpacing(6)
+        adv.setColumnStretch(1, 1)
+        adv.setColumnStretch(3, 1)
+
         self.lat = QDoubleSpinBox()
         self.lat.setRange(-89.99, 89.99)
         self.lat.setDecimals(5)
@@ -181,31 +250,21 @@ class MainWindow(QMainWindow):
         self.lon.setRange(-180, 180)
         self.lon.setDecimals(5)
         self.lon.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        form.addWidget(QLabel("קו רוחב (+צפון):"), 3, 0)
-        form.addWidget(self.lat, 3, 1)
-        form.addWidget(QLabel("קו אורך (+מזרח):"), 3, 2)
-        form.addWidget(self.lon, 3, 3)
+        adv.addWidget(field_label("קו רוחב (+צפון)"), 0, 0)
+        adv.addWidget(self.lat, 0, 1)
+        adv.addWidget(field_label("קו אורך (+מזרח)"), 0, 2)
+        adv.addWidget(self.lon, 0, 3)
 
         self.tz = QLineEdit()
         self.tz.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.tz.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        form.addWidget(QLabel("אזור זמן IANA:"), 4, 0)
-        form.addWidget(self.tz, 4, 1, 1, 3)
-
-        self.conversion_label = QLabel("")
-        self.conversion_label.setWordWrap(True)
-        self.conversion_label.setStyleSheet("color: #1e40af; font-weight: bold;")
-        form.addWidget(self.conversion_label, 5, 0, 1, 3)
-        self.run = QPushButton("חשב מפת לידה")
-        self.run.setMinimumHeight(30)
-        self.run.setStyleSheet(
-            "font-size: 15px; padding: 4px; background: #2563eb; color: white;")
-        self.run.clicked.connect(self._calculate)
-        form.addWidget(self.run, 5, 3)
+        adv.addWidget(field_label("אזור זמן IANA"), 1, 0)
+        adv.addWidget(self.tz, 1, 1, 1, 3)
+        form.addWidget(self.advanced, 5, 0, 1, 4)
+        self.advanced.setVisible(False)
         main.addWidget(form_box)
 
-        # The library treats a date as its daytime date. Correctly map the
-        # beginning of the night to the previous Gregorian civil evening.
+        # Initialize both calendars before any calculation.
         gy, gm, gd = from_gregorian(date.today())
         self.hebrew_year.setValue(gy)
         self._fill_hebrew_months(gm)
@@ -219,36 +278,91 @@ class MainWindow(QMainWindow):
         self._city_changed(self.city.currentText())
         self._date_mode_changed()
 
+        # Equal-weight dashboard cards, resizable by a native Qt splitter.
         split = QSplitter(Qt.Orientation.Horizontal)
         split.setChildrenCollapsible(False)
+        split.setHandleWidth(9)
+        wheel_card = QFrame()
+        wheel_card.setObjectName("panelCard")
+        wheel_layout = QVBoxLayout(wheel_card)
+        wheel_layout.setContentsMargins(12, 10, 12, 10)
+        wheel_layout.setSpacing(4)
+        wheel_heading = QHBoxLayout()
+        wheel_heading.addWidget(section_title("גלגל המפה"), 1)
+        wheel_legend = QLabel("מיקומים והיבטים")
+        wheel_legend.setObjectName("helperText")
+        wheel_heading.addWidget(wheel_legend)
+        wheel_layout.addLayout(wheel_heading)
         self.wheel = Wheel()
-        split.addWidget(self.wheel)
-        right = QWidget()
-        right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(4, 2, 4, 2)
-        right_layout.setSpacing(4)
+        wheel_layout.addWidget(self.wheel, 1)
+        split.addWidget(wheel_card)
+
+        details_card = QFrame()
+        details_card.setObjectName("panelCard")
+        details_layout = QVBoxLayout(details_card)
+        details_layout.setContentsMargins(12, 10, 12, 10)
+        details_layout.setSpacing(5)
+        table_heading = QHBoxLayout()
+        table_heading.addWidget(section_title("מיקומי הגופים"), 1)
+        self.chart_caption = QLabel("תוצאות החישוב יופיעו כאן")
+        self.chart_caption.setObjectName("helperText")
+        table_heading.addWidget(self.chart_caption)
+        details_layout.addLayout(table_heading)
+
         self.table = QTableWidget(0, 5)
+        self.table.setObjectName("bodyTable")
         self.table.setHorizontalHeaderLabels(
             ["גוף", "מזל", "מעלה במזל", "בית", "תנועה"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setFixedHeight(26)
+        self.table.horizontalHeader().setFixedHeight(27)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(22)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
         self.table.setMinimumHeight(258)
-        right_layout.addWidget(self.table, 1)
-        right_layout.addWidget(QLabel("היבטים"))
+        details_layout.addWidget(self.table, 1)
+
+        details_layout.addWidget(section_title("היבטים בין הגופים"))
         self.aspects = QTextEdit()
+        self.aspects.setObjectName("aspectText")
         self.aspects.setReadOnly(True)
-        self.aspects.setMinimumHeight(60)
-        self.aspects.setMaximumHeight(88)
-        right_layout.addWidget(self.aspects)
+        self.aspects.setMinimumHeight(54)
+        self.aspects.setMaximumHeight(82)
+        details_layout.addWidget(self.aspects)
+
+        details_layout.addWidget(section_title("הערות ודיוק החישוב"))
+        self.warning_scroll = QScrollArea()
+        self.warning_scroll.setObjectName("warningScroll")
+        self.warning_scroll.setWidgetResizable(True)
+        self.warning_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.warning_scroll.setMinimumHeight(45)
+        self.warning_scroll.setMaximumHeight(75)
+        warning_contents = QWidget()
+        warning_contents.setObjectName("warningContents")
+        warning_layout = QVBoxLayout(warning_contents)
+        warning_layout.setContentsMargins(9, 6, 9, 6)
         self.warnings = QLabel("")
+        self.warnings.setObjectName("warningText")
+        self.warnings.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self.warnings.setWordWrap(True)
-        self.warnings.setStyleSheet("color: #9a3412;")
-        right_layout.addWidget(self.warnings)
-        split.addWidget(right)
-        split.setSizes([490, 590])
+        warning_layout.addWidget(self.warnings)
+        warning_layout.addStretch()
+        self.warning_scroll.setWidget(warning_contents)
+        details_layout.addWidget(self.warning_scroll)
+        split.addWidget(details_card)
+        split.setSizes([520, 610])
         main.addWidget(split, 1)
+
+        apply_theme(self)
+
+    def _toggle_advanced(self, checked=None):
+        expanded = (not self.advanced.isHidden()) if checked is None else bool(checked)
+        if checked is None:
+            expanded = not expanded
+        self.advanced.setVisible(expanded)
+        self.advanced_toggle.setText(
+            "− הסתר הגדרות מיקום מתקדמות" if expanded
+            else "＋ הגדרות מיקום מתקדמות")
 
     def _toggle_auto_update(self, checked):
         try:
@@ -402,6 +516,8 @@ class MainWindow(QMainWindow):
             self.lat.setValue(lat)
             self.lon.setValue(lon)
             self.tz.setText(tz)
+        elif city == "הזנה ידנית":
+            self._toggle_advanced(True)
 
     def _calculate(self):
         try:
@@ -435,6 +551,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
     def _show_chart(self, chart):
+        self.chart_caption.setText(
+            f"{len(chart.bodies)} גופים · " +
+            ("שעה לא ידועה" if chart.approximate else "מפה מחושבת"))
         self.table.setRowCount(len(chart.bodies))
         for row, b in enumerate(chart.bodies):
             signs = " / ".join(SIGNS[i] for i in b.signs_possible) if chart.approximate else b.sign
