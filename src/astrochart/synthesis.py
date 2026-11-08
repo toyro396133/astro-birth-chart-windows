@@ -15,6 +15,7 @@ from .domain import SIGNS
 SYNTHESIS_VERSION = "0.1.0"
 PROFILE_ID = "western-tropical-whole-sign-r1"
 MAX_NODES = 192  # resource guard, NOT a fixed number of abstraction levels
+MAX_PROOF_STATES = 20_000  # bounded alternatives; never claim exhaustion on a capped search
 
 # A separately auditable *engineering* ontology of functional transitions.
 # These edges do not claim to be traditional astrological interpretation rules.
@@ -125,8 +126,8 @@ def _roots(key: str) -> tuple[str, ...]:
     return ("evidence-group:" + key,)
 
 
-def _independent(hits: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Greedy maximum-salience disjoint witnesses; duplicates never add weight."""
+def _candidate_groups(hits: list[dict]) -> list[dict]:
+    """Group equal rule evidence, retaining every possible physical witness."""
     groups: dict[str, list[dict]] = defaultdict(list)
     for hit in hits:
         if hit.get("modifier_only") or hit.get("weight", 0) <= 0:
@@ -145,16 +146,104 @@ def _independent(hits: list[dict]) -> tuple[list[dict], list[dict]]:
             "source_refs": sorted({m["source_url"] for m in members if m.get("source_url")}),
             "details": [m["evidence"] for m in members],
         })
-    candidates.sort(key=lambda g: (-g["weight"], g["evidence_key"]))
-    selected, dependent, used = [], [], set()
-    for group in candidates:
-        if used.intersection(group["roots"]):
-            dependent.append(group)
-        else:
-            selected.append(group)
-            used.update(group["roots"])
-    return selected, dependent
+    return sorted(candidates, key=lambda g: (-g["weight"], g["evidence_key"]))
 
+
+def _independent(hits: list[dict]) -> tuple[list[dict], list[dict], bool]:
+    """Bounded exact alternative search: independence, then count, then weight.
+
+    The sum of editorial weights is ONLY a tie-breaker after maximizing
+    independent fact coverage; it is never exposed as a trait strength.
+    """
+    candidates = _candidate_groups(hits)
+    best: tuple[int, float] = (-1, -1.0)
+    best_keys: tuple[str, ...] = ()
+    best_indexes: tuple[int, ...] = ()
+    states = 0
+    limited = False
+
+    def visit(i: int, used: frozenset[str], chosen: tuple[int, ...],
+              total_weight: float) -> None:
+        nonlocal states, limited, best, best_keys, best_indexes
+        if states >= MAX_PROOF_STATES:
+            limited = True
+            return
+        states += 1
+        if len(chosen) + len(candidates) - i < best[0]:
+            return
+        if i == len(candidates):
+            score = (len(chosen), round(total_weight, 6))
+            keys = tuple(sorted(candidates[k]["evidence_key"] for k in chosen))
+            if score > best or (score == best and keys < best_keys):
+                best, best_keys, best_indexes = score, keys, chosen
+            return
+        item = candidates[i]
+        if used.isdisjoint(item["roots"]):
+            visit(i + 1, used | frozenset(item["roots"]),
+                  chosen + (i,), total_weight + item["weight"])
+        visit(i + 1, used, chosen, total_weight)
+
+    visit(0, frozenset(), (), 0.0)
+    chosen_set = set(best_indexes)
+    return (
+        [item for i, item in enumerate(candidates) if i in chosen_set],
+        [item for i, item in enumerate(candidates) if i not in chosen_set],
+        limited,
+    )
+
+
+def _choose_path_proof(path: tuple[str, ...], by_axis: dict[str, dict]
+                       ) -> tuple[list[dict] | None, dict[str, list[dict]], bool, int]:
+    """Find one *jointly* root-disjoint original witness for each path axis.
+
+    A previously selected axis-wide group is not a binding choice. All chart
+    witnesses are considered again for every path (including deep extensions).
+    Proof feasibility comes first. Then maximize weakest editorial weight,
+    then sum of editorial weights as a deterministic tie-breaker only.
+    """
+    options = {axis: by_axis[axis]["available_facts"] for axis in path}
+    if any(not choices for choices in options.values()):
+        return None, options, False, 0
+    ordered_axes = sorted(path, key=lambda axis: (len(options[axis]), axis))
+    best: dict[str, dict] | None = None
+    best_score: tuple[float, float] = (-1.0, -1.0)
+    best_keys: tuple[str, ...] = ()
+    states = 0
+    limited = False
+
+    def visit(depth: int, used: frozenset[str], chosen: dict[str, dict]) -> None:
+        nonlocal best, best_score, best_keys, states, limited
+        if states >= MAX_PROOF_STATES:
+            limited = True
+            return
+        states += 1
+        if depth == len(ordered_axes):
+            ordered = [chosen[axis] for axis in path]
+            score = (min(item["weight"] for item in ordered),
+                     round(sum(item["weight"] for item in ordered), 6))
+            keys = tuple(item["evidence_key"] for item in ordered)
+            if score > best_score or (score == best_score and keys < best_keys):
+                best, best_score, best_keys = dict(chosen), score, keys
+            return
+        axis = ordered_axes[depth]
+        for item in options[axis]:
+            if used.isdisjoint(item["roots"]):
+                chosen[axis] = item
+                visit(depth + 1, used | frozenset(item["roots"]), chosen)
+                del chosen[axis]
+                if limited:
+                    return
+
+    visit(0, frozenset(), {})
+    if best is None:
+        return None, options, limited, states
+    selected = [best[axis] for axis in path]
+    alternatives = {
+        axis: [item for item in options[axis]
+               if item["evidence_key"] != best[axis]["evidence_key"]]
+        for axis in path
+    }
+    return selected, alternatives, limited, states
 
 def _stable_id(path: tuple[str, ...]) -> str:
     return "synth-" + sha256(("r1|" + "|".join(path)).encode("utf-8")).hexdigest()[:16]
@@ -177,8 +266,8 @@ def _base_features(report: dict) -> tuple[list[dict], list[dict]]:
     features, tensions = [], []
     for axis in sorted(by_axis):
         items = by_axis[axis]
-        positive, pos_dependent = _independent([h for h in items if h["polarity"] > 0])
-        negative, neg_dependent = _independent([h for h in items if h["polarity"] < 0])
+        positive, pos_dependent, pos_limited = _independent([h for h in items if h["polarity"] > 0])
+        negative, neg_dependent, neg_limited = _independent([h for h in items if h["polarity"] < 0])
         # Conflicting premises are never resolved by a simple difference of scores.
         if positive and negative:
             tensions.append({
@@ -203,6 +292,8 @@ def _base_features(report: dict) -> tuple[list[dict], list[dict]]:
             "strength": round(max(p["weight"] for p in positive), 3),
             "strength_kind": "legacy-editorial-max-not-probability",
             "independent_facts": positive, "dependent_facts": pos_dependent,
+            "available_facts": _candidate_groups([h for h in items if h["polarity"] > 0]),
+            "selection_search_limited": pos_limited or neg_limited,
             "counter_facts": negative, "dependent_counter_facts": neg_dependent,
             "evidence_roots": sorted({r for p in positive for r in p["roots"]}),
             "rule_ids": rule_ids, "related_rule_ids": all_ids,
@@ -230,6 +321,7 @@ def synthesize(chart, report: dict) -> dict:
     active = [node for node in base if not node["has_unresolved_tension"]]
     frontier = list(active)
     truncated = False
+    search_limited_paths: set[tuple[str, ...]] = set()
 
     while frontier:
         next_frontier = []
@@ -243,22 +335,21 @@ def synthesize(chart, report: dict) -> dict:
                     continue
                 if successor["domain"] != prior["domain"]:
                     continue
-                if set(prior["evidence_roots"]) & set(successor["evidence_roots"]):
-                    continue
                 path = tuple(prior["path"] + [target])
                 if path in seen:
+                    continue
+                chosen, alternatives, proof_limited, visited = _choose_path_proof(path, by_axis)
+                if proof_limited:
+                    search_limited_paths.add(path)
+                if chosen is None:
                     continue
                 if len(nodes) >= MAX_NODES:
                     truncated = True
                     break
                 seen.add(path)
-                # Note: derived nodes are only *transformations* of leaf evidence,
-                # not additional votes. Each parent path is strictly shorter.
-                group_map = {
-                    group["evidence_key"]: group
-                    for group in (prior["independent_facts"] + successor["independent_facts"])
-                }
-                witnesses = [group_map[k] for k in sorted(group_map)]
+                # Parent IDs describe functional steps; this node's selected
+                # witnesses constitute its complete, standalone joint proof.
+                witnesses = chosen
                 rule_ids, sources, statuses = _collect(witnesses)
                 functions = [FUNCTIONS[name][0] for name in path]
                 node = {
@@ -272,6 +363,10 @@ def synthesize(chart, report: dict) -> dict:
                     "strength_kind": "weakest-editorial-witness-not-probability",
                     "independent_facts": witnesses,
                     "dependent_facts": [], "counter_facts": [],
+                    "selected_witnesses_by_axis": dict(zip(path, witnesses)),
+                    "alternative_facts_by_axis": alternatives,
+                    "proof_search": {"states": visited, "limit": MAX_PROOF_STATES,
+                                     "complete": not proof_limited},
                     "evidence_roots": sorted(set(prior["evidence_roots"])
                                              | set(successor["evidence_roots"])),
                     "rule_ids": rule_ids, "related_rule_ids": rule_ids,
@@ -289,9 +384,23 @@ def synthesize(chart, report: dict) -> dict:
         frontier = next_frontier
 
     derived = [n for n in nodes if n["type"] == "synthesis"]
-    parent_ids = {p for n in derived for p in n["parents"]}
-    top = [n for n in derived if n["id"] not in parent_ids]
-    top.sort(key=lambda n: (-n["level"], -n["strength"], n["id"]))
+    # Present maximal *contiguous* functional sequences only. Non-contiguous
+    # overlaps may describe different processes and remain separate.
+    ordered = sorted(derived, key=lambda n: (-len(n["path"]), -n["strength"], n["id"]))
+    top = []
+    subsumed_by: dict[str, str] = {}
+    for node in ordered:
+        path = node["path"]
+        covering = next((
+            longer for longer in top
+            if longer["domain"] == node["domain"]
+            and any(longer["path"][i:i + len(path)] == path
+                    for i in range(len(longer["path"]) - len(path) + 1))
+        ), None)
+        if covering is not None:
+            subsumed_by[node["id"]] = covering["id"]
+        else:
+            top.append(node)
     axes = sorted(base, key=lambda n: (-n["strength"], n["axis"]))
     return {
         "schema_version": 1, "engine_version": SYNTHESIS_VERSION,
@@ -307,6 +416,8 @@ def synthesize(chart, report: dict) -> dict:
         "summary": {
             "leading_axes": [n["axis"] for n in axes[:5]],
             "top_hypotheses": [n["id"] for n in top[:8]],
+            "subsumed_by": subsumed_by,
+            "proof_search_limited_paths": [list(p) for p in sorted(search_limited_paths)],
             "hypothesis_count": len(derived),
             "unresolved_tension_count": len(tensions),
         },
@@ -322,6 +433,9 @@ def synthesize(chart, report: dict) -> dict:
                 ["גבול משאבים: מספר הצמתים הוגבל; לא כל המסלולים נבדקו."]
                 if truncated else []
             ),
+            *(["חיפוש הראיות הוגבל במשאבים; היעדר מסלול אינו הוכחה שלא קיימת חלופה."]
+              if search_limited_paths or any(n.get("selection_search_limited") for n in base)
+              else []),
             *(["שעת הלידה אינה ודאית; אין להסיק בתים או היבטים מהדגימה."]
               if report.get("time_uncertain") else []),
         ],
