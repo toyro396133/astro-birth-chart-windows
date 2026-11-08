@@ -3,14 +3,14 @@ from dataclasses import dataclass
 from PySide6.QtCore import QSettings
 
 FONT_PERCENTS = (90, 100, 110, 120)
-ROW_HEIGHTS = (22, 26, 30)
+ROW_HEIGHTS = (21, 26, 30)
 SYMBOL_SIZES = (14, 16, 18)
 
 
 @dataclass(frozen=True)
 class DisplayPreferences:
     font_percent: int = 100
-    row_height: int = 22
+    row_height: int = 21
     symbol_size: int = 16
 
 
@@ -25,7 +25,7 @@ def _saved_choice(settings, key, choices, fallback):
 def read_preferences(settings):
     return DisplayPreferences(
         font_percent=_saved_choice(settings, "display/font_percent", FONT_PERCENTS, 100),
-        row_height=_saved_choice(settings, "display/table_row_height", ROW_HEIGHTS, 22),
+        row_height=_saved_choice(settings, "display/table_row_height", ROW_HEIGHTS, 21),
         symbol_size=_saved_choice(settings, "display/wheel_symbol_size", SYMBOL_SIZES, 16),
     )
 
