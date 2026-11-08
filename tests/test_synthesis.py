@@ -188,3 +188,131 @@ def test_synthetic_before_after_compares_hierarchic_results_without_pack_edits()
     assert all("path" not in axis for axis in base["axes"])
     assert any(len(n["path"]) > 1 for n in generated(inferred))
     assert inferred["feedback_contract"]["automatic_learning_enabled"] is False
+
+
+# R1 independent-audit acceptance gates, kept deliberately small.
+def _axis_path(result, wanted):
+    return next(n for n in generated(result) if n["path"] == list(wanted))
+
+
+def test_a01_path_proof_chooses_disjoint_alternatives_not_entire_axis_unions():
+    chart = Chart([
+        BodyPosition("שמש", 12.4, False, (0,)),
+        BodyPosition("צדק", 13.0, False, (0,)),
+        BodyPosition("מרקורי", 35.0, False, (1,)),
+    ], [], None, None, False, [])
+    report = deepcopy(interpret_chart(chart))
+    sun = next(h for h in report["signals"] if h["rule_id"] == "sun-sign-1")
+    persistence_on_sun = deepcopy(sun)
+    persistence_on_sun.update(
+        rule_id="test-sun-persistence", axis="התמדה", weight=3.0,
+    )
+    report["signals"].append(persistence_on_sun)
+    result = synthesize(chart, report)
+    node = _axis_path(result, ("יוזמה", "התמדה"))
+    # A01: both axes offer Sun, yet there is a valid independent assignment.
+    assert {"body:שמש", "body:צדק", "body:מרקורי"} >= set(node["evidence_roots"])
+    assert len(node["independent_facts"]) == 2
+    assert len(node["evidence_roots"]) == 2
+    assert len({root for w in node["independent_facts"] for root in w["roots"]}) == 2
+    assert node["proof_search"]["complete"]
+    assert node["alternative_facts_by_axis"]
+    assert any(node["alternative_facts_by_axis"].values())
+    assert node["audit_status"] == "hypothesis"
+
+    # Without Mercury, both persistence and initiative depend on Sun
+    # or Jupiter; removing Jupiter too leaves no root-disjoint pair.
+    no_alternative = deepcopy(report)
+    no_alternative["signals"] = [
+        h for h in no_alternative["signals"]
+        if h["rule_id"] not in ("mercury-sign-2", "jupiter-sign-1")
+    ]
+    blocked = synthesize(chart, no_alternative)
+    assert ("יוזמה", "התמדה") not in {
+        tuple(n["path"]) for n in generated(blocked)
+    }
+
+
+def test_a02_bound_search_picks_two_independent_placements_over_one_aspect():
+    from astrochart.synthesis import _independent, _choose_path_proof, _base_features
+
+    def mock(axis, key, weight, rule_id):
+        return {
+            "rule_id": rule_id, "axis": axis, "polarity": 1,
+            "weight": float(weight), "modifier_only": False,
+            "evidence_key": key, "review_status": "unverified",
+            "source_url": None, "evidence": key,
+        }
+
+    aspect = mock("יוזמה", "aspect:מרקורי:שמש:צמידות", 5, "aspect5")
+    sun = mock("יוזמה", "placement:שמש:טלה", 4, "sun4")
+    mercury = mock("יוזמה", "placement:מרקורי:טלה", 4, "mercury4")
+    selected, dropped, limited = _independent([aspect, sun, mercury])
+    assert not limited
+    assert {g["evidence_key"] for g in selected} == {
+        "placement:שמש:טלה", "placement:מרקורי:טלה",
+    }
+    assert [g["evidence_key"] for g in dropped] == ["aspect:מרקורי:שמש:צמידות"]
+
+    # A high-weight overlapping choice must not veto a path if an
+    # independent alternative exists for its first axis.
+    persistence = mock("התמדה", "placement:מרקורי:טלה", 4, "persistent4")
+    jupiter = mock("יוזמה", "placement:צדק:טלה", 2, "jupiter2")
+    base, _ = _base_features({"signals": [aspect, sun, mercury, jupiter, persistence]})
+    by_axis = {b["axis"]: b for b in base}
+    chosen, alternatives, search_limited, states = _choose_path_proof(
+        ("יוזמה", "התמדה"), by_axis
+    )
+    assert chosen is not None and len(chosen) == 2
+    assert not search_limited and states > 0
+    assert set(chosen[0]["roots"]).isdisjoint(chosen[1]["roots"])
+    assert alternatives["יוזמה"]
+
+
+def test_a03_summary_removes_prefix_suffix_containment_but_retains_ten_proofs():
+    chart = Chart([
+        BodyPosition("שמש", 12.4, False, (0,)),
+        BodyPosition("מרקורי", 255.0, False, (8,)),
+        BodyPosition("מאדים", 45.0, False, (1,)),
+        BodyPosition("שבתאי", 285.0, False, (9,)),
+    ], [], None, None, False, [])
+    _, result = run(chart)
+    paths = generated(result)
+    assert len(paths) == 10
+    assert len(result["top_feature_ids"]) < 6
+    top = {node["id"]: node for node in paths
+           if node["id"] in result["top_feature_ids"]}
+    assert len(top) <= 3
+    subsumed = result["summary"]["subsumed_by"]
+    assert set(subsumed).isdisjoint(top)
+    assert len(subsumed) + len(top) == 10
+    for short_id, longer_id in subsumed.items():
+        short = next(n for n in paths if n["id"] == short_id)
+        long = top[longer_id]
+        p, q = short["path"], long["path"]
+        assert any(q[i:i + len(p)] == p for i in range(len(q) - len(p) + 1))
+        assert short["rule_ids"] and short["independent_facts"]
+    readable = format_synthesis(result)
+    assert readable.count("    שרשרת: ") == len(result["summary"]["top_hypotheses"])
+    assert result == synthesize(chart, interpret_chart(chart))
+
+
+def test_a01_unselected_overlap_is_not_promoted_to_proof_root_or_weight():
+    chart = chart_for_path()
+    report = deepcopy(interpret_chart(chart))
+    sun = next(h for h in report["signals"] if h["rule_id"] == "sun-sign-1")
+    overlap = deepcopy(sun)
+    overlap.update(rule_id="extra-initiative-on-mercury",
+                   evidence_key="placement:מרקורי:שור", weight=5.0)
+    report["signals"].append(overlap)
+    result = synthesize(chart, report)
+    path = _axis_path(result, ("יוזמה", "התמדה", "אחריות"))
+    assert len(path["independent_facts"]) == 3
+    assert len(path["evidence_roots"]) == 3
+    assert len(set(path["evidence_roots"])) == 3
+    assert path["strength"] == min(w["weight"] for w in path["independent_facts"])
+    assert path["selected_witnesses_by_axis"]["יוזמה"]["evidence_key"] != (
+        "placement:מרקורי:שור"
+    )
+    assert any(f["evidence_key"] == "placement:מרקורי:שור"
+               for f in path["alternative_facts_by_axis"]["יוזמה"])
