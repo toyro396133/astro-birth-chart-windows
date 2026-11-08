@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "0.1.0",
+  "catalog_version": "0.2.0",
   "editorial_status": "unreviewed-symbolic-expansion-not-astrological-rule",
   "scope": "N2 editorial meanings attached only to supported R1 axis nodes; never back-propagate examples to rules.",
   "entries": [
@@ -277,5 +277,528 @@
         "astrological_rule": false
       }
     }
-  ]
+  ],
+  "rule_readings": [
+    {
+      "id": "n2.rule.mercury-sign-2",
+      "kind": "rule_reading",
+      "rule_id": "mercury-sign-2",
+      "axis": "התמדה",
+      "evidence_type": "placement",
+      "source_rule_text": "מרקורי במיקום זה מסמל חשיבה הדרגתית ובדיקה חוזרת.",
+      "focus": "חשיבה הדרגתית ובדיקה חוזרת",
+      "setting": "בעת בירור רעיון מורכב",
+      "behavior": "עשוי לבדוק את אותו שלב מחשבתי פעם נוספת לפני שהוא ממשיך",
+      "distinction": "דגש על תהליך בדיקה, ולא על קצב הפעולה הגופנית",
+      "limit": "אין בסיס לקבוע שהאדם אכן לומד כך בכל מצב",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.mars-sign-2",
+      "kind": "rule_reading",
+      "rule_id": "mars-sign-2",
+      "axis": "התמדה",
+      "evidence_type": "placement",
+      "source_rule_text": "מאדים במזל שור משמש במסגרת הפרשנות הסמלית לתיאור התקדמות עיקשת והעדפה לפעולה בקצב יציב.",
+      "focus": "התקדמות עיקשת ופעולה בקצב יציב",
+      "setting": "בעת ביצוע משימה ארוכה",
+      "behavior": "עשוי להעדיף פעולות קטנות וסדירות במקום שינויי קצב חדים",
+      "distinction": "דגש על קצב הביצוע והמאמץ, ולא על בדיקת מחשבות",
+      "limit": "אין כאן ראיה להצלחה במשימה מסוימת",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.saturn-sign-10",
+      "kind": "rule_reading",
+      "rule_id": "saturn-sign-10",
+      "axis": "אחריות",
+      "evidence_type": "placement",
+      "source_rule_text": "שבתאי במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור סמל להעמקת מחויבות, גבולות ומבנה לטווח ארוך.",
+      "focus": "מחויבות, גבולות ומבנה לטווח ארוך",
+      "setting": "כאשר נדרש לתכנן התחייבות ממושכת",
+      "behavior": "עשוי לנסח גבולות ברורים לפני שהוא מתחייב לשלב הבא",
+      "distinction": "דגש על משך המחויבות ועל גבולותיה",
+      "limit": "אין בכך עדות לתפקיד או לעמדה שמילא בפועל",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.sun-house-10",
+      "kind": "rule_reading",
+      "rule_id": "sun-house-10",
+      "axis": "אחריות",
+      "evidence_type": "house",
+      "source_rule_text": "בית עשירי משמש כאן סמל לכיוון, מבנה ועיסוק במטרות נראות.",
+      "focus": "כיוון, מבנה ומטרות נראות",
+      "setting": "כאשר מגדירים יעד שיש להציג את תוצאותיו",
+      "behavior": "עשוי להעדיף יעד ברור שאפשר לעקוב אחר התקדמותו",
+      "distinction": "דגש על נראות היעד במסגרת סמלית של בית, ולא על משמעת פנימית לטווח ארוך",
+      "limit": "אין להסיק מכאן מקצוע או הישג",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.moon-sign-2",
+      "kind": "rule_reading",
+      "rule_id": "moon-sign-2",
+      "axis": "יציבות",
+      "evidence_type": "placement",
+      "source_rule_text": "במילון הסמלי, הצורך הרגשי ביציבות וברציפות מקבל כאן משקל.",
+      "focus": "צורך רגשי ביציבות וברציפות",
+      "setting": "כאשר שגרת היום משתנה",
+      "behavior": "עשוי לחפש נקודת קביעות אחת בתוך השינוי",
+      "distinction": "הדגש הסמלי הוא על רציפות ברובד של צורך, לא על קצב עשייה",
+      "limit": "אין לקבוע מכאן תגובה רגשית שחווה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-sign-2",
+      "kind": "rule_reading",
+      "rule_id": "sun-sign-2",
+      "axis": "יציבות",
+      "evidence_type": "placement",
+      "source_rule_text": "מיקום זה מקושר במילון הסמלי לעקביות, קצב מדוד וחיפוש אחר יציבות.",
+      "focus": "עקביות, קצב מדוד וחיפוש יציבות",
+      "setting": "כאשר מתחילים מסלול חדש",
+      "behavior": "עשוי לבחור בהתקדמות מדודה עם סדר קבוע",
+      "distinction": "דגש כללי על צורת התקדמות אישית",
+      "limit": "אין להסיק מכך העדפה אוניברסלית לשגרה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-sign-1",
+      "kind": "rule_reading",
+      "rule_id": "sun-sign-1",
+      "axis": "יוזמה",
+      "evidence_type": "placement",
+      "source_rule_text": "במסורת המערבית מיקום זה מדגיש יוזמה, תגובה מהירה והעדפה להתחיל דברים.",
+      "focus": "יוזמה, תגובה מהירה והעדפה להתחיל",
+      "setting": "כאשר מתעוררת אפשרות חדשה לפעולה",
+      "behavior": "עשוי לבחון התחלה מעשית בלי להמתין לכל הפרטים",
+      "distinction": "דגש על פתיחת מהלך ותגובה מהירה",
+      "limit": "הכלל אינו קובע שהאדם יפעל ללא בדיקה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-sign-3",
+      "kind": "rule_reading",
+      "rule_id": "sun-sign-3",
+      "axis": "גמישות",
+      "evidence_type": "placement",
+      "source_rule_text": "מיקום זה מתואר כדגש על סקרנות, החלפת רעיונות וגמישות.",
+      "focus": "סקרנות, החלפת רעיונות וגמישות",
+      "setting": "כאשר מוצגות כמה הצעות שונות",
+      "behavior": "עשוי לעבור בין אפשרויות כדי לבחון מה אפשר ללמוד מכל אחת",
+      "distinction": "דגש על מגוון רעיונות ויכולת מעבר ביניהם",
+      "limit": "אין לקבוע שהאדם משנה את דעתו בכל מקרה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-sign-6",
+      "kind": "rule_reading",
+      "rule_id": "sun-sign-6",
+      "axis": "חשיבה",
+      "evidence_type": "placement",
+      "source_rule_text": "מיקום זה מקושר לאבחנה בפרטים, ארגון ובחינה שיטתית.",
+      "focus": "אבחנה בפרטים, ארגון ובחינה שיטתית",
+      "setting": "כאשר מטפלים בבעיה שיש בה פרטים רבים",
+      "behavior": "עשוי לחלק את המידע לקטגוריות ולבדוק כל חלק",
+      "distinction": "דגש על סדר בתהליך הבירור",
+      "limit": "אין להסיק מיומנות מקצועית שנמדדה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-sign-10",
+      "kind": "rule_reading",
+      "rule_id": "sun-sign-10",
+      "axis": "אחריות",
+      "evidence_type": "placement",
+      "source_rule_text": "מיקום זה נקשר להתמדה, מבנה ותכנון לטווח ארוך.",
+      "focus": "התמדה, מבנה ותכנון לטווח ארוך",
+      "setting": "בתכנון יעד מתמשך",
+      "behavior": "עשוי לפרק את המטרה לשלבים בעלי סדר קבוע",
+      "distinction": "דגש על תכנון מבני לאורך זמן",
+      "limit": "אין עדות שהיעד הושג",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.moon-sign-3",
+      "kind": "rule_reading",
+      "rule_id": "moon-sign-3",
+      "axis": "תקשורת",
+      "evidence_type": "placement",
+      "source_rule_text": "המיקום מסמל עיבוד רגשות דרך שיחה, סקרנות ותנועה מחשבתית.",
+      "focus": "עיבוד רגשות דרך שיחה וסקרנות",
+      "setting": "בעת ניסיון להבין תגובה מורכבת",
+      "behavior": "עשוי לנסות לנסח את השאלה בשיחה כדי לברר אותה",
+      "distinction": "דגש על שיחה כאמצעי בירור סמלי",
+      "limit": "אין לקבוע מה האדם סיפר למישהו",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.moon-sign-6",
+      "kind": "rule_reading",
+      "rule_id": "moon-sign-6",
+      "axis": "חשיבה",
+      "evidence_type": "placement",
+      "source_rule_text": "המיקום נקשר לעיבוד רגשות דרך מיון, הסבר ופרטים.",
+      "focus": "עיבוד רגשות דרך מיון, הסבר ופרטים",
+      "setting": "כאשר מתמודדים עם מידע מבלבל",
+      "behavior": "עשוי לנסות לעשות סדר בפרטים לפני גיבוש תגובה",
+      "distinction": "דגש על מיון פרטים גם בתגובה רגשית",
+      "limit": "אין בכך תיאור של אירוע עבר",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.moon-sign-10",
+      "kind": "rule_reading",
+      "rule_id": "moon-sign-10",
+      "axis": "אחריות",
+      "evidence_type": "placement",
+      "source_rule_text": "מיקום זה מתואר בסמליות המערבית כאופן מדוד וזהיר של עיבוד רגשות, ולא כחוסר רגישות.",
+      "focus": "עיבוד רגשות באופן מדוד וזהיר",
+      "setting": "כאשר נדרשת תגובה במצב לא ברור",
+      "behavior": "עשוי להעדיף לבחון את גבולות התגובה לפני שהוא פועל",
+      "distinction": "דגש על זהירות בעיבוד תגובה, לא על היעדר רגש",
+      "limit": "אין להניח שתגובותיו תמיד מאופקות",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.mercury-sign-6",
+      "kind": "rule_reading",
+      "rule_id": "mercury-sign-6",
+      "axis": "חשיבה",
+      "evidence_type": "placement",
+      "source_rule_text": "מרקורי במיקום זה מסמל עיבוד שיטתי ותשומת לב לפרטים.",
+      "focus": "עיבוד שיטתי ותשומת לב לפרטים",
+      "setting": "בעת ניתוח טקסט או טיעון מורכב",
+      "behavior": "עשוי לבדוק היכן הנתונים תומכים במסקנה והיכן חסר פירוט",
+      "distinction": "דגש על דיוק בחשיבה",
+      "limit": "אין בכך קביעה על רמת ההבנה בפועל",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.mercury-sign-10",
+      "kind": "rule_reading",
+      "rule_id": "mercury-sign-10",
+      "axis": "אחריות",
+      "evidence_type": "placement",
+      "source_rule_text": "מרקורי במיקום זה מסמל תכנון מסודר ודיבור שקול.",
+      "focus": "תכנון מסודר ודיבור שקול",
+      "setting": "כאשר עליו להסביר תוכנית",
+      "behavior": "עשוי לסדר את שלבי ההסבר לפני הצגתם",
+      "distinction": "דגש על תכנון של מסר ובחירת מילים",
+      "limit": "אין לקבוע שכך הוא מדבר בכל שיחה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.mars-sign-8",
+      "kind": "rule_reading",
+      "rule_id": "mars-sign-8",
+      "axis": "התמדה",
+      "evidence_type": "placement",
+      "source_rule_text": "מאדים במזל עקרב משמש במסגרת הפרשנות הסמלית לתיאור ריכוז אנרגיה במשימות מורכבות לאורך זמן.",
+      "focus": "ריכוז אנרגיה במשימות מורכבות לאורך זמן",
+      "setting": "בעת התמודדות עם בעיה ממושכת",
+      "behavior": "עשוי לשמור את תשומת הלב על יעד אחד גם כשנדרש מאמץ",
+      "distinction": "דגש על ריכוז מאמץ ממושך",
+      "limit": "אין כאן הערכת תפקוד מוכחת",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.mars-sign-10",
+      "kind": "rule_reading",
+      "rule_id": "mars-sign-10",
+      "axis": "אחריות",
+      "evidence_type": "placement",
+      "source_rule_text": "מאדים במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור הפניית אנרגיה לתכנון, משמעת והתקדמות מדורגת.",
+      "focus": "הפניית אנרגיה לתכנון, משמעת והתקדמות מדורגת",
+      "setting": "בעת ארגון משימה לביצוע",
+      "behavior": "עשוי להציב שלבי עבודה לפני תחילת הביצוע",
+      "distinction": "דגש על יישום מתוכנן של מאמץ",
+      "limit": "אין להסיק על היקף אחריותו בפועל",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.saturn-sign-2",
+      "kind": "rule_reading",
+      "rule_id": "saturn-sign-2",
+      "axis": "התמדה",
+      "evidence_type": "placement",
+      "source_rule_text": "שבתאי במזל שור משמש במסגרת הפרשנות הסמלית לתיאור דגש על בניית הרגלים וקביעות בעבודה לאורך זמן.",
+      "focus": "בניית הרגלים וקביעות בעבודה לאורך זמן",
+      "setting": "בעת גיבוש שגרת עבודה",
+      "behavior": "עשוי להגדיר פעולות מעטות שניתן לחזור עליהן בעקביות",
+      "distinction": "דגש על בניית מסגרת והרגל, ולא על קצב מאמץ רגעי",
+      "limit": "אין להניח שהרגל כזה כבר נבנה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.saturn-house-10",
+      "kind": "rule_reading",
+      "rule_id": "saturn-house-10",
+      "axis": "אחריות",
+      "evidence_type": "house",
+      "source_rule_text": "בית עשירי מסמל תחום שבו נבחנים מבנה, מחויבות ויעדים ארוכי טווח.",
+      "focus": "מבנה, מחויבות ויעדים ארוכי טווח",
+      "setting": "כאשר בוחנים התחייבות כלפי יעד",
+      "behavior": "עשוי להגדיר גבולות ותנאי עמידה במטרה",
+      "distinction": "דגש סמלי על זירת היעדים והמחויבות",
+      "limit": "הכלל אינו מעיד על מעמד מקצועי",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.mars-house-6",
+      "kind": "rule_reading",
+      "rule_id": "mars-house-6",
+      "axis": "התמדה",
+      "evidence_type": "house",
+      "source_rule_text": "בית שישי מצביע על אפשרות להשקיע אנרגיה בתהליכי עבודה והרגלים.",
+      "focus": "אנרגיה בתהליכי עבודה והרגלים",
+      "setting": "כאשר משימה דורשת תרגול שוטף",
+      "behavior": "עשוי להשקיע מאמץ בפעולה שחוזרת על עצמה",
+      "distinction": "דגש על הקשר של הרגלי עבודה ולא על העדפה מחשבתית",
+      "limit": "הכלל אינו מעיד על שגרת חיים קיימת",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.mercury-house-3",
+      "kind": "rule_reading",
+      "rule_id": "mercury-house-3",
+      "axis": "תקשורת",
+      "evidence_type": "house",
+      "source_rule_text": "בית שלישי מסמל דגש אפשרי על למידה, שיחה ועיבוד מידע.",
+      "focus": "למידה, שיחה ועיבוד מידע",
+      "setting": "כאשר צריך ללמוד רעיון ולהסבירו",
+      "behavior": "עשוי לשלב ניסוח מילולי עם עיבוד מידע",
+      "distinction": "דגש על תחום תקשורתי־לימודי",
+      "limit": "אין להסיק על השכלה שנרכשה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-house-1",
+      "kind": "rule_reading",
+      "rule_id": "sun-house-1",
+      "axis": "עצמאות",
+      "evidence_type": "house",
+      "source_rule_text": "בית ראשון משמש כאן סמל לדגש על נוכחות וביטוי אישי.",
+      "focus": "נוכחות וביטוי אישי",
+      "setting": "כאשר נדרש להציג בחירה אישית",
+      "behavior": "עשוי לתת מקום לדרך שבה הוא מציג את החלטתו",
+      "distinction": "דגש על צורת הביטוי ולא על עצמאות מוחלטת",
+      "limit": "אין בכך תיאור של הופעה או התנהגות שנצפתה",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.jupiter-sign-10",
+      "kind": "rule_reading",
+      "rule_id": "jupiter-sign-10",
+      "axis": "אחריות",
+      "evidence_type": "placement",
+      "source_rule_text": "צדק במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור התפתחות בסדר הדרגתי תוך בחינת גבולות מעשיים.",
+      "focus": "התפתחות בסדר הדרגתי ובחינת גבולות מעשיים",
+      "setting": "כאשר בוחנים רעיון להרחבה",
+      "behavior": "עשוי לשקול כיצד להרחיב את הפעולה בהדרגה",
+      "distinction": "דגש על אפשרות לצמיחה המתחשבת בגבולות",
+      "limit": "אין לחזות התרחבות עתידית",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    },
+    {
+      "id": "n2.rule.mercury-jupiter-trine",
+      "kind": "rule_reading",
+      "rule_id": "mercury-jupiter-trine",
+      "axis": "חשיבה",
+      "evidence_type": "aspect",
+      "source_rule_text": "היבט זה מתואר כסמל להרחבת אופקים מחשבתית וקישור רעיונות.",
+      "focus": "הרחבת אופקים מחשבתית וקישור רעיונות",
+      "setting": "כאשר בוחנים רעיונות ממקורות שונים",
+      "behavior": "עשוי לנסות למצוא נקודת חיבור בין שני רעיונות",
+      "distinction": "דגש על קישור של רעיונות; עצם ההיבט אינו אבחון חשיבתי",
+      "limit": "אין לייחס קשר סיבתי מוכח",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.moon-saturn-conjunction",
+      "kind": "rule_reading",
+      "rule_id": "moon-saturn-conjunction",
+      "axis": "אחריות",
+      "evidence_type": "aspect",
+      "source_rule_text": "הצמידות מסמלת אפשרות לעיבוד רגשי מאופק, תוך גבולות ובקרה, ולא חוסר יכולת להרגיש.",
+      "focus": "עיבוד רגשי מאופק וגבולות ובקרה",
+      "setting": "כאשר יש צורך להגיב לשינוי בסביבה",
+      "behavior": "עשוי לקחת זמן לבחינת גבולות התגובה",
+      "distinction": "דגש על גבולות בעיבוד תגובה, לא על חוסר יכולת להרגיש",
+      "limit": "אין לקבוע מצב רגשי מסוים",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "unverified"
+      }
+    },
+    {
+      "id": "n2.rule.sun-saturn-trine",
+      "kind": "rule_reading",
+      "rule_id": "sun-saturn-trine",
+      "axis": "אחריות",
+      "evidence_type": "aspect",
+      "source_rule_text": "המשולש מסמל אפשרות לשלב בין ביטוי אישי לתכנון והצבת גבולות.",
+      "focus": "שילוב בין ביטוי אישי לתכנון והצבת גבולות",
+      "setting": "כאשר רוצים להוציא רעיון לפועל",
+      "behavior": "עשוי לבחון כיצד לשמור על גבולות התכנון לצד ביטוי עצמי",
+      "distinction": "הכלל עצמו מדבר על שילוב סמלי, ולא על הצלחה בפועל",
+      "limit": "אין בכך אישור לקשר חדש של N2",
+      "eligible_polarity": 1,
+      "provenance": {
+        "origin": "N2 editorial extrapolation restricted to the exact original rule text",
+        "review_status": "unverified",
+        "astrological_rule": false,
+        "rule_review_status_at_authoring": "reviewed"
+      }
+    }
+  ],
+  "rule_reading_policy": "Use only when exact source_rule_text matches the original rule; read as unverified editorial illustrations; do not promote review statuses. Absence means abstain."
 }
