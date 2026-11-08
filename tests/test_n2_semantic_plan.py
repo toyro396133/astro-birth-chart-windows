@@ -78,6 +78,7 @@ def test_partial_path_identifies_each_missing_position(missing_position):
     assert "השוואה חלקית בלבד" in semantic
     assert "2 מתוך 3" in semantic
     assert path[missing_position] in semantic
+    assert f"לרכיב {path[missing_position]}" in semantic
     assert " → ".join(path) in semantic
     assert "ראיות המסלול" in evidence
     assert "גורם לאחר" in semantic and "אינן מוכיחות" in semantic
@@ -133,7 +134,7 @@ def test_axis_evidence_count_meaning_count_example_count_are_separate(count):
         assert "שני הדפוסים" not in text
         assert "מוקד 2" in text and "במצב 2" not in text
     if count == 4:
-        assert "ל־1 קבוצת ראיה" in text
+        assert "לקבוצת ראיה אחת נוספת" in text
 
 
 def test_two_abstentions_collapse_but_both_paths_and_proof_remain():
@@ -168,3 +169,25 @@ def test_two_abstentions_collapse_but_both_paths_and_proof_remain():
                for x in report["abstained_processes"])
     assert all(" → ".join(path) in paragraph["semantic_text"] for path in paths)
     assert len([x for x in semantic_only_n2(report) if "אותרו" in x]) == 1
+
+
+def test_one_abstained_path_has_natural_singular_hebrew():
+    path = ["יצירתיות", "חשיבה"]
+    slots = [slot(axis, i, False) for i, axis in enumerate(path)]
+    plan = build_process_content_plan(path, slots, "עיבוד", None, True)
+    c = claim("single-process", "process-reading", {
+        "path": path, "slots": slots, "content_plan": plan,
+        "proof_search_complete": True}, "single-node")
+    model = {
+        "semantic_version": N2_SEMANTIC_VERSION, "claims": [c],
+        "plan": {"primary": [], "secondary": [],
+                 "processes": [[c["id"]]], "tensions": []},
+        "time_mode": "known", "warnings": [],
+        "source_engine_version": "r1", "source_rule_pack": "test-pack",
+    }
+    narrative = compose_narrative_n2(model)
+    p = next(p for s in narrative["sections"] for p in s["paragraphs"]
+             if p["kind"] == "process-abstention")
+    assert "אותר מסלול נוסף" in p["semantic_text"]
+    assert "אותרו 1 מסלולים" not in p["semantic_text"]
+    assert len(narrative["abstained_processes"]) == 1

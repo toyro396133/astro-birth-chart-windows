@@ -64,8 +64,8 @@ No old sealed JPL samples are used to train or tune this comparison.
 `scripts/n2_acceptance.py` writes independently calculated actual JPL
 charts, new synthetic controls, claim/evidence lineage and a quantitative
 safety audit into `qa-output/n2-acceptance/` (instrumentation seed
-`2026110863`). After semantic code freeze, a separate new
-seed `2026110891` is reserved for final acceptance under
+`2026110863`). After a grammar correction found in an earlier validation, a separate new
+seed `2026110913` is reserved for final acceptance under
 `qa-output/n2-final-acceptance/`. Each supplies complete N1/N2,
 semantic-only and trace JSON outputs. Do not use the final set to tune N2.
 

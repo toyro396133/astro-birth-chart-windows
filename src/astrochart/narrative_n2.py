@@ -114,8 +114,10 @@ class DeterministicHebrewRealizer:
         )
         if count > len(examples):
             remaining = count - len(examples)
-            noun = "קבוצת ראיה נוספת" if remaining == 1 else "קבוצות ראיה נוספות"
-            text += f" ל־{remaining} {noun} אין פירוש התנהגותי ייחודי במאגר."
+            if remaining == 1:
+                text += " לקבוצת ראיה אחת נוספת אין פירוש התנהגותי ייחודי במאגר."
+            else:
+                text += f" ל־{remaining} קבוצות ראיה נוספות אין פירוש התנהגותי ייחודי במאגר."
         return text, evidence
 
     def process(self, claims: list[dict], index: int) -> tuple[str, str]:
@@ -143,8 +145,10 @@ class DeterministicHebrewRealizer:
                 f"זוהי השוואה חלקית בלבד: {len(components)} מתוך "
                 f"{len(path)} רכיבי המסלול מכוסים בפירוש עריכתי "
                 f"({_he_list([x['axis'] for x in components])}); "
-                f"לרכיבים {_he_list([x['axis'] for x in missing])} "
-                "אין עדיין משמעות תלויה בכלל שנבחר. ")
+                + (f"לרכיב {missing[0]['axis']} "
+                   if len(missing) == 1 else
+                   f"לרכיבים {_he_list([x['axis'] for x in missing])} ")
+                + "אין עדיין משמעות תלויה בכלל שנבחר. ")
         else:
             opening = (
                 f"במסלול R1 {' → '.join(path)} כל {len(path)} הרכיבים "
@@ -160,12 +164,8 @@ class DeterministicHebrewRealizer:
         # fabricated co-occurrence. No new behavioral proposition is asserted.
         if not missing:
             text += (
-                "בקריאה משולבת וזהירה אפשר להחזיק את השאלות בנפרד, "
-                "לפי סדר המסלול: "
-                + "; ".join(
-                    f"ב{c['axis']} מה ניתן לתאר באמצעות {c['focus']}"
-                    for c in components)
-                + ". אין זה סיפור על מעשים שהתרחשו ברצף. ")
+                "הסדר של R1 מסדר כאן נקודות מבט על מצבים שונים, "
+                "אך אינו מתאר שרשרת אירועים שאכן התרחשה. ")
         else:
             text += ("ההשוואה מתייחסת רק לרכיבים המכוסים, "
                      "ולא מסבירה את המסלול המלא. ")
@@ -254,11 +254,17 @@ def compose_narrative_n2(semantics: dict, *,
     if abstained:
         all_claims = [c for group, _ in abstained for c in group]
         names = [" → ".join(cp["path"]) for _, cp in abstained]
-        summary = (
-            f"אותרו {len(abstained)} מסלולים נוספים ב־R1 "
-            f"({_he_list(names)}), אך אין עדיין די במשמעויות מובחנות "
-            "ומתועדות כדי להסביר אותם. לא הוסקו מהם קשרים התנהגותיים. "
-            "פירוט כל רכיב חסר וכל ראיה שנבחרה נשמר ב־JSON.")
+        if len(abstained) == 1:
+            summary = (f"אותר מסלול נוסף ב־R1 ({names[0]}), "
+                       "אך אין עדיין די במשמעויות מובחנות ומתועדות "
+                       "כדי להסביר אותו. לא הוסק ממנו קשר התנהגותי. "
+                       "פירוט הרכיבים והראיות שנבחרו נשמר ב־JSON.")
+        else:
+            summary = (
+                f"אותרו {len(abstained)} מסלולים נוספים ב־R1 "
+                f"({_he_list(names)}), אך אין עדיין די במשמעויות מובחנות "
+                "ומתועדות כדי להסביר אותם. לא הוסקו מהם קשרים התנהגותיים. "
+                "פירוט הרכיבים והראיות שנבחרו נשמר ב־JSON.")
         evidence = "\n".join(
             f"• {' → '.join(cp['path'])}: "
             + "; ".join(
