@@ -312,11 +312,34 @@ def _process_claims(node: dict, axis_nodes: dict, readings: dict,
     content_plan = build_process_content_plan(
         list(path), slots, node["domain"], node.get("relation"),
         node.get("proof_search", {}).get("complete", True))
+    # Comparison of documented readings and a NEW combined assertion are
+    # separate decisions. An allowed comparison must not conceal the refusal
+    # to invent a relationship unsupported by the original sources.
+    missing = content_plan["coverage"]["missing_members"]
+    comparison_allowed = content_plan["comparison_is_supported"]
+    comparison_reason = (
+        "documented-distinct-readings" if comparison_allowed else
+        "missing-catalog-coverage" if missing else "no-meaningful-distinction")
+    combined_allowed = content_plan["new_cross_axis_assertion_supported"]
+    decisions = {
+        "schema_version": 1,
+        "comparison": {
+            "permitted": comparison_allowed,
+            "reason": comparison_reason,
+            "scope": ("partial" if missing else "full") if comparison_allowed
+                     else "none",
+        },
+        "combined_assertion": {
+            "permitted": combined_allowed,
+            "reason": ("source-supported-combination" if combined_allowed
+                       else "no-supported-combined-assertion"),
+        },
+    }
     base = _claim(node, "process-reading", "synthesis_hypothesis", {
         "path": list(path), "domain": node["domain"], "slots": slots,
         "model_relation": node.get("relation"),
         "proof_search_complete": node.get("proof_search", {}).get("complete", True),
-        "content_plan": content_plan,
+        "content_plan": content_plan, "interpretation_decisions": decisions,
     }, meaning_ids=meanings, audit_status="hypothesis")
     # No "whole-path" claim may silently drop the first, middle or last
     # member. Comparison always carries full path coverage and missing slots.
