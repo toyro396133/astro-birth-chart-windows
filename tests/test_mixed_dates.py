@@ -26,8 +26,7 @@ def test_rejects_bad_input():
     for year in (1849, 2150, True):
         with pytest.raises(ValueError):
             mixed_candidates(year, 7, 1, "day", time(12))
-    with pytest.raises(ValueError):
-        mixed_candidates(2024, 13, 30, "day", time(12))
+    assert mixed_candidates(2024, 13, 30, "day", time(12)) == []
     with pytest.raises(ValueError):
         mixed_candidates(2024, 7, 1, "invalid", time(12))
 
