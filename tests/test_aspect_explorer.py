@@ -52,7 +52,12 @@ def test_ui_selection_highlights_exact_one_aspect():
         dialog.kind_filter.setCurrentIndex(
             dialog.kind_filter.findData("sextile"))
         assert dialog.table.rowCount() == 1
-        dialog.table.selectRow(0)
+        assert dialog._visible_aspects[0].kind_id == "sextile"
+        # QWidget tests must set a current cell; selectRow alone does not
+        # always move keyboard focus or emit a current-index change.
+        dialog.table.setCurrentCell(0, 0)
+        app.processEvents()
+        assert dialog.table.currentRow() == 0
         assert wheel.selected_aspect_pair == frozenset(("שמש", "ונוס"))
         wheel.set_selected_body("ירח")
         assert wheel.selected_body == "ירח"
