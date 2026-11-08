@@ -68,8 +68,24 @@ def training():
     ]
 
 
+class MemberLookup(dict):
+    """Tests query unordered combinations by their logical member set."""
+    @staticmethod
+    def normalize(key):
+        return tuple(sorted(key))
+
+    def __contains__(self, key):
+        return super().__contains__(self.normalize(key))
+
+    def __getitem__(self, key):
+        return super().__getitem__(self.normalize(key))
+
+    def get(self, key, default=None):
+        return super().get(self.normalize(key), default)
+
+
 def by_members(result):
-    return {tuple(h["members"]): h for h in result["hypotheses"]}
+    return MemberLookup({tuple(h["members"]): h for h in result["hypotheses"]})
 
 
 def test_discovers_unprogrammed_pairs_and_higher_abstraction():
@@ -230,7 +246,7 @@ def test_no_generalization_from_single_case_or_low_lift():
 
 def test_abstraction_levels_grow_with_evidence_without_fixed_depth():
     corpus = [case(f"p-{i}", (A, B, C, D, E)) for i in range(5)]
-    corpus += [case(f"n-{i}", ()) for i in range(5)]
+    corpus += [case(f"n-{i}", (D,)) for i in range(5)]
     result = discover(corpus)
     high = next(h for h in result["hypotheses"] if len(h["members"]) == 5)
     assert high["level"] == 3
