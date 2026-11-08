@@ -30,8 +30,8 @@ def _wrapped_pdf_line_height(painter, width, text):
     return max(23, math.ceil(measured.height()) + 6)
 
 
-def export_chart_pdf(wheel, chart, destination):
-    """Vector page with wheel and text report, overflowing onto extra pages."""
+def export_chart_pdf(wheel, chart, destination, include_report=True):
+    """Vector wheel, optionally followed by text. No interpretation is included."""
     from .report import format_chart_report
     if chart is None or wheel.chart is None:
         raise ValueError("אין מפה מחושבת לייצוא")
@@ -47,7 +47,7 @@ def export_chart_pdf(wheel, chart, destination):
         margin = 70
         painter.setFont(QFont("Segoe UI", 17, QFont.Weight.Bold))
         painter.drawText(QRectF(margin, 35, page_w - 2 * margin, 42),
-                         Qt.AlignmentFlag.AlignRight, "AstroBirthChart — דוח מפה")
+                         Qt.AlignmentFlag.AlignRight, "AstroBirthChart — דוח מפה" if include_report else "AstroBirthChart — מפה בלבד")
         if wheel.width() > 0 and wheel.height() > 0:
             max_width = page_w - 2 * margin
             max_height = page_h * 0.45
@@ -60,6 +60,8 @@ def export_chart_pdf(wheel, chart, destination):
             line_y = 90 + wheel.height() * scale + 22
         else:
             line_y = 100
+        if not include_report:
+            return
         painter.setFont(QFont("Segoe UI", 9))
         text_width = page_w - 2 * margin
         flags = (Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight

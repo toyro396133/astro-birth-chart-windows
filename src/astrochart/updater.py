@@ -3,7 +3,7 @@
 No telemetry or personal data. GitHub HTTPS and the repository account are
 the trust anchors: an account compromise requires separate code signing.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 import json
 import os
@@ -20,6 +20,7 @@ from zipfile import ZipFile, BadZipFile
 
 REPO = "toyro396133/astro-birth-chart-windows"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
+API_HISTORY = f"https://api.github.com/repos/{REPO}/releases?per_page=30"
 ASSET = "AstroBirthChart-Windows-x64.zip"
 SETUP_ASSET = "AstroBirthChart-Setup.exe"
 INSTALLED_MARKER = "installed-by-setup.marker"
@@ -51,6 +52,7 @@ class Release:
     url: str
     digest: str
     size: int
+    notes: str = ""
 
 
 class SecureRedirect(HTTPRedirectHandler):
@@ -66,7 +68,7 @@ def open_https(url, timeout=20):
     return build_opener(SecureRedirect()).open(
         Request(url, headers={"User-Agent": "AstroBirthChart/Updater",
                               "Accept": "application/vnd.github+json"
-                              if url == API else "application/octet-stream"}),
+                              if url in (API, API_HISTORY) else "application/octet-stream"}),
         timeout=timeout)
 
 
@@ -89,7 +91,33 @@ def parse_release(payload, asset_name=ASSET):
     size = item.get("size")
     if not match or type(size) is not int or not 0 < size <= MAX_ZIP:
         raise UpdateError("העדכון חסר חותמת SHA-256 או גודל תקין")
-    return Release(tag[1:], expected_url, match.group(1), size)
+    body = payload.get("body")
+    notes = body[:10000].replace("\r", "") if isinstance(body, str) else ""
+    return Release(tag[1:], expected_url, match.group(1), size, notes)
+
+
+def summarize_release_changes(releases, installed, target):
+    """Group release notes by version; never trust or render Markdown as HTML."""
+    if not isinstance(releases, list):
+        raise UpdateError("יומן הגרסאות אינו תקין")
+    found = []
+    seen = set()
+    for item in releases:
+        if not isinstance(item, dict) or item.get("draft") or item.get("prerelease"):
+            continue
+        tag = item.get("tag_name")
+        if not isinstance(tag, str) or not TAG.fullmatch(tag):
+            continue
+        version = tag[1:]
+        if version in seen or not (is_newer(version, installed) and
+                                   not is_newer(version, target)):
+            continue
+        seen.add(version)
+        body = item.get("body")
+        description = body[:10000].replace("\r", "") if isinstance(body, str) else ""
+        found.append((version, description.strip() or "לא פורסם תיאור לגרסה זו"))
+    found.sort(key=lambda row: parts_version(row[0]), reverse=True)
+    return "\n\n".join(f"גרסה v{version}\n{body}" for version, body in found)[:24000]
 
 
 def latest_release(asset_name=ASSET):
@@ -99,7 +127,22 @@ def latest_release(asset_name=ASSET):
             raw = response.read(512_001)
             if len(raw) > 512_000:
                 raise UpdateError("תגובת GitHub ארוכה מדי")
-            return parse_release(json.loads(raw), asset_name=asset_name)
+            release = parse_release(json.loads(raw), asset_name=asset_name)
+        # A later update may skip several releases. A failure to load change
+        # notes must never prevent the user from seeing a valid update.
+        from . import __version__
+        if is_newer(release.version, __version__):
+            try:
+                with open_https(API_HISTORY) as history_response:
+                    history_raw = history_response.read(700_001)
+                    if len(history_raw) > 700_000:
+                        raise UpdateError("יומן גרסאות ארוך מדי")
+                    notes = summarize_release_changes(
+                        json.loads(history_raw), __version__, release.version)
+                release = replace(release, notes=notes or release.notes)
+            except (OSError, ValueError, UpdateError):
+                pass
+        return release
     except HTTPError as exc:
         if exc.code == 404:
             return None  # no releases published yet

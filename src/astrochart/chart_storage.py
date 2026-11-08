@@ -31,7 +31,7 @@ def _nonempty(value, field):
 def validate_input(data):
     if not isinstance(data, dict) or set(data) != set(FIELDS):
         raise ValueError("קובץ המפה אינו כולל את כל שדות הקלט")
-    if data["date_mode"] not in ("gregorian", "hebrew"):
+    if data["date_mode"] not in ("gregorian", "hebrew", "mixed"):
         raise ValueError("סוג תאריך לא נתמך")
     for field in ("civil_date", "gregorian_date"):
         try:
@@ -59,8 +59,20 @@ def validate_input(data):
         raise ValueError("תאריך עברי מחוץ לטווח")
     if data["phase"] not in ("day", "evening", "after_midnight"):
         raise ValueError("חלק היום אינו נתמך")
-    if data["date_mode"] == "hebrew" and data["unknown_time"]:
+    if data["date_mode"] in ("hebrew", "mixed") and data["unknown_time"]:
         raise ValueError("תאריך עברי ללא שעה אינו נתמך")
+    if data["date_mode"] == "mixed":
+        from .mixed_dates import mixed_candidates
+        if data["clock"] is None:
+            raise ValueError("תאריך מעורב מחייב שעה")
+        civil = date.fromisoformat(data["civil_date"])
+        gregorian_year = date.fromisoformat(data["gregorian_date"]).year
+        clock = time.fromisoformat(data["clock"])
+        options = mixed_candidates(gregorian_year, data["hebrew_month"],
+                                   data["hebrew_day"], data["phase"], clock)
+        if not any(option.hebrew_year == data["hebrew_year"] and
+                   option.resolved.civil_day == civil for option in options):
+            raise ValueError("התאריך המעורב אינו תואם את התאריך האזרחי")
     for field, bounds in (("latitude", (-90, 90)), ("longitude", (-180, 180))):
         value = data[field]
         if type(value) not in (float, int) or not math.isfinite(value):
