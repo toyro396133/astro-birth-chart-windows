@@ -56,7 +56,7 @@ def test_n2_is_attributed_and_more_concrete_than_n1():
     assert "בעל המפה" in text and "ראיות הכללים" in text
     assert any(c["kind"] == "axis-meaning" and c["content"]["strength"]
                and c["content"]["challenge"] for c in semantic["claims"])
-    assert "אבחון אישיות" in text
+    assert "לא בדיקת אישיות מדעית" in text
     assert semantic["relationship_discovery_enabled"] is False
     assert semantic["catalog_review_status"] == "unverified"
     assert semantic["claims"]
