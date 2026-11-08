@@ -63,6 +63,61 @@ jobs:
           Compress-Archive -Path dist/AstroBirthChart -DestinationPath AstroBirthChart-Windows-x64.zip -CompressionLevel Optimal
           python scripts/verify_release_zip.py AstroBirthChart-Windows-x64.zip
           Get-FileHash AstroBirthChart-Windows-x64.zip -Algorithm SHA256
+      - name: Build optional verified portable delta from previous stable release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $previous = gh api repos/toyro396133/astro-birth-chart-windows/releases/latest --jq .tag_name 2>$null
+          if ($LASTEXITCODE -ne 0 -or -not $previous) {
+            Write-Host "No previous stable release; full ZIP remains available."
+            exit 0
+          }
+          if ($previous -notmatch '^v[0-9]+\\.[0-9]+\\.[0-9]+        shell: pwsh
+        run: choco install innosetup -y --no-progress --limit-output
+      - name: Compile single-file Windows Setup.exe
+        shell: pwsh
+        run: |
+          $version = (Get-Content dist/AstroBirthChart/version.json -Raw | ConvertFrom-Json).version
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Missing Inno Setup compiler" }
+          & $iscc "/DAppVersion=$version" "installer\astrochart.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Installer compilation failed" }
+          if (-not (Test-Path "dist\installer\AstroBirthChart-Setup.exe")) { throw "Setup.exe missing" }
+      - name: Validate actual installation, upgrade and Windows uninstall
+        shell: pwsh
+        run: .\scripts\test_installer.ps1
+      - name: Publish release with GitHub-computed SHA256 digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = python -c "import sys; sys.path.insert(0, 'src'); import astrochart; print(astrochart.__version__)"
+          $tag = "v$version"
+          if (gh release view $tag 2>$null) { throw "Release $tag already exists; refusing overwrite" }
+          $extra = @()
+          if ("${{ github.ref_type }}" -eq "tag") { $extra += "--verify-tag" }
+          $assets = @("AstroBirthChart-Windows-x64.zip", "dist/installer/AstroBirthChart-Setup.exe")
+          $deltaAssets = @(Get-ChildItem -Path dist -Filter "AstroBirthChart-Delta-from-v*-to-v*.zip" -File)
+          foreach ($asset in $deltaAssets) { $assets += $asset.FullName }
+          gh release create $tag @assets --target "${{ github.sha }}" --title "AstroBirthChart $tag" --generate-notes @extra
+          if ($LASTEXITCODE -ne 0) { throw "Release publishing failed" }
+) {
+            throw "Unexpected previous release tag"
+          }
+          $version = (Get-Content dist/AstroBirthChart/version.json -Raw | ConvertFrom-Json).version
+          if ($previous -eq "v$version") {
+            Write-Host "Same published version; skipping delta."
+            exit 0
+          }
+          $previousDir = Join-Path $env:RUNNER_TEMP "astrochart-previous-release"
+          New-Item -ItemType Directory -Force -Path $previousDir | Out-Null
+          gh release download $previous --pattern "AstroBirthChart-Windows-x64.zip" --dir $previousDir
+          if ($LASTEXITCODE -ne 0) { throw "Could not download previous release ZIP" }
+          $previousZip = Join-Path $previousDir "AstroBirthChart-Windows-x64.zip"
+          $delta = "dist/AstroBirthChart-Delta-from-$previous-to-v$version.zip"
+          python scripts/create_delta.py $previousZip "AstroBirthChart-Windows-x64.zip" $delta
+          if ($LASTEXITCODE -ne 0) { throw "Delta build/validation failed" }
       - name: Install Inno Setup compiler
         shell: pwsh
         run: choco install innosetup -y --no-progress --limit-output
