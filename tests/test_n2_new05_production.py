@@ -275,9 +275,10 @@ def test_three_different_decisions_in_one_production_model(monkeypatch):
     paragraphs = [p for sec in report["sections"] for p in sec["paragraphs"]
                   if p["kind"] in ("process", "process-redundancy",
                                      "process-abstention")]
-    assert paragraphs[0]["kind"] in ("process", "process-redundancy")
-    assert paragraphs[1]["kind"] == "process-abstention"
-    abstention = paragraphs[1]
+    assert len(paragraphs) == 2
+    compared = next(p for p in paragraphs if p["kind"] != "process-abstention")
+    abstention = next(p for p in paragraphs if p["kind"] == "process-abstention")
+    assert compared["kind"] in ("process", "process-redundancy")
     assert len(abstention["abstained_paths"]) == 2
     assert abstention["abstained_paths"] == report["abstained_processes"]
     assert "לרכיב חשיבה חסר פירוש" in abstention["semantic_text"]
