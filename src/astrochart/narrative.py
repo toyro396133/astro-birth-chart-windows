@@ -112,31 +112,46 @@ def _functional_steps(node: dict, by_axis: dict[str, dict]) -> list[tuple[str, s
 
 
 def _explain_process(node: dict, steps: list[tuple[str, str]], index: int) -> str:
+    """Explain *R1's* proposed sequence, then name its selected source facts."""
     first_axis, first_function = steps[0]
     last_axis, last_function = steps[-1]
     if len(steps) == 2:
         lead = (
-            f"בתחום {node['domain']}, ציר {first_axis} מתואר ב־R1 כפעולת "
-            f"{first_function}, וציר {last_axis} כפעולת {last_function}. "
-            f"הקריאה המשולבת מציעה מעבר מן הפעולה הראשונה לשנייה: "
-            f"מ{first_function} אל {last_function}. "
+            f"בתחום {node['domain']}, ציר {first_axis} מייצג ב־R1 את פעולת "
+            f"{first_function}, וציר {last_axis} את פעולת {last_function}. "
+            f"הקשר המשוער הוא שפעולת {first_function} עשויה להזין "
+            f"את פעולת {last_function}, ולא רק ששני הצירים נמצאו בנפרד. "
         )
     else:
-        middle = " ומשם אל ".join(
-            f"{axis} (פעולת {function})" for axis, function in steps[1:])
+        transitions = "; ובהמשך ".join(
+            f"פעולת {current[1]} עשויה להזין את פעולת {following[1]}"
+            for current, following in zip(steps, steps[1:]))
         lead = (
-            (f"בתחום {node['domain']}, " if index == 0 else
-             f"רצף נוסף בתחום {node['domain']} מציע כיוון אחר: ")
-            + f"{first_axis} משמשת נקודת פתיחה של {first_function}; "
-            + f"בהמשך מוצע מעבר אל {middle}. "
-            + f"במונחי הפעולות, הכיוון הוא "
-            + " אל ".join(function for _, function in steps) + ". "
+            (f"בתחום {node['domain']} מוצע רצף אפשרי: " if index == 0 else
+             f"רצף אחר בתחום {node['domain']} מציע: ")
+            + f"{first_axis} ({first_function}) היא נקודת המוצא, "
+            + f"ו{last_axis} ({last_function}) היא החוליה האחרונה. "
+            + f"על פי מפת המעברים של R1, {transitions}. "
         )
+    anchors = []
+    for axis, _ in steps:
+        witness = node["selected_witnesses_by_axis"][axis]
+        description = next((item.strip().rstrip(" .") for item in
+                            witness.get("details", [])
+                            if isinstance(item, str) and item.strip()), None)
+        if description:
+            anchors.append(
+                f"{axis}: {description} (כלל {witness['rule_ids'][0]})")
+    evidence_text = (
+        " עוגני הראיות שנבחרו ב־R1: " + "; ".join(anchors) + "."
+        if anchors else "")
     return (
         lead
         + f"לכל אחת מ־{len(steps)} החוליות נבחרה ראיה נפרדת מבחינת "
-          "תלות הנתונים; הראיות תומכות בצירים עצמם, אך החיבור והכיוון "
-          "ביניהם הם השערת מודל ולא עובדה שנצפתה."
+          "תלות הנתונים. "
+        + evidence_text
+        + " הראיות תומכות בצירים לפי כללי המאגר; הקשר ביניהם "
+          "הוא השערת מודל, לא עובדה שנצפתה."
         + (" החיפוש אחר חלופות הוגבל ולכן ייתכנו מסלולים נוספים."
            if not node.get("proof_search", {}).get("complete", True) else "")
         + (" המסקנה מותנית באי־הוודאות בשעת הלידה."
@@ -323,8 +338,9 @@ def compose_narrative(synthesis: dict) -> dict:
         else:
             text = (f"נוסף לכך, {axis} מתואר כפעולת {function} "
                     f"בתחום {domain}.")
-        text += (" כאן מתוארת ראיה לציר, לא קביעה על קשר סיבתי "
-                 "בינו לבין הצירים האחרים.")
+        if index == 0:
+            text += (" תיאור הצירים העומדים בפני עצמם אינו קובע "
+                     "שיש קשר סיבתי ביניהם.")
         axis_paragraphs.append(_paragraph("axis", text, node=node))
     if axis_paragraphs:
         sections.append(_section("axes", "צירים העומדים בפני עצמם", axis_paragraphs))

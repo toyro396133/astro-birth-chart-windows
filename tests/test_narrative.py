@@ -217,6 +217,7 @@ def test_n1_hypothesis_explains_existing_r1_functional_mapping():
     assert "מהנעה" in text and "בקרה" in text
     assert "מעבר" in text and "חיבור סמלי בין" not in text
     assert "לכל אחת מ־3 החוליות" in text
+    assert "עוגני הראיות שנבחרו ב־R1" in text
     process = next(p for p in all_paragraphs(n1) if p["kind"] == "process")
     assert process["audit_status"] == "hypothesis"
     overview = next(p for p in all_paragraphs(n1) if p["kind"] == "overview")

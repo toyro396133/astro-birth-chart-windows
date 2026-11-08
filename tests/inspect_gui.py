@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QWidget
 from astrochart.ui import MainWindow
 from astrochart.interpretation_dialog import RuleInterpretationDialog
 from astrochart.interpretation import interpret_chart
-from astrochart.synthesis import synthesize
+from astrochart.synthesis import synthesize, FUNCTIONS
 from astrochart.narrative import compose_narrative, format_narrative
 
 
@@ -271,9 +271,11 @@ def main():
 
     # Opposing test-only evidence on a real chart, processed by unmodified R1.
     conflict_input = deepcopy(interpret_chart(chart))
-    opposing = deepcopy(next(hit for hit in conflict_input["signals"]
-                             if hit["rule_id"] == "sun-sign-1"))
-    opposing.update(rule_id="qa-opposing-sun", polarity=-1)
+    opposing = deepcopy(next(
+        hit for hit in conflict_input["signals"]
+        if hit.get("polarity", 0) > 0 and hit.get("weight", 0) > 0
+        and hit.get("axis") in FUNCTIONS))
+    opposing.update(rule_id="qa-opposing-" + opposing["rule_id"], polarity=-1)
     conflict_input["signals"].append(opposing)
     conflict_r1 = synthesize(chart, conflict_input)
     conflict_n1 = compose_narrative(conflict_r1)
