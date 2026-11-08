@@ -235,7 +235,7 @@ def test_r1_truncated_b_complete_source_under_review_and_invalid_plan():
     plan,ev,d,s,adapter=a_incomplete_b_proven()
     validate_schema("N3Plan",plan)
     # A signed self-declared R1 cap is not enough without an original R1 replay.
-    with pytest.raises(N3ValidationError,match="REASON_MISMATCH"):
+    with pytest.raises(N3ValidationError,match="UNVERIFIED_R1"):
         verify_plan(plan,ev,d,s,adapted=adapter,n2_catalog=N2)
     for mutate in (
         lambda p:p["trace"].update(source_snapshot_hash=digest("forged source")),
