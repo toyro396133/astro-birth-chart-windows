@@ -81,13 +81,17 @@ def audit(reports):
             for p in section["paragraphs"]:
                 all_paragraphs += 1
                 assert set(p["claim_ids"]) <= set(claims)
-                for key in ("node_ids", "rule_ids", "source_refs",
-                            "source_review_statuses", "evidence_keys",
-                            "evidence_roots", "meaning_ids"):
-                    assert p[key] == sorted({
-                        value for cid in p["claim_ids"]
-                        for value in claims[cid].get(key, [])
-                    }), (name, key)
+                # Editorial disclosures may carry a status summary without
+                # citing an individual claim; attribution unions only apply
+                # to evidence-backed paragraphs.
+                if p["claim_ids"]:
+                    for key in ("node_ids", "rule_ids", "source_refs",
+                                "source_review_statuses", "evidence_keys",
+                                "evidence_roots", "meaning_ids"):
+                        assert p[key] == sorted({
+                            value for cid in p["claim_ids"]
+                            for value in claims[cid].get(key, [])
+                        }), (name, key)
                 if p["kind"] in ("axis", "process", "process-abstention"):
                     semantic_texts[p["semantic_text"]] += 1
                 if p["kind"] == "process":
