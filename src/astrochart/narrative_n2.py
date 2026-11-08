@@ -95,14 +95,14 @@ class DeterministicHebrewRealizer:
                 text += (f" ל־R1 נבחרו {count} קבוצות ראיה עצמאיות לציר הזה; "
                          "רק זו שתוארה כאן כוללת הרחבה התנהגותית מבוקרת במאגר.")
             return text, evidence
-        phrases = [f"{e['focus']}" for e in examples]
-        detail = "; ".join(
-            f"ראיה {i+1} מדגישה: {e['distinction']}"
-            for i, e in enumerate(examples))
+        phrases = [
+            f"הראיה {i+1} מתארת {e['focus']}"
+            for i, e in enumerate(examples)]
+        detail = "; ".join(e["distinction"] for e in examples)
         text = (
-            f"ציר {axis} נתמך בכמה ראיות עצמאיות שאינן אומרות בדיוק אותו הדבר: "
-            + _he_list(phrases) + ". "
-            + detail + ". "
+            f"ציר {axis} נתמך בכמה ראיות עצמאיות, אך לכל אחת מוקד אחר: "
+            + "; ".join(phrases) + ". "
+            + "ההבחנה החשובה היא זו: " + detail + ". "
             + f"{examples[0]['situation']}, בעל המפה "
               f"{examples[0]['behavior']}; "
             + f"בהקשר נפרד, {examples[1]['situation']}, "
