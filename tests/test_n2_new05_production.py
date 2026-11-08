@@ -83,6 +83,10 @@ def _scenario(size, scenario):
     assert target is not None, f"Expected R1 path not discovered: {path}"
     r1["summary"]["top_hypotheses"] = [target["id"]]
     catalog = deepcopy(load_meaning_catalog())
+    # Original NEW-05 fixture semantics require the frozen 26-rule baseline,
+    # even when the attached PR29 content catalog has more editorial examples.
+    catalog["rule_readings"] = [r for r in catalog["rule_readings"]
+                                if "interpretive_basis" not in r["provenance"]]
     originals = {r["id"]: r for r in load_rulepack().rules}
     chosen = []
     for axis in path:
@@ -193,12 +197,18 @@ def test_production_chain_matrix_2_to_5_with_decisions_and_proof(size, scenario)
     assert path_decision["comparison"]["permitted"] == expected_compare
     assert len(report["abstained_processes"]) == (0 if expected_compare else 1)
     paths = [p for sec in report["sections"] for p in sec["paragraphs"]
-             if p["kind"] in ("process", "process-abstention")]
+             if p["kind"] in ("process", "process-redundancy",
+                                "process-abstention")]
     assert len(paths) == 1
     if expected_compare:
-        assert paths[0]["kind"] == "process"
-        assert paths[0]["interpretation_decisions"] == path_decision
-        assert "אינן מוכיחות" in text or "אינו ראיה" in text
+        assert paths[0]["kind"] in ("process", "process-redundancy")
+        if paths[0]["kind"] == "process":
+            assert paths[0]["interpretation_decisions"] == path_decision
+            assert "אינן מוכיחות" in text or "אינו ראיה" in text
+        else:
+            assert path_decision["presentation"]["reason"] == "no-novel-comparison"
+            assert len(report["suppressed_redundant_processes"]) == 1
+            assert paths[0]["suppressed_paths"][0]["claim_ids"] == path_decision["claim_ids"]
         assert "לא נוצרה השוואה פרשנית" not in text
     else:
         assert paths[0]["kind"] == "process-abstention"
@@ -231,6 +241,10 @@ def test_three_different_decisions_in_one_production_model(monkeypatch):
     monkeypatch.setattr(semantic_engine, "MAX_PROCESSES", 3)
 
     catalog = deepcopy(load_meaning_catalog())
+    # Original NEW-05 fixture semantics require the frozen 26-rule baseline,
+    # even when the attached PR29 content catalog has more editorial examples.
+    catalog["rule_readings"] = [r for r in catalog["rule_readings"]
+                                if "interpretive_basis" not in r["provenance"]]
     originals = {r["id"]: r for r in load_rulepack().rules}
     # Add ONLY the one missing editorial entry needed for the indistinct pair.
     # This entry copies an existing documented reading solely as a test case.
@@ -259,14 +273,17 @@ def test_three_different_decisions_in_one_production_model(monkeypatch):
                "no-supported-combined-assertion" for d in report["process_decisions"])
     assert len(report["abstained_processes"]) == 2
     paragraphs = [p for sec in report["sections"] for p in sec["paragraphs"]
-                  if p["kind"] in ("process", "process-abstention")]
-    assert [p["kind"] for p in paragraphs] == ["process", "process-abstention"]
+                  if p["kind"] in ("process", "process-redundancy",
+                                     "process-abstention")]
+    assert paragraphs[0]["kind"] in ("process", "process-redundancy")
+    assert paragraphs[1]["kind"] == "process-abstention"
     abstention = paragraphs[1]
     assert len(abstention["abstained_paths"]) == 2
     assert abstention["abstained_paths"] == report["abstained_processes"]
     assert "לרכיב חשיבה חסר פירוש" in abstention["semantic_text"]
     assert "אין הבחנה" in text or "אינן מציגות הבחנה" in text
-    assert "אינן מוכיחות" in paragraphs[0]["semantic_text"]
+    assert ("אינן מוכיחות" in paragraphs[0]["semantic_text"] or
+            "אין מכך מסקנה" in paragraphs[0]["semantic_text"])
     assert sum(p["kind"] == "process-abstention" for p in paragraphs) == 1
 
 
