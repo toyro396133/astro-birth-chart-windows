@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import re
 from pathlib import Path
 
 from .narrative import _supported_process
@@ -150,7 +151,9 @@ def _axis_claims(node: dict, entry: dict, interpretation: dict | None) -> list[d
         # Source status must remain the status of the original rule.
         direct = _claim(node, "rule-anchor", "existing_rule", {
             "rule_text": hit["text"].strip(),
-            "chart_evidence": hit.get("evidence", ""),
+            "chart_evidence": re.sub(r"\\s*\\(\\d+(?:\\.\\d+)?°\\)", "",
+                                     hit.get("evidence", "")),
+            "raw_chart_evidence": hit.get("evidence", ""),
             "selected_rule_id": hit["rule_id"],
         }, groups=[{
             "rule_ids": [hit["rule_id"]],
