@@ -278,7 +278,7 @@ def interpret_chart(chart, pack: RulePack | None = None) -> dict:
         raise ValueError("יש לחשב מפה לפני יצירת פרשנות")
     pack = pack or load_rulepack()
     bodies = {body.name: body for body in chart.bodies}
-    estimated = any("שעת הלידה משוערת" in warning for warning in chart.warnings)
+    estimated = chart.time_certainty == "estimated"
     uncertain_time = chart.approximate or estimated
     hits = []
     for rule in pack.rules:
