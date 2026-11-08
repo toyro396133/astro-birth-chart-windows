@@ -111,7 +111,7 @@ def main():
                 result["target_cross_domain_pattern"]["heldout"]["status"]
                 if result["target_cross_domain_pattern"]["heldout"] else None),
         },
-    }, ensure_ascii=False, indent=2, sort_keys=True))
+    }, ensure_ascii=True, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
