@@ -69,7 +69,7 @@ class DeterministicHebrewRealizer:
                 f"אפשר לראות בכך {strength}; עם זאת, ייתכן גם {challenge}.")
         else:
             text = (
-                f"לא כל הדפוסים פועלים באותה צורה: {axis} מתייחס ל{definition}. "
+                f"לא כל הדפוסים פועלים באותה צורה: ציר {axis} מתאר {definition}. "
                 f"מצד אחד, {strength}. מצד אחר, {challenge}. "
                 f"למשל, {situation}, בעל המפה {behavior}.")
         if anchor is not None:
@@ -99,7 +99,7 @@ class DeterministicHebrewRealizer:
             + sequence + ". "
             + f"הצירים {_list_he(path)} מופיעים כמסלול ב־R1, "
             + "אך החיבור ביניהם הוא השערת סינתזה ולא כלל מאושר. "
-            + "התרחיש מתאר כיצד הדבר *יכול* להיראות בחיי היום־יום; "
+            + "התרחיש מתאר כיצד הדבר יכול להיראות בחיי היום־יום; "
             + "אין ראיה שבעל המפה נהג כך בפועל."
             + ("" if reading["proof_search_complete"] else
                " חיפוש חלופות הראיות למסלול זה הוגבל.")
