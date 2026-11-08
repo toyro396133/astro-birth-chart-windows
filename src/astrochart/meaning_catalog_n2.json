@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "catalog_version": "0.3.0",
+  "catalog_version": "0.3.1",
   "editorial_status": "unreviewed-symbolic-expansion-not-astrological-rule",
-  "scope": "N2 unverified editorial scenarios for existing positive R1 evidence; exact rule text only. Negative and composite rules are deliberately not auto-promoted.",
+  "scope": "51 new unverified behavior examples, 6 quarantined non-behavioral symbolic explanations, 3 additional editorial examples withheld; no external rule-specific support verified.",
   "entries": [
     {
       "id": "n2.axis.initiative",
@@ -820,7 +820,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -844,7 +855,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -868,7 +890,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -892,7 +925,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -916,7 +960,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -940,7 +995,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -964,7 +1030,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -988,7 +1065,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1012,7 +1100,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1036,7 +1135,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1060,7 +1170,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1084,7 +1205,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1108,7 +1240,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1132,7 +1275,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1156,7 +1310,18 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1180,7 +1345,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1204,7 +1380,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1228,7 +1415,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1252,7 +1450,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1276,7 +1485,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1300,31 +1520,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
-      }
-    },
-    {
-      "id": "n2.rule.mercury-sign-9",
-      "kind": "rule_reading",
-      "rule_id": "mercury-sign-9",
-      "axis": "גמישות",
-      "evidence_type": "placement",
-      "source_rule_text": "מרקורי במיקום זה מתואר כהעדפת הקשרים רחבים על פני פירוט רב.",
-      "focus": "העדפת תמונה רעיונית רחבה",
-      "setting": "בלימוד נושא שיש בו פרטים רבים",
-      "behavior": "עשוי להתחיל ממפת הרעיונות הכללית לפני הפרטים",
-      "distinction": "ההרחבה המושגית אינה שקולה לזיכרון מדויק של נתונים",
-      "limit": "אין לקבוע מכך רמת ידע או הזנחה בפועל של פרטים",
-      "eligible_polarity": 1,
-      "provenance": {
-        "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
-        "review_status": "unverified",
-        "astrological_rule": false,
-        "rule_review_status_at_authoring": "unverified",
-        "original_source_title": "Astrodienst Astrowiki — Mercury",
-        "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
-        "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1348,7 +1555,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1372,7 +1590,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mercury",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mercury",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1396,7 +1625,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1420,7 +1660,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1444,7 +1695,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1468,7 +1730,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1492,7 +1765,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1516,7 +1800,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1540,7 +1835,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1564,7 +1870,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1588,31 +1905,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
-      }
-    },
-    {
-      "id": "n2.rule.venus-sign-10",
-      "kind": "rule_reading",
-      "rule_id": "venus-sign-10",
-      "axis": "אחריות",
-      "evidence_type": "placement",
-      "source_rule_text": "ונוס במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור העדפת בחירות אסתטיות מרוסנות ועמידות לאורך זמן.",
-      "focus": "בחירה אסתטית מאופקת ועמידה",
-      "setting": "כשנדרשת בחירה בפריט לשימוש ממושך",
-      "behavior": "עשוי להעדיף עיצוב מאופק על פני חידוש חולף",
-      "distinction": "העמידות נוגעת לבחירת סגנון ולא לאחריות מקצועית",
-      "limit": "אין לקבוע עלות, רכוש או העדפה קיימת",
-      "eligible_polarity": 1,
-      "provenance": {
-        "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
-        "review_status": "unverified",
-        "astrological_rule": false,
-        "rule_review_status_at_authoring": "reviewed",
-        "original_source_title": "Astrodienst Astrowiki — Venus",
-        "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
-        "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1636,7 +1940,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1660,7 +1975,18 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1684,7 +2010,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1708,7 +2045,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1732,7 +2080,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1756,7 +2115,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1780,7 +2150,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1804,7 +2185,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1828,7 +2220,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1852,7 +2255,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1876,7 +2290,18 @@
         "original_source_title": "Astrodienst Astrowiki — Mars",
         "original_source_url": "https://www.astro.com/astrowiki/en/Mars",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1900,7 +2325,18 @@
         "original_source_title": "Astrodienst Astrowiki — Jupiter",
         "original_source_url": "https://www.astro.com/astrowiki/en/Jupiter",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1924,7 +2360,18 @@
         "original_source_title": "Astrodienst Astrowiki — Jupiter",
         "original_source_url": "https://www.astro.com/astrowiki/en/Jupiter",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1948,7 +2395,18 @@
         "original_source_title": "Astrodienst Astrowiki — Jupiter",
         "original_source_url": "https://www.astro.com/astrowiki/en/Jupiter",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1972,7 +2430,18 @@
         "original_source_title": "Astrodienst Astrowiki — Jupiter",
         "original_source_url": "https://www.astro.com/astrowiki/en/Jupiter",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -1996,31 +2465,18 @@
         "original_source_title": "Astrodienst Astrowiki — Jupiter",
         "original_source_url": "https://www.astro.com/astrowiki/en/Jupiter",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
-      }
-    },
-    {
-      "id": "n2.rule.saturn-sign-1",
-      "kind": "rule_reading",
-      "rule_id": "saturn-sign-1",
-      "axis": "אחריות",
-      "evidence_type": "placement",
-      "source_rule_text": "שבתאי במזל טלה משמש במסגרת הפרשנות הסמלית לתיאור סמל למתח בין רצון להתחיל לבין הצורך בגבולות ותכנון.",
-      "focus": "גבולות בתוך רצון להתחיל",
-      "setting": "לפני פתיחת פרויקט מאתגר",
-      "behavior": "עשוי לבחון אילו תנאים בסיסיים נדרשים לפני הצעד הראשון",
-      "distinction": "המתח הוא בין פתיחה לתכנון ולא ביטול של היוזמה",
-      "limit": "אין להסיק עיכוב מתמשך או כישלון בביצוע",
-      "eligible_polarity": 1,
-      "provenance": {
-        "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
-        "review_status": "unverified",
-        "astrological_rule": false,
-        "rule_review_status_at_authoring": "reviewed",
-        "original_source_title": "Astrodienst Astrowiki — Saturn",
-        "original_source_url": "https://www.astro.com/astrowiki/en/Saturn",
-        "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -2044,7 +2500,18 @@
         "original_source_title": "Astrodienst Astrowiki — Saturn",
         "original_source_url": "https://www.astro.com/astrowiki/en/Saturn",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -2068,7 +2535,18 @@
         "original_source_title": "Astrodienst Astrowiki — Saturn",
         "original_source_url": "https://www.astro.com/astrowiki/en/Saturn",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
     },
     {
@@ -2092,22 +2570,33 @@
         "original_source_title": "Astrodienst Astrowiki — Saturn",
         "original_source_url": "https://www.astro.com/astrowiki/en/Saturn",
         "original_source_scope": "planet-function; sign-specific synthesis, not directly attested",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "internal_rule_alignment": "editorial-interpretation-of-exact-existing-rule-text",
+        "editorial_extrapolation": "hypothetical-illustrative-scenario; no observed personal behavior",
+        "specific_external_source_verified": false,
+        "external_evidence_status": "not-established",
+        "source_support_type": "general-framework-only",
+        "unverified_items": [
+          "specific internal rule statement not verified by external source",
+          "editorial behavior/context not externally corroborated",
+          "no independent validation of interpretation or actual personality"
+        ],
+        "source_access_verification": "not independently confirmed; cited original framework is not rule-specific"
       }
-    },
+    }
+  ],
+  "rule_reading_policy": "Use only when exact source_rule_text matches the original rule; read as unverified editorial illustrations; do not promote review statuses. Absence means abstain.",
+  "symbolic_explanations": [
     {
       "id": "n2.rule.sun-moon-trine",
-      "kind": "rule_reading",
+      "kind": "symbolic-explanation",
       "rule_id": "sun-moon-trine",
       "axis": "הרמוניה",
       "evidence_type": "aspect",
       "source_rule_text": "היבט זה נתפס כסמל לזרימה בין אופן הביטוי העצמי לבין תגובה רגשית.",
-      "focus": "זרימה סמלית בין ביטוי לתגובה",
-      "setting": "בעת פירוש שתי צורות תגובה במפה",
-      "behavior": "עשוי לתאר אפשרות שהן מוצגות כרציפות ולא כמנוגדות",
-      "distinction": "מדובר ביחס סמלי בין שני תחומים ולא בתכונת אישיות מאומתת",
-      "limit": "אין להסיק הרמוניה נפשית בפועל או קשר סיבתי",
-      "eligible_polarity": 1,
+      "explanation": "המשולש בין השמש לירח מתואר בכלל המקורי כזרימה סמלית בין ביטוי עצמי לתגובה רגשית. אין בכך תיאור של פעולה או מצב נפשי של בעל המפה.",
+      "source_support": "original-unverified-rule-text-only",
+      "display_policy": "non-behavioral-metadata-only-not-personality-N2",
       "provenance": {
         "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
         "review_status": "unverified",
@@ -2116,22 +2605,21 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "individual_external_source_verified": false,
+        "explanatory_not_behavioral": true
       }
     },
     {
       "id": "n2.rule.venus-mars-trine",
-      "kind": "rule_reading",
+      "kind": "symbolic-explanation",
       "rule_id": "venus-mars-trine",
       "axis": "יצירתיות",
       "evidence_type": "aspect",
       "source_rule_text": "היבט זה מסמל שילוב בין בחירה אסתטית לבין פעולה.",
-      "focus": "קישור בין בחירה אסתטית לביצוע",
-      "setting": "בדיון על מעבר מרעיון חזותי לעשייה",
-      "behavior": "עשוי להמחיש כיצד בחירה של סגנון מלווה צעד ביצועי",
-      "distinction": "היחס הוא בין תחום הבחירה לתחום הפעולה ולא מנגנון מחייב",
-      "limit": "אין לטעון שהאדם אכן יצר דבר מה או פעל כך",
-      "eligible_polarity": 1,
+      "explanation": "הכלל מתאר צירוף סמלי בין בחירה אסתטית לבין פעולה. לא נובעת ממנו דוגמה למעשה מסוים של בעל המפה.",
+      "source_support": "original-unverified-rule-text-only",
+      "display_policy": "non-behavioral-metadata-only-not-personality-N2",
       "provenance": {
         "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
         "review_status": "unverified",
@@ -2140,22 +2628,21 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "framework-only; exact sentence NOT verified",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "individual_external_source_verified": false,
+        "explanatory_not_behavioral": true
       }
     },
     {
       "id": "n2.rule.moon-house-4",
-      "kind": "rule_reading",
+      "kind": "symbolic-explanation",
       "rule_id": "moon-house-4",
       "axis": "רגישות",
       "evidence_type": "house",
       "source_rule_text": "בית רביעי מסמל דגש אפשרי על תחושת בסיס והמשכיות רגשית.",
-      "focus": "סמל לבסיס רגשי מתמשך",
-      "setting": "בעת תיאור תחום הבית במפה",
-      "behavior": "עשוי להמחיש זיקה סמלית למקום המספק רציפות",
-      "distinction": "הבית הוא תחום פרשני של המפה ולא כתובת או אירוע חיים",
-      "limit": "אין להסיק נסיבות מגורים או תחושת בטחון בפועל",
-      "eligible_polarity": 1,
+      "explanation": "הבית הרביעי הוא תחום סמלי המשויך לתחושת בסיס ולהמשכיות רגשית; אין להסיק ממנו נסיבות מגורים או חוויות של האדם.",
+      "source_support": "original-unverified-rule-text-only",
+      "display_policy": "non-behavioral-metadata-only-not-personality-N2",
       "provenance": {
         "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
         "review_status": "unverified",
@@ -2164,22 +2651,21 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "individual_external_source_verified": false,
+        "explanatory_not_behavioral": true
       }
     },
     {
       "id": "n2.rule.moon-jupiter-trine",
-      "kind": "rule_reading",
+      "kind": "symbolic-explanation",
       "rule_id": "moon-jupiter-trine",
       "axis": "רגישות",
       "evidence_type": "aspect",
       "source_rule_text": "המשולש מסמל אפשרות לשלב תגובה רגשית עם מבט רחב ותומך.",
-      "focus": "מבט רחב על תגובה רגשית",
-      "setting": "בעת עיון בפרשנות המשלבת תגובה והרחבה",
-      "behavior": "עשוי להציג אפשרות לראות רגש בתוך הקשר רחב יותר",
-      "distinction": "זהו חיבור סמלי בין תגובה לפרספקטיבה ולא תוצאה מוכחת",
-      "limit": "אין להסיק גישה אופטימית או תמיכה שניתנה בפועל",
-      "eligible_polarity": 1,
+      "explanation": "המשולש מתואר בכלל המקורי כאפשרות סמלית לקשר בין תגובה רגשית לבין מבט רחב ותומך. אין ראיה שהאדם הגיב כך בפועל.",
+      "source_support": "original-unverified-rule-text-only",
+      "display_policy": "non-behavioral-metadata-only-not-personality-N2",
       "provenance": {
         "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
         "review_status": "unverified",
@@ -2188,22 +2674,21 @@
         "original_source_title": "Astrodienst Astrowiki — Planets",
         "original_source_url": "https://www.astro.com/astrowiki/en/Planets",
         "original_source_scope": "general planetary framework only; placement-specific claim not established",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "individual_external_source_verified": false,
+        "explanatory_not_behavioral": true
       }
     },
     {
       "id": "n2.rule.venus-house-2",
-      "kind": "rule_reading",
+      "kind": "symbolic-explanation",
       "rule_id": "venus-house-2",
       "axis": "הרמוניה",
       "evidence_type": "house",
       "source_rule_text": "בית שני מצביע במילון הסמלי על תחום שבו הטעם האסתטי נקשר לבחירת משאבים וחפצים.",
-      "focus": "טעם אסתטי בבחירת משאבים",
-      "setting": "בעת תיאור תחום החפצים והמשאבים במפה",
-      "behavior": "עשוי לתת דוגמה לבחירת חפץ על פי מראה ושימוש",
-      "distinction": "הבית מציין תחום יישום סמלי ולא בעלות רכושית",
-      "limit": "אין להסיק רכישה, הכנסה או מצב כלכלי",
-      "eligible_polarity": 1,
+      "explanation": "הבית השני מציין במסורת התיאורית זירה סמלית של טעם אסתטי ביחס לחפצים ולמשאבים. אין לייחס לבעל המפה בחירה או רכישה מסוימת.",
+      "source_support": "original-unverified-rule-text-only",
+      "display_policy": "non-behavioral-metadata-only-not-personality-N2",
       "provenance": {
         "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
         "review_status": "unverified",
@@ -2212,22 +2697,21 @@
         "original_source_title": "Astrodienst Astrowiki — Venus",
         "original_source_url": "https://www.astro.com/astrowiki/en/Venus",
         "original_source_scope": "general framework; composite/aspect/house synthesis",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "individual_external_source_verified": false,
+        "explanatory_not_behavioral": true
       }
     },
     {
       "id": "n2.rule.jupiter-house-9",
-      "kind": "rule_reading",
+      "kind": "symbolic-explanation",
       "rule_id": "jupiter-house-9",
       "axis": "עצמאות",
       "evidence_type": "house",
       "source_rule_text": "בית תשיעי מסמל תחום של הרחבת ידע וחיפוש פרספקטיבה רחבה.",
-      "focus": "מרחב לימוד כתחום התרחבות",
-      "setting": "בעת תיאור תחום הלימוד הרחב במפה",
-      "behavior": "עשוי להמחיש שאלה החוצה תחומים כדי להרחיב אופק",
-      "distinction": "המיקום מציין תחום עיסוק סמלי ולא הישג לימודי",
-      "limit": "אין להסיק תואר, נסיעה או השקפת עולם מסוימת",
-      "eligible_polarity": 1,
+      "explanation": "הבית התשיעי מתואר כסמל להרחבת ידע ולחיפוש פרספקטיבה רחבה; אין מכאן מסקנה על לימודים, השקפות או נסיעות בפועל.",
+      "source_support": "original-unverified-rule-text-only",
+      "display_policy": "non-behavioral-metadata-only-not-personality-N2",
       "provenance": {
         "origin": "N2 bounded editorial scenario from exact existing rule text, not independent source verification",
         "review_status": "unverified",
@@ -2236,9 +2720,60 @@
         "original_source_title": "Astrodienst Astrowiki — Jupiter",
         "original_source_url": "https://www.astro.com/astrowiki/en/Jupiter",
         "original_source_scope": "general framework; composite/aspect/house synthesis",
-        "interpretive_basis": "unverified-original-rule-text-only"
+        "interpretive_basis": "unverified-original-rule-text-only",
+        "individual_external_source_verified": false,
+        "explanatory_not_behavioral": true
       }
     }
   ],
-  "rule_reading_policy": "Use only when exact source_rule_text matches the original rule; read as unverified editorial illustrations; do not promote review statuses. Absence means abstain."
+  "withheld_editorial_readings": [
+    {
+      "id": "n2.rule.mercury-sign-9",
+      "rule_id": "mercury-sign-9",
+      "axis": "גמישות",
+      "reason": "הכלל תומך ברוחב רעיוני אך אינו מציג מעבר גמיש בין מסגרות; הציר גמישות אינו מורשה כהתנהגות על סמך הרחבה זו.",
+      "original_editorial_reading": {
+        "focus": "העדפת תמונה רעיונית רחבה",
+        "setting": "בלימוד נושא שיש בו פרטים רבים",
+        "behavior": "עשוי להתחיל ממפת הרעיונות הכללית לפני הפרטים",
+        "distinction": "ההרחבה המושגית אינה שקולה לזיכרון מדויק של נתונים",
+        "limit": "אין לקבוע מכך רמת ידע או הזנחה בפועל של פרטים"
+      },
+      "status": "quarantined-from-N2-display",
+      "source_rule_text": "מרקורי במיקום זה מתואר כהעדפת הקשרים רחבים על פני פירוט רב.",
+      "review_status": "unverified"
+    },
+    {
+      "id": "n2.rule.venus-sign-10",
+      "rule_id": "venus-sign-10",
+      "axis": "אחריות",
+      "reason": "בחירה אסתטית מרוסנת ועמידה אינה הוכחה לאחריות אישית; אין להציג דוגמה כמאפיין של ציר האחריות.",
+      "original_editorial_reading": {
+        "focus": "בחירה אסתטית מאופקת ועמידה",
+        "setting": "כשנדרשת בחירה בפריט לשימוש ממושך",
+        "behavior": "עשוי להעדיף עיצוב מאופק על פני חידוש חולף",
+        "distinction": "העמידות נוגעת לבחירת סגנון ולא לאחריות מקצועית",
+        "limit": "אין לקבוע עלות, רכוש או העדפה קיימת"
+      },
+      "status": "quarantined-from-N2-display",
+      "source_rule_text": "ונוס במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור העדפת בחירות אסתטיות מרוסנות ועמידות לאורך זמן.",
+      "review_status": "unverified"
+    },
+    {
+      "id": "n2.rule.saturn-sign-1",
+      "rule_id": "saturn-sign-1",
+      "axis": "אחריות",
+      "reason": "נוסח הכלל מציג מתח בין רצון להתחיל לבין גבולות; הדוגמה החיובית המקורית מוחקת את המתח ללא ביסוס.",
+      "original_editorial_reading": {
+        "focus": "גבולות בתוך רצון להתחיל",
+        "setting": "לפני פתיחת פרויקט מאתגר",
+        "behavior": "עשוי לבחון אילו תנאים בסיסיים נדרשים לפני הצעד הראשון",
+        "distinction": "המתח הוא בין פתיחה לתכנון ולא ביטול של היוזמה",
+        "limit": "אין להסיק עיכוב מתמשך או כישלון בביצוע"
+      },
+      "status": "quarantined-from-N2-display",
+      "source_rule_text": "שבתאי במזל טלה משמש במסגרת הפרשנות הסמלית לתיאור סמל למתח בין רצון להתחיל לבין הצורך בגבולות ותכנון.",
+      "review_status": "unverified"
+    }
+  ]
 }
