@@ -21,6 +21,7 @@ from zipfile import ZipFile, BadZipFile
 REPO = "toyro396133/astro-birth-chart-windows"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
 ASSET = "AstroBirthChart-Windows-x64.zip"
+DELTA_PREFIX = "AstroBirthChart-Delta-from-v"
 SETUP_ASSET = "AstroBirthChart-Setup.exe"
 INSTALLED_MARKER = "installed-by-setup.marker"
 EXE = "AstroBirthChart.exe"
@@ -51,6 +52,7 @@ class Release:
     url: str
     digest: str
     size: int
+    delta: object = None  # Optional verified asset for this exact portable base version.
 
 
 class SecureRedirect(HTTPRedirectHandler):
@@ -70,7 +72,7 @@ def open_https(url, timeout=20):
         timeout=timeout)
 
 
-def parse_release(payload, asset_name=ASSET):
+def parse_release(payload, asset_name=ASSET, base_version=None):
     if not isinstance(payload, dict) or payload.get("draft") or payload.get("prerelease"):
         raise UpdateError("לא נמצאה גרסה יציבה")
     tag = payload.get("tag_name")
@@ -89,17 +91,35 @@ def parse_release(payload, asset_name=ASSET):
     size = item.get("size")
     if not match or type(size) is not int or not 0 < size <= MAX_ZIP:
         raise UpdateError("העדכון חסר חותמת SHA-256 או גודל תקין")
-    return Release(tag[1:], expected_url, match.group(1), size)
+    optional_delta = None
+    if asset_name == ASSET and base_version is not None:
+        parts_version(base_version)
+        if is_newer(tag[1:], base_version):
+            name = f"{DELTA_PREFIX}{base_version}-to-{tag}.zip"
+            delta_url = f"https://github.com/{REPO}/releases/download/{tag}/{name}"
+            candidates = [a for a in payload.get("assets", [])
+                          if isinstance(a, dict) and a.get("name") == name
+                          and a.get("state") == "uploaded"]
+            if len(candidates) == 1:
+                candidate = candidates[0]
+                checksum = candidate.get("digest")
+                m = HASH.fullmatch(checksum) if isinstance(checksum, str) else None
+                length = candidate.get("size")
+                if (candidate.get("browser_download_url") == delta_url
+                        and m and type(length) is int and 0 < length < size):
+                    optional_delta = Release(tag[1:], delta_url, m.group(1), length)
+    return Release(tag[1:], expected_url, match.group(1), size, optional_delta)
 
 
-def latest_release(asset_name=ASSET):
+def latest_release(asset_name=ASSET, base_version=None):
     from urllib.error import HTTPError
     try:
         with open_https(API) as response:
             raw = response.read(512_001)
             if len(raw) > 512_000:
                 raise UpdateError("תגובת GitHub ארוכה מדי")
-            return parse_release(json.loads(raw), asset_name=asset_name)
+            return parse_release(json.loads(raw), asset_name=asset_name,
+                                 base_version=base_version)
     except HTTPError as exc:
         if exc.code == 404:
             return None  # no releases published yet
