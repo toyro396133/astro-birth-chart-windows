@@ -444,7 +444,7 @@ class MainWindow(QMainWindow):
         self.table.verticalHeader().setDefaultSectionSize(22)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setMinimumHeight(275)
+        self.table.setMinimumHeight(262)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -461,6 +461,10 @@ class MainWindow(QMainWindow):
         aspect_heading.addStretch()
         self.aspect_explorer_button = QPushButton("חקירת היבטים")
         self.aspect_explorer_button.setObjectName("aspectExplorerButton")
+        self.aspect_explorer_button.setFixedHeight(18)
+        self.aspect_explorer_button.setStyleSheet(
+            "QPushButton { border: none; background: transparent; "
+            "color: #2a609e; min-height: 0; padding: 0 5px; font-size: 10px; }")
         self.aspect_explorer_button.setEnabled(False)
         self.aspect_explorer_button.clicked.connect(self._open_aspect_explorer)
         aspect_heading.addWidget(self.aspect_explorer_button)
