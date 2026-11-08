@@ -151,7 +151,7 @@ def _axis_claims(node: dict, entry: dict, interpretation: dict | None) -> list[d
         # Source status must remain the status of the original rule.
         direct = _claim(node, "rule-anchor", "existing_rule", {
             "rule_text": hit["text"].strip(),
-            "chart_evidence": re.sub(r"\\s*\\(\\d+(?:\\.\\d+)?°\\)", "",
+            "chart_evidence": re.sub(r"\s*\(\d+(?:\.\d+)?°\)", "",
                                      hit.get("evidence", "")),
             "raw_chart_evidence": hit.get("evidence", ""),
             "selected_rule_id": hit["rule_id"],
