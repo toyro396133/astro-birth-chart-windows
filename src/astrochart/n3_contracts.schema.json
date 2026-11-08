@@ -1,0 +1,1944 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:astro-birth-chart:n3:contracts:2",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/UpstreamManifest"
+    },
+    {
+      "$ref": "#/$defs/RelationDefinition"
+    },
+    {
+      "$ref": "#/$defs/RelationCatalog"
+    },
+    {
+      "$ref": "#/$defs/RelationEvaluation"
+    },
+    {
+      "$ref": "#/$defs/NarrativeClaim"
+    },
+    {
+      "$ref": "#/$defs/N3Plan"
+    },
+    {
+      "$ref": "#/$defs/TermRegistry"
+    },
+    {
+      "$ref": "#/$defs/SourceReviewRegistry"
+    }
+  ],
+  "$defs": {
+    "Hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "TermId": {
+      "type": "string",
+      "pattern": "^n3\\.(scope|context|boundary|focus|concept)\\.[a-z0-9][a-z0-9.-]*$"
+    },
+    "SourceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chapter",
+        "printed_page",
+        "section",
+        "line_start",
+        "line_end",
+        "scan_page_index"
+      ],
+      "properties": {
+        "chapter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "printed_page": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "section": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "line_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scan_page_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "Predicate": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/All"
+        },
+        {
+          "$ref": "#/$defs/Any"
+        },
+        {
+          "$ref": "#/$defs/Not"
+        },
+        {
+          "$ref": "#/$defs/RuleHitExact"
+        },
+        {
+          "$ref": "#/$defs/PlacementExact"
+        },
+        {
+          "$ref": "#/$defs/AspectExact"
+        },
+        {
+          "$ref": "#/$defs/HouseExact"
+        },
+        {
+          "$ref": "#/$defs/PolarityExact"
+        },
+        {
+          "$ref": "#/$defs/TimeStable"
+        },
+        {
+          "$ref": "#/$defs/AtomTermEquals"
+        },
+        {
+          "$ref": "#/$defs/NoBlockingTension"
+        }
+      ]
+    },
+    "All": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "const": "all"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          }
+        }
+      }
+    },
+    "Any": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "const": "any"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          }
+        }
+      }
+    },
+    "Not": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "arg"
+      ],
+      "properties": {
+        "op": {
+          "const": "not"
+        },
+        "arg": {
+          "$ref": "#/$defs/Predicate"
+        }
+      }
+    },
+    "RuleHitExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "rule_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "rule_hit_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "PlacementExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "body",
+        "sign"
+      ],
+      "properties": {
+        "op": {
+          "const": "placement_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sign": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "AspectExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "body_a",
+        "body_b",
+        "aspect_kind"
+      ],
+      "properties": {
+        "op": {
+          "const": "aspect_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body_a": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body_b": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "aspect_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "HouseExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "body",
+        "house"
+      ],
+      "properties": {
+        "op": {
+          "const": "house_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "house": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        }
+      }
+    },
+    "PolarityExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "value"
+      ],
+      "properties": {
+        "op": {
+          "const": "polarity_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "value": {
+          "enum": [
+            -1,
+            1
+          ]
+        }
+      }
+    },
+    "TimeStable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role"
+      ],
+      "properties": {
+        "op": {
+          "const": "time_stable"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "AtomTermEquals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "field",
+        "term_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "atom_term_equals"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "field": {
+          "enum": [
+            "focus",
+            "context",
+            "scope",
+            "boundary"
+          ]
+        },
+        "term_id": {
+          "$ref": "#/$defs/TermId"
+        }
+      }
+    },
+    "NoBlockingTension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "roles"
+      ],
+      "properties": {
+        "op": {
+          "const": "no_blocking_tension"
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "SourceAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_id",
+        "anchor_hash",
+        "source_id",
+        "source_origin",
+        "source_version",
+        "title",
+        "edition",
+        "url",
+        "location",
+        "language",
+        "accessed_at",
+        "excerpt",
+        "scope_id",
+        "matching_conditions",
+        "support_kind",
+        "review_status",
+        "source_text_verification",
+        "visual_verification",
+        "reviewer_id",
+        "reviewed_at",
+        "review_revision",
+        "supported_effect_ids"
+      ],
+      "properties": {
+        "anchor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "anchor_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "source_origin": {
+          "enum": [
+            "external_primary",
+            "external_secondary",
+            "internal_editorial"
+          ]
+        },
+        "source_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$"
+        },
+        "accessed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "scope_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "matching_conditions": {
+          "$ref": "#/$defs/Predicate"
+        },
+        "support_kind": {
+          "enum": [
+            "explicit_attestation",
+            "explicit_attestation_candidate",
+            "framework_only",
+            "editorial_synthesis",
+            "hypothesis",
+            "contradicting",
+            "rejected",
+            "none"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "unverified",
+            "under_review",
+            "reviewed",
+            "approved",
+            "conflicting",
+            "rejected"
+          ]
+        },
+        "source_text_verification": {
+          "enum": [
+            "not_checked",
+            "text_indexed",
+            "primary_text_checked"
+          ]
+        },
+        "visual_verification": {
+          "enum": [
+            "pending",
+            "verified",
+            "not_applicable"
+          ]
+        },
+        "reviewer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "review_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supported_effect_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "ParticipantSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "allowed_rule_ids",
+        "reading_policy",
+        "atom_constraints"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "allowed_rule_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "reading_policy": {
+          "enum": [
+            "n2_exact_required",
+            "original_atomic_allowed"
+          ]
+        },
+        "atom_constraints": {
+          "$ref": "#/$defs/Predicate"
+        }
+      }
+    },
+    "Effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect_id",
+        "predicate",
+        "subject_role",
+        "object_role",
+        "context_id",
+        "scope_id",
+        "boundary_ids",
+        "source_anchor_ids",
+        "modal_strength"
+      ],
+      "properties": {
+        "effect_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "predicate": {
+          "enum": [
+            "qualified_in_context",
+            "restricted_by",
+            "symbolic_contrast",
+            "symbolic_coordination",
+            "symbolic_complement"
+          ]
+        },
+        "subject_role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "object_role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "context_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "scope_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "boundary_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/TermId"
+          }
+        },
+        "source_anchor_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "modal_strength": {
+          "const": "source_attributed_symbolic_possible"
+        }
+      }
+    },
+    "EvidenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "rule_id",
+        "rule_hit_id",
+        "evidence_key",
+        "fact_keys",
+        "witness_group_id",
+        "alternative_set_id",
+        "dependency_roots",
+        "source_refs",
+        "rule_review_status",
+        "meaning_ref",
+        "content_category",
+        "origin"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_hit_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "fact_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "witness_group_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "alternative_set_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dependency_roots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "rule_review_status": {
+          "enum": [
+            "unverified",
+            "reviewed",
+            "approved",
+            "conflicting",
+            "rejected"
+          ]
+        },
+        "meaning_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_category": {
+          "enum": [
+            "behavioral_rule_reading",
+            "symbolic_explanation",
+            "withheld_editorial_reading",
+            "original_atomic_only"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "r1_witness",
+            "direct_composite_component"
+          ]
+        }
+      }
+    },
+    "Check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "status",
+        "reason",
+        "evidence_refs"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "CompositeMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "composite_rule_id",
+        "exact_when_hash",
+        "component_rule_hit_ids",
+        "component_fact_keys",
+        "component_dependency_roots",
+        "related_rule_ids",
+        "rule_review_status",
+        "composite_is_independent_evidence"
+      ],
+      "properties": {
+        "composite_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "exact_when_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "component_rule_hit_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "component_fact_keys": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "component_dependency_roots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "related_rule_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "rule_review_status": {
+          "enum": [
+            "unverified",
+            "reviewed",
+            "approved",
+            "conflicting",
+            "rejected"
+          ]
+        },
+        "composite_is_independent_evidence": {
+          "const": false
+        }
+      }
+    },
+    "RouteProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "candidate_state",
+        "search_state",
+        "search_complete",
+        "visited",
+        "cap",
+        "proof_result",
+        "selected_binding_ids",
+        "alternative_set_ids",
+        "source_fact_refs",
+        "failure_reasons",
+        "trace_hash"
+      ],
+      "properties": {
+        "route": {
+          "enum": [
+            "r1_path",
+            "original_composite"
+          ]
+        },
+        "candidate_state": {
+          "enum": [
+            "candidate",
+            "not_candidate",
+            "not_executed"
+          ]
+        },
+        "search_state": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "not_applicable"
+          ]
+        },
+        "search_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "visited": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proof_result": {
+          "enum": [
+            "proven",
+            "unmatched",
+            "blocked",
+            "unknown",
+            "not_candidate"
+          ]
+        },
+        "selected_binding_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "alternative_set_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "source_fact_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "failure_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          }
+        },
+        "trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "ReasonCode": {
+      "enum": [
+        "NONE",
+        "INVALID_SCHEMA",
+        "SNAPSHOT_MISMATCH",
+        "PROVENANCE_MISMATCH",
+        "BAD_ID",
+        "UNCERTAIN_TIME",
+        "INCOMPLETE_SEARCH",
+        "PROOF_UNKNOWN",
+        "RESOURCE_CAP",
+        "UNMATCHED_CONDITIONS",
+        "CONFLICTING_SOURCES",
+        "REJECTED_SOURCE",
+        "MATERIAL_TENSION",
+        "DEPENDENT_ROOTS",
+        "MISSING_READING",
+        "MISSING_ATOM_MAPPING",
+        "NO_RELATION_SOURCE",
+        "FRAMEWORK_ONLY",
+        "EDITORIAL_ONLY",
+        "UNVERIFIED_RELATION",
+        "UNLICENSED_DELTA",
+        "PARAPHRASE_ONLY",
+        "SOURCE_SCOPE_EXCEEDED",
+        "OPERATOR_EFFECT_MISMATCH",
+        "CANDIDATE_NOT_FOUND"
+      ]
+    },
+    "ReasonRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "route",
+        "blocking",
+        "evidence_refs"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "route": {
+          "enum": [
+            "r1_path",
+            "original_composite",
+            "global"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "RelationDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "definition_id",
+        "definition_revision",
+        "definition_hash",
+        "compatible_upstream_hash",
+        "term_registry_hash",
+        "operator",
+        "direction",
+        "participant_specs",
+        "predicate_ast",
+        "evidence_policy",
+        "licensed_effects",
+        "prohibited_effects",
+        "source_anchors",
+        "provenance",
+        "relation_review"
+      ],
+      "properties": {
+        "kind": {
+          "const": "RelationDefinition"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "definition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "definition_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "definition_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "compatible_upstream_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "term_registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "operator": {
+          "enum": [
+            "qualifies",
+            "restricts",
+            "contrasts",
+            "coordinates",
+            "complements"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "A_to_B",
+            "B_to_A",
+            "symmetric"
+          ]
+        },
+        "participant_specs": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/ParticipantSpec"
+          }
+        },
+        "predicate_ast": {
+          "$ref": "#/$defs/Predicate"
+        },
+        "evidence_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "independent_roots_required",
+            "time_policy",
+            "conflict_policy",
+            "proof_complete_required"
+          ],
+          "properties": {
+            "independent_roots_required": {
+              "type": "boolean"
+            },
+            "time_policy": {
+              "enum": [
+                "known_only",
+                "stable_placements_allowed"
+              ]
+            },
+            "conflict_policy": {
+              "const": "fail_on_material_conflict"
+            },
+            "proof_complete_required": {
+              "const": true
+            }
+          }
+        },
+        "licensed_effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Effect"
+          }
+        },
+        "prohibited_effects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/SourceAnchor"
+          }
+        },
+        "provenance": {
+          "enum": [
+            "human_curated",
+            "rule_text_bounded",
+            "experimental"
+          ]
+        },
+        "relation_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reviewer_id",
+            "reviewed_at",
+            "review_revision"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "unverified",
+                "under_review",
+                "reviewed",
+                "approved_for_symbolic_wording",
+                "conflicting",
+                "rejected"
+              ]
+            },
+            "reviewer_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reviewed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "review_revision": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "RelationCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "catalog_version",
+        "compatible_upstream_hash",
+        "term_registry_hash",
+        "source_registry_hash",
+        "definitions",
+        "catalog_digest"
+      ],
+      "properties": {
+        "kind": {
+          "const": "RelationCatalog"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "catalog_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "compatible_upstream_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "term_registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RelationDefinition"
+          }
+        },
+        "catalog_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "UpstreamManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "rulepack_digest",
+        "rulepack_version",
+        "rulepack_schema_version",
+        "n2_catalog_digest",
+        "n2_catalog_version",
+        "n2_catalog_schema_version",
+        "n2_category_digests",
+        "n2_category_policies_digest",
+        "ontology_digest",
+        "r1_contract_version",
+        "n2_contract_version",
+        "adapter_contract_version",
+        "predicate_contract_version",
+        "compatible_upstream_hash"
+      ],
+      "properties": {
+        "kind": {
+          "const": "UpstreamManifest"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "rulepack_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rulepack_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rulepack_schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n2_catalog_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "n2_catalog_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "n2_catalog_schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n2_category_digests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_readings",
+            "symbolic_explanations",
+            "withheld_editorial_readings",
+            "entries"
+          ],
+          "properties": {
+            "rule_readings": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "symbolic_explanations": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "withheld_editorial_readings": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "entries": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "n2_category_policies_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "ontology_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "r1_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "n2_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "adapter_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "predicate_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "compatible_upstream_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "RelationEvaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "evaluation_id",
+        "definition_id",
+        "definition_hash",
+        "snapshot_id",
+        "chart_fingerprint",
+        "run_id",
+        "candidate_id",
+        "discovery_routes",
+        "matched_rule_hits",
+        "bindings",
+        "alternatives",
+        "selected_witnesses",
+        "original_composite_match",
+        "dependency_proof",
+        "time_proof",
+        "conflict_proof",
+        "route_proofs",
+        "source_license_check",
+        "novelty_check",
+        "checks",
+        "trace_digest"
+      ],
+      "properties": {
+        "kind": {
+          "const": "RelationEvaluation"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "definition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "definition_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "chart_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "discovery_routes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "r1_path",
+              "original_composite"
+            ]
+          }
+        },
+        "matched_rule_hits": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceBinding"
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceBinding"
+          }
+        },
+        "selected_witnesses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceBinding"
+          }
+        },
+        "original_composite_match": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompositeMatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dependency_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "time_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "conflict_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "route_proofs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/RouteProof"
+          }
+        },
+        "source_license_check": {
+          "$ref": "#/$defs/Check"
+        },
+        "novelty_check": {
+          "$ref": "#/$defs/Check"
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Check"
+          }
+        },
+        "trace_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "NarrativeClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "claim_id",
+        "evaluation_id",
+        "licensed_effect_id",
+        "derived_predicate",
+        "evidence_refs",
+        "source_anchor_refs",
+        "semantic_delta",
+        "novelty_proof",
+        "limits",
+        "attribution",
+        "status",
+        "audience",
+        "realization_plan"
+      ],
+      "properties": {
+        "kind": {
+          "const": "NarrativeClaim"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "claim_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "licensed_effect_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "derived_predicate": {
+          "$ref": "#/$defs/Effect"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "semantic_delta": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Effect"
+          }
+        },
+        "novelty_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "licensed_symbolic",
+            "shadow_only"
+          ]
+        },
+        "audience": {
+          "enum": [
+            "shadow",
+            "reviewer",
+            "user"
+          ]
+        },
+        "realization_plan": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "premise_A",
+              "premise_B",
+              "documented_relation",
+              "scope",
+              "qualification",
+              "counterfactual"
+            ]
+          }
+        }
+      }
+    },
+    "N3Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "plan_id",
+        "snapshot_id",
+        "definition_id",
+        "evaluation_id",
+        "decision",
+        "primary_reason",
+        "reasons",
+        "retained_atomic_rule_ids",
+        "comparison_state",
+        "relation_claim_state",
+        "relation_claim_ids",
+        "route_proofs",
+        "trace"
+      ],
+      "properties": {
+        "kind": {
+          "const": "N3Plan"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "definition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision": {
+          "enum": [
+            "RELATION_LICENSED",
+            "COMPARISON_ONLY",
+            "ABSTAIN",
+            "NOT_APPLICABLE",
+            "QUARANTINE",
+            "INDETERMINATE",
+            "INVALID_INPUT"
+          ]
+        },
+        "primary_reason": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReasonRecord"
+          }
+        },
+        "retained_atomic_rule_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "comparison_state": {
+          "enum": [
+            "available",
+            "withheld",
+            "unavailable"
+          ]
+        },
+        "relation_claim_state": {
+          "enum": [
+            "licensed_shadow",
+            "blocked",
+            "not_applicable",
+            "indeterminate"
+          ]
+        },
+        "relation_claim_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "route_proofs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/RouteProof"
+          }
+        },
+        "trace": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_snapshot_hash",
+            "adapter_trace_hash",
+            "evaluation_trace_hash",
+            "selected_decisive_route",
+            "atomic_evidence_refs"
+          ],
+          "properties": {
+            "source_snapshot_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "adapter_trace_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "evaluation_trace_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "selected_decisive_route": {
+              "enum": [
+                "r1_path",
+                "original_composite",
+                "none"
+              ]
+            },
+            "atomic_evidence_refs": {
+              "type": "array",
+              "minItems": 0,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      }
+    },
+    "TermEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "term_id",
+        "term_kind",
+        "canonical_definition",
+        "synonym_ids",
+        "equivalence_cluster_id",
+        "review_status",
+        "reviewer_id",
+        "reviewed_at",
+        "revision"
+      ],
+      "properties": {
+        "term_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "term_kind": {
+          "enum": [
+            "scope",
+            "context",
+            "boundary",
+            "focus",
+            "concept"
+          ]
+        },
+        "canonical_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "synonym_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/TermId"
+          }
+        },
+        "equivalence_cluster_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "unverified",
+            "under_review",
+            "approved",
+            "rejected"
+          ]
+        },
+        "reviewer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "TermRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "registry_version",
+        "registry_hash",
+        "entries"
+      ],
+      "properties": {
+        "kind": {
+          "const": "TermRegistry"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "registry_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TermEntry"
+          }
+        }
+      }
+    },
+    "SourceReviewRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "registry_version",
+        "registry_hash",
+        "anchors"
+      ],
+      "properties": {
+        "kind": {
+          "const": "SourceReviewRegistry"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "registry_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceAnchor"
+          }
+        }
+      }
+    }
+  }
+}
