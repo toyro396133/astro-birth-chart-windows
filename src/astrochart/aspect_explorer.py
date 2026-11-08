@@ -79,6 +79,7 @@ class AspectExplorerDialog(QDialog):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setVisible(False)
         self.table.itemSelectionChanged.connect(self._select_aspect)
+        self.table.currentCellChanged.connect(lambda *_: self._select_aspect())
         root.addWidget(self.table)
         self.body_filter.currentIndexChanged.connect(self._populate)
         self.kind_filter.currentIndexChanged.connect(self._populate)
