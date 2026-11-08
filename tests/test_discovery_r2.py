@@ -247,7 +247,8 @@ def test_no_generalization_from_single_case_or_low_lift():
 def test_abstraction_levels_grow_with_evidence_without_fixed_depth():
     corpus = [case(f"p-{i}", (A, B, C, D, E)) for i in range(5)]
     corpus += [case(f"n-{i}", (D,)) for i in range(5)]
-    result = discover(corpus)
+    # Lower the partial-exposure threshold deliberately in this stress case.
+    result = discover(corpus, min_precision=0.5)
     high = next(h for h in result["hypotheses"] if len(h["members"]) == 5)
     assert high["level"] == 3
     assert len(high["parent_hypothesis_ids"]) == 5
@@ -311,3 +312,20 @@ def test_source_evidence_key_cannot_map_to_two_incompatible_roots():
     facts.append(alt)
     with pytest.raises(ValueError, match="inconsistent roots"):
         discover([sample])
+
+
+def test_reproducible_experiment_uses_real_r1_and_holdout_counterfactual():
+    import importlib.util
+    from pathlib import Path
+    script = Path(__file__).parents[1] / "scripts" / "run_r2_experiment.py"
+    spec = importlib.util.spec_from_file_location("r2_real_experiment", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    result = module.run_experiment()
+    assert result["r1_baseline"]["train_reports"] == 13
+    assert result["r2"]["summary"]["train_eligible_cases"] == 12
+    assert result["r2"]["summary"]["validation_eligible_cases"] == 3
+    assert not result["r1_baseline"]["has_cross_domain_initiative_sensitivity_thinking_path"]
+    assert result["target_cross_domain_pattern"]["found"]
+    assert result["target_cross_domain_pattern"]["metrics"]["independent_support_count"] >= 3
+    assert result["target_cross_domain_pattern"]["heldout"]["status"] == "counterexamples-observed"
