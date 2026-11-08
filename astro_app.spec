@@ -8,6 +8,7 @@ a = Analysis(
     datas=[
         ("data/ephemeris/de440s.bsp", "data/ephemeris"),
         ("src/astrochart/interpretation_rules.json", "astrochart"),
+        ("src/astrochart/meaning_catalog_n2.json", "astrochart"),
     ] + collect_data_files("tzdata"),
     hiddenimports=[],
     hookspath=[],
