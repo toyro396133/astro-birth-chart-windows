@@ -22,6 +22,8 @@ jobs:
         run: python scripts/download_ephemeris.py
       - name: Run tests (includes ephemeris tests)
         run: python -m pytest -q
+      - name: Produce full N1 versus N2 examples and evidence traces
+        run: python scripts/n2_comparison.py
       - name: Build offline Windows EXE (one-directory / LGPL friendly)
         run: python -m PyInstaller --noconfirm --clean astro_app.spec
       - name: Bundle independent updater worker
