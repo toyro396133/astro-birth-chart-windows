@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
