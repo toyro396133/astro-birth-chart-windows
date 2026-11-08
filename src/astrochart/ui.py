@@ -1,7 +1,8 @@
 from datetime import date, time
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
@@ -365,13 +366,25 @@ class MainWindow(QMainWindow):
         self.interpret_button.setEnabled(False)
         self.interpret_button.clicked.connect(self._open_interpretation)
         table_heading.addWidget(self.interpret_button)
+        self.copy_row_button = QPushButton("העתק שורה")
+        self.copy_row_button.setObjectName("copyRowButton")
+        self.copy_row_button.clicked.connect(self._copy_selected_table_rows)
+        table_heading.addWidget(self.copy_row_button)
         details_layout.addLayout(table_heading)
 
         self.table = QTableWidget(0, 5)
         self.table.setObjectName("bodyTable")
         self.table.setHorizontalHeaderLabels(
             ["גוף", "מזל", "מעלה במזל", "בית", "תנועה"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setDefaultSectionSize(98)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.table.setSortingEnabled(True)
+        QShortcut(QKeySequence.StandardKey.Copy, self.table).activated.connect(
+            self._copy_selected_table_rows)
         self.table.horizontalHeader().setFixedHeight(27)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(22)
@@ -413,6 +426,41 @@ class MainWindow(QMainWindow):
         main.addWidget(split, 1)
 
         apply_theme(self)
+
+        # Connect only after initialization to avoid invalidating the initial form.
+        for signal in (
+            self.day.dateChanged, self.hour.timeChanged, self.unknown.toggled,
+            self.approx_hour.toggled, self.city.currentIndexChanged,
+            self.lat.valueChanged, self.lon.valueChanged, self.tz.textChanged,
+            self.date_mode.currentIndexChanged, self.hebrew_year.valueChanged,
+            self.hebrew_month.currentIndexChanged, self.hebrew_day.valueChanged,
+            self.phase.currentIndexChanged,
+        ):
+            signal.connect(self._invalidate_chart)
+
+    def _invalidate_chart(self, *args):
+        """Do not let a former result masquerade as belonging to edited inputs."""
+        if self._interpretation_chart is None:
+            return
+        self._interpretation_chart = None
+        self.interpret_button.setEnabled(False)
+        self.wheel.set_chart(None)
+        self.table.setRowCount(0)
+        self.aspects.clear()
+        self.chart_caption.setText("הנתונים השתנו — נדרש חישוב מחדש")
+        self.warnings.setText("התוצאה הקודמת הוסרה כי אינה מתאימה עוד לנתוני הקלט.")
+
+    def _copy_selected_table_rows(self):
+        selected = self.table.selectionModel().selectedRows()
+        rows = sorted({index.row() for index in selected})
+        if not rows and self.table.currentRow() >= 0:
+            rows = [self.table.currentRow()]
+        if not rows:
+            return
+        text = "\n".join("\t".join(
+            self.table.item(row, col).text() if self.table.item(row, col) else ""
+            for col in range(self.table.columnCount())) for row in rows)
+        QApplication.clipboard().setText(text)
 
     def _toggle_advanced(self, checked=None):
         expanded = (not self.advanced.isHidden()) if checked is None else bool(checked)
@@ -660,6 +708,8 @@ class MainWindow(QMainWindow):
             self._toggle_advanced(True)
 
     def _calculate(self):
+        # Clear the old result even when a new calculation fails validation.
+        self._invalidate_chart()
         try:
             if self.date_mode.currentData() == "hebrew" and self.unknown.isChecked():
                 raise ValueError("לתאריך עברי בחר יום/לילה ושעה בקירוב")
@@ -680,6 +730,12 @@ class MainWindow(QMainWindow):
             if phase_warning:
                 chart.warnings.append(phase_warning)
             if self.approx_hour.isChecked() and not self.unknown.isChecked():
+                chart.time_certainty = "estimated"
+                for body in chart.bodies:
+                    body.degree_certainty = "estimated"
+                    body.sign_certainty = "estimated"
+                for aspect in chart.aspects:
+                    aspect.certainty = "estimated"
                 chart.warnings.append(
                     "שעת הלידה משוערת. המעלות, האופק, רום השמיים, "
                     "הבתים וההיבטים חושבו לפי שעה זו בלבד; "
@@ -695,20 +751,27 @@ class MainWindow(QMainWindow):
         self.interpret_button.setEnabled(True)
         self.chart_caption.setText(
             f"{len(chart.bodies)} גופים · " +
-            ("שעה לא ידועה" if chart.approximate else "מפה מחושבת"))
+            {"known": "מפה מחושבת", "estimated": "שעה משוערת",
+             "unknown": "שעה לא ידועה"}[chart.time_certainty])
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(chart.bodies))
         for row, b in enumerate(chart.bodies):
             signs = " / ".join(SIGNS[i] for i in b.signs_possible) if chart.approximate else b.sign
             motion = "לא ודאי" if b.motion_uncertain else ("נסיגה" if b.retrograde else "ישירה")
             values = [
                 b.name, signs,
-                f"{degree_in_sign(b.longitude):.3f}°" + (" (דגימה)" if chart.approximate else ""),
+                f"{degree_in_sign(b.longitude):.3f}°" + (
+                    " (דגימה)" if chart.time_certainty == "unknown"
+                    else " (משוער)" if b.degree_certainty == "estimated" else ""),
                 "—" if b.house is None else str(b.house), motion
             ]
             for column, value in enumerate(values):
                 self.table.setItem(row, column, QTableWidgetItem(value))
+        self.table.setSortingEnabled(True)
         self.aspects.setPlainText("\n".join(
             f"{a.first} – {a.second}: {a.kind}, מרחק {a.separation:.2f}°, סטייה {a.orb:.2f}°"
+            + (" (דגימה בלבד; לא היבט לידה)" if chart.time_certainty == "unknown"
+               else " (לפי שעה משוערת)" if a.certainty == "estimated" else "")
             for a in chart.aspects))
         angles = "" if chart.ascendant is None else (
             f"\nאופק: {chart.ascendant:.3f}° | MC: {chart.mc:.3f}°"
