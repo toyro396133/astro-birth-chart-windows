@@ -15,6 +15,10 @@ import json
 import math
 from typing import Any
 
+from .synthesis import FUNCTIONS, TRANSITIONS, MAX_NODES
+
+REVIEW_STATUSES = frozenset({"unverified", "reviewed", "approved", "conflicting", "rejected"})
+
 VERSION = "0.1.0-experimental"
 MAX_CASES = 512
 MAX_CANDIDATES = 4096
@@ -25,6 +29,56 @@ MAX_AXES = 32
 def _digest(value: Any) -> str:
     return sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _ontology() -> dict:
+    """Enumerate every legal directed R1 path, even if absent from all charts."""
+    paths = set()
+    def extend(path: tuple[str, ...]) -> None:
+        for next_axis in TRANSITIONS.get(path[-1], ()):
+            if (next_axis not in FUNCTIONS or next_axis in path
+                    or FUNCTIONS[next_axis][1] != FUNCTIONS[path[-1]][1]):
+                continue
+            target = path + (next_axis,)
+            paths.add(target)
+            extend(target)
+    for axis in sorted(FUNCTIONS):
+        extend((axis,))
+    identity = _digest({
+        "functions": FUNCTIONS, "transitions": TRANSITIONS,
+        "domain_constraint": "same-domain-directed-no-repetition",
+    })
+    return {"identity": identity, "directed_paths": sorted(paths),
+            "member_sets": {tuple(sorted(path)) for path in paths}}
+
+
+def _fact_signature(f: dict) -> list:
+    """Evidence identity, without editable captions, weights or case-local IDs."""
+    return [f["axis"], f["evidence_key"], f["roots"], f["rule_ids"]]
+
+
+def _support_signature(witnesses: list[dict]) -> str:
+    return _digest(sorted((_fact_signature(w) for w in witnesses), key=lambda x: x[0]))
+
+
+def _support_template(witnesses: list[dict]) -> str:
+    """Broader observational template: rule identities and evidence kinds."""
+    return _digest(sorted(
+        ([w["axis"], w["rule_ids"], w["evidence_key"].split(":")[0]]
+         for w in witnesses), key=lambda x: x[0]))
+
+
+def _wilson(successes: int, total: int) -> list[float] | None:
+    """Case-based descriptive 95% Wilson interval, not a chart-truth CI."""
+    if total == 0:
+        return None
+    z = 1.959963984540054
+    p = successes / total
+    den = 1 + z*z/total
+    center = (p + z*z/(2*total))/den
+    half = z * math.sqrt((p*(1-p) + z*z/(4*total))/total)/den
+    return [round(max(0.0, center-half), 6),
+            round(min(1.0, center+half), 6)]
 
 
 def _nonempty_strings(value: Any) -> bool:
@@ -89,7 +143,9 @@ def _parse(entry: dict) -> dict:
                     or not math.isfinite(fact["weight"])
                     or fact["weight"] <= 0):
                 raise ValueError("malformed R1 witness")
-            if not all(isinstance(x, str) for x in fact["source_refs"] + fact["review_statuses"]):
+            if (not all(isinstance(x, str) and bool(x) for x in fact["source_refs"])
+                    or not all(isinstance(x, str) and x in REVIEW_STATUSES
+                               for x in fact["review_statuses"])):
                 raise ValueError("malformed R1 witness source/status")
             roots = tuple(sorted(set(fact["roots"])))
             key = fact["evidence_key"]
@@ -125,8 +181,28 @@ def _parse(entry: dict) -> dict:
         raise ValueError("invalid R1 summary")
     if summary.get("proof_search_limited_paths"):
         blocked.add("incomplete-R1-proof-search")
+    if len(r1["nodes"]) >= MAX_NODES or any(
+            "גבול משאבים" in w or "לא כל המסלולים נבדקו" in w
+            for w in r1.get("warnings", []) if isinstance(w, str)):
+        blocked.add("possible-R1-node-cap")
+    source_id = entry.get("source_id")
+    record_id = entry.get("independent_record_id")
+    if source_id is not None and (not isinstance(source_id, str) or not source_id):
+        raise ValueError("source_id must be nonempty string")
+    if record_id is not None and (not isinstance(record_id, str) or not record_id):
+        raise ValueError("independent_record_id must be nonempty string")
+    evidence_identity = {
+        "time_mode": r1["time_mode"], "axes": [
+            [axis, sorted((_fact_signature(fact) for fact in facts),
+                          key=lambda item: (item[1], item[2], item[3]))]
+            for axis, facts in sorted(axes.items())],
+        "blocked": sorted(blocked),
+    }
     return {
-        "id": entry["id"], "digest": _digest(r1), "axes": axes,
+        "id": entry["id"], "digest": _digest(r1),
+        "evidence_digest": _digest(evidence_identity),
+        "source_id": source_id, "independent_record_id": record_id,
+        "axes": axes,
         "blocked": sorted(blocked), "known": known,
         "time_mode": r1["time_mode"], "tensions": tensions,
         "profile_id": r1["profile_id"], "rule_pack": r1["source_rule_pack"],
@@ -141,7 +217,11 @@ def _prepare(items: list[dict], profile: tuple[str, str] | None = None
     ids = [item["id"] for item in parsed]
     if len(ids) != len(set(ids)):
         raise ValueError("case ids must be unique")
-    seen = set()
+    # Distinct documented subjects can have identical symbolic observations:
+    # retain them as separate cases, but do NOT call them new evidence patterns.
+    # Without an independent identity, identical *evidence* is a possible copy.
+    seen_evidence: set[str] = set()
+    seen_record_ids: set[tuple[str | None, str]] = set()
     eligible, excluded, duplicates = [], [], []
     for case in sorted(parsed, key=lambda c: c["id"]):
         current = (case["profile_id"], case["rule_pack"])
@@ -149,15 +229,29 @@ def _prepare(items: list[dict], profile: tuple[str, str] | None = None
             profile = current
         if current != profile:
             raise ValueError("mixed R1 profiles or rule packs are not comparable")
-        if case["digest"] in seen:
-            duplicates.append({"case_id": case["id"], "r1_digest": case["digest"], "reason": "identical-R1-payload"})
+        record = (case["source_id"], case["independent_record_id"])
+        duplicate_record = (case["independent_record_id"] is not None
+                            and record in seen_record_ids)
+        duplicate_anonymous = (case["independent_record_id"] is None
+                               and case["evidence_digest"] in seen_evidence)
+        if duplicate_record or duplicate_anonymous:
+            duplicates.append({
+                "case_id": case["id"], "r1_digest": case["digest"],
+                "evidence_digest": case["evidence_digest"],
+                "reason": ("identical-declared-record" if duplicate_record
+                           else "same-canonical-evidence-without-record-identity"),
+            })
             continue
-        seen.add(case["digest"])
+        seen_evidence.add(case["evidence_digest"])
+        if case["independent_record_id"] is not None:
+            seen_record_ids.add(record)
         if case["time_mode"] != "known" or case["blocked"]:
             excluded.append({
-                "case_id": case["id"], "r1_digest": case["digest"], "reason": (
+                "case_id": case["id"], "r1_digest": case["digest"],
+                "evidence_digest": case["evidence_digest"],
+                "reason": (
                     "uncertain-birth-time" if case["time_mode"] != "known"
-                    else "unresolved-tension-or-incomplete-proof"),
+                    else "unresolved-tension-or-incomplete-R1-proof"),
                 "time_mode": case["time_mode"], "blocked_axes": case["blocked"],
                 "tensions": case["tensions"],
             })
