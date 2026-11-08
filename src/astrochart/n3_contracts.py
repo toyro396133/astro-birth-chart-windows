@@ -586,15 +586,25 @@ def _verify_decision_reasons(plan: dict, evaluation: dict, definition: dict,
         _assert(not reason["evidence_refs"] or
                 set(reason["evidence_refs"]).issubset(by_id),
                 "REASON_MISMATCH: invented reason evidence")
+    # Reporting an inferior applicable reason must not allow an attacker to
+    # suppress a higher-priority real blocker and thereby change primary_reason.
+    def require_reason(code: str, rr: str) -> None:
+        expected_blocking = rr in (route, "global")
+        _assert(any(r["code"] == code and r["route"] == rr
+                    and r["blocking"] is expected_blocking for r in reasons),
+                "REASON_MISMATCH: omitted applicable " + code)
     if plan["decision"] == "COMPARISON_ONLY" and source_missing:
-        _assert(any(r["code"] == "NO_RELATION_SOURCE" and r["blocking"]
-                    and r["route"] == route for r in plan["reasons"]),
-                "REASON_MISMATCH: comparison missing independently derived source gate")
-    if verified_r1_incomplete and route != "r1_path":
-        _assert(any(r["code"] == "INCOMPLETE_SEARCH" and
-                    r["route"] == "r1_path" and not r["blocking"]
-                    for r in plan["reasons"]),
-                "REASON_MISMATCH: capped nondecisive R1 search omitted")
+        require_reason("NO_RELATION_SOURCE", route)
+    if verified_r1_incomplete:
+        require_reason("INCOMPLETE_SEARCH", "r1_path")
+    if real_tension and conflict_failed and route != "none":
+        require_reason("MATERIAL_TENSION", route)
+    if uncertain_relevant and time_failed and route != "none":
+        require_reason("UNCERTAIN_TIME", route)
+    for dependent_route in sorted(dependent_routes):
+        require_reason("DEPENDENT_ROOTS", dependent_route)
+    if route != "none" and (relation_state != "TRUE" or source_state != "TRUE"):
+        require_reason("UNMATCHED_CONDITIONS", route)
 
 
 def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
