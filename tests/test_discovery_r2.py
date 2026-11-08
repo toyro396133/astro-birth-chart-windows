@@ -453,7 +453,7 @@ def test_f_uncertain_r1_search_and_cutoff_are_reported_separately(monkeypatch):
 
 def test_g_metrics_include_full_part_absent_dependent_and_exclusion():
     group = [case(f"yes-{i}", (A, B)) for i in range(5)]
-    group += [case("partial", (A,)), case("absent", (D,))]
+    group += [case("partial", (A,))] + [case(f"absent-{i}", (D,)) for i in range(4)]
     group += [case("dependent", (A, B), shared_roots=True)]
     group += [case("uncertainty", (A, B), uncertain=True)]
     out = discover(group)
@@ -461,7 +461,7 @@ def test_g_metrics_include_full_part_absent_dependent_and_exclusion():
     m = h["metrics"]
     assert m["independent_support_count"] == 5
     assert m["partial_counterexample_count"] == 1
-    assert m["absent_case_count"] == 1
+    assert m["absent_case_count"] == 4
     assert m["dependent_cooccurrence_count"] == 1
     assert m["incomplete_proof_count"] == 0
     assert m["excluded_case_count"] == 1
