@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from .interpretation import (
     format_interpretation, interpret_chart, model_input,
 )
+from .synthesis import format_synthesis, synthesize
 
 
 class RuleInterpretationDialog(QDialog):
@@ -23,8 +24,13 @@ class RuleInterpretationDialog(QDialog):
         self.resize(790, 625)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.report = interpret_chart(chart, pack)
-        self.structured_payload = model_input(chart, self.report)
+        self.synthesis_report = synthesize(chart, self.report)
+        self.structured_payload = {
+            **model_input(chart, self.report),
+            "synthesis": self.synthesis_report,
+        }
         self.readable = format_interpretation(self.report)
+        self.synthesis_readable = format_synthesis(self.synthesis_report)
 
         layout = QVBoxLayout(self)
         header = QLabel(
@@ -43,6 +49,11 @@ class RuleInterpretationDialog(QDialog):
         layout.addWidget(version)
         self.tabs = QTabWidget()
         self.tabs.setObjectName("interpretationTabs")
+        self.synthesis_view = QTextEdit()
+        self.synthesis_view.setObjectName("interpretationSynthesis")
+        self.synthesis_view.setReadOnly(True)
+        self.synthesis_view.setPlainText(self.synthesis_readable)
+        self.tabs.addTab(self.synthesis_view, "סינתזה — תמונה כללית")
         self.summary = QTextEdit()
         self.summary.setObjectName("interpretationSummary")
         self.summary.setReadOnly(True)
@@ -68,6 +79,17 @@ class RuleInterpretationDialog(QDialog):
         self.details.setPlainText(
             "\n".join(detail_lines) if detail_lines else "אין התאמות בחבילת הכללים הנוכחית.")
         self.tabs.addTab(self.details, "מקורות והנמקות")
+        self.proof_view = QTextEdit()
+        self.proof_view.setObjectName("interpretationSynthesisProof")
+        self.proof_view.setReadOnly(True)
+        self.proof_view.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.proof_view.setPlainText(json.dumps({
+            "nodes": self.synthesis_report["nodes"],
+            "factor_conditions": self.synthesis_report["factor_conditions"],
+            "tensions": self.synthesis_report["tensions"],
+            "top_feature_ids": self.synthesis_report["top_feature_ids"],
+        }, ensure_ascii=False, indent=2))
+        self.tabs.addTab(self.proof_view, "שרשראות הסקה")
         self.payload = QTextEdit()
         self.payload.setReadOnly(True)
         self.payload.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
@@ -77,6 +99,10 @@ class RuleInterpretationDialog(QDialog):
         self.tabs.addTab(self.payload, "מבנה נתונים למודל")
         layout.addWidget(self.tabs, 1)
         buttons = QHBoxLayout()
+        self.copy_synthesis_button = QPushButton("העתק סינתזה")
+        self.copy_synthesis_button.clicked.connect(
+            lambda: QApplication.clipboard().setText(self.synthesis_readable))
+        buttons.addWidget(self.copy_synthesis_button)
         self.copy_text_button = QPushButton("העתק פרשנות")
         self.copy_text_button.clicked.connect(
             lambda: QApplication.clipboard().setText(self.readable))
