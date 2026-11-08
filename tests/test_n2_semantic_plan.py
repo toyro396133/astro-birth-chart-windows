@@ -9,7 +9,8 @@ from astrochart.narrative_n2 import (
     DeterministicHebrewRealizer, compose_narrative_n2, semantic_only_n2,
 )
 from astrochart.semantic_plan_n2 import build_process_content_plan
-from astrochart.semantics_n2 import N2_SEMANTIC_VERSION
+from astrochart.semantics_n2 import N2_SEMANTIC_VERSION, _axis_claims, load_meaning_catalog
+from astrochart.interpretation import load_rulepack
 
 
 def slot(axis, i, covered=True):
@@ -218,3 +219,161 @@ def test_missing_first_axis_witness_does_not_renumber_later_meanings():
     assert "מוקד 2 (קבוצת ראיה 3)" in semantic
     assert "מוקד 1 (קבוצת ראיה 1)" not in semantic
     assert proof.count("• ") == 3
+
+
+def test_four_real_catalog_rules_are_covered_even_when_only_three_are_displayed():
+    """The four rule IDs in the independent audit are all truly covered."""
+    rule_ids = ["sun-sign-10", "moon-sign-10", "mercury-sign-10", "mars-sign-10"]
+    canonical = {r["id"]: r for r in load_rulepack().rules}
+    catalog = load_meaning_catalog()
+    readings = {x["rule_id"]: x for x in catalog["rule_readings"]}
+    assert all(rid in readings and canonical[rid]["axis"] == "אחריות"
+               for rid in rule_ids)
+    groups, signals = [], []
+    for i, rid in enumerate(rule_ids):
+        rule = canonical[rid]
+        url = rule["source_detail"]["url"]
+        key, evidence = f"unique-group-{i}", f"ראיה מקורית {i}"
+        groups.append({
+            "rule_ids": [rid], "source_refs": [url],
+            "review_statuses": [rule["review_status"]],
+            "evidence_key": key, "roots": [f"root-{i}"],
+            "details": [evidence],
+        })
+        signals.append({
+            "axis": "אחריות", "polarity": 1, "evidence_key": key,
+            "rule_id": rid, "text": rule["text"], "evidence": evidence,
+            "weight": 1, "modifier_only": False,
+            "review_status": rule["review_status"],
+            "provisional": False, "source_url": url, "source": rule["source"],
+        })
+    node = {
+        "id": "r1-test-four-evidences", "type": "axis", "axis": "אחריות",
+        "independent_facts": groups, "rule_ids": sorted(rule_ids),
+        "source_refs": sorted(set(g["source_refs"][0] for g in groups)),
+        "source_review_statuses": sorted(set(g["review_statuses"][0]
+                                              for g in groups)),
+        "audit_status": "symbolic-input",
+    }
+    axis_entry = next(e for e in catalog["entries"] if e["axis"] == "אחריות")
+    def create(reading_set):
+        return _axis_claims(node, axis_entry,
+                            {"signals": signals, "time_mode": "known"},
+                            reading_set, {r["id"]: r["type"] for r in canonical.values()})
+    full = create(readings)
+    content = full[0]["content"]
+    assert content["independent_evidence_count"] == 4
+    assert content["catalog_coverage_count"] == 4
+    assert content["displayed_meaning_count"] == 3
+    assert content["rule_conditioned_coverage"] == 3  # legacy displayed alias
+    assert content["catalog_missing_evidence_keys"] == []
+    assert content["omitted_due_to_display_limit"] == ["unique-group-3"]
+    assert len([c for c in full if c["kind"] == "rule-anchor"]) == 4
+    assert len([c for c in full if c["kind"] == "axis-example"]) == 3
+    text, evidence = DeterministicHebrewRealizer().axis(full, 0, secondary=False)
+    assert "ל־4 יש פירוש עריכתי" in text
+    assert "מוצגות כאן 3 הרחבות בלבד בשל מגבלת אורך" in text
+    assert "אין פירוש התנהגותי ייחודי במאגר" not in text
+    assert evidence.count("• ") == 4
+    assert set(content["catalog_covered_evidence_keys"]) == {
+        f"unique-group-{i}" for i in range(4)}
+    assert all(c["source_refs"] and c["rule_ids"] for c in full)
+
+    # The *same* evidence, now with one catalog reading genuinely absent.
+    reduced = create({k: v for k, v in readings.items() if k != rule_ids[-1]})
+    reduced_content = reduced[0]["content"]
+    assert reduced_content["catalog_coverage_count"] == 3
+    assert reduced_content["displayed_meaning_count"] == 3
+    assert reduced_content["catalog_missing_evidence_keys"] == ["unique-group-3"]
+    text_missing, _ = DeterministicHebrewRealizer().axis(
+        reduced, 0, secondary=False)
+    assert "לקבוצת ראיה אחת נוספת אין פירוש" in text_missing
+
+
+@pytest.mark.parametrize("missing_positions", [(), (0,), (2,), (0, 2, 4)])
+def test_five_member_path_preserves_all_members_and_selected_lineage(missing_positions):
+    path = ["יוזמה", "יציבות", "התמדה", "אחריות", "חשיבה"]
+    slots = [slot(axis, i, i not in missing_positions)
+             for i, axis in enumerate(path)]
+    plan = build_process_content_plan(path, slots, "עיבוד", "selected-r1", True)
+    assert len(plan["members"]) == 5
+    assert [m["selected_rule_id"] for m in plan["members"]] == [
+        f"test-rule-{i}" for i in range(5)]
+    assert [m["position"] for m in plan["coverage"]["missing_members"]] == list(
+        missing_positions)
+    assert plan["coverage"]["covered_members"] == 5 - len(missing_positions)
+    assert plan["comparison_is_supported"]  # distinguishable available meanings
+    base = claim("five-base", "process-reading", {
+        "path": path, "slots": slots, "content_plan": plan,
+        "proof_search_complete": True}, "five-r1")
+    comparison = claim("five-example", "process-example", {
+        "path": path, "content_plan": plan, "components": [{
+            "axis": m["axis"], "focus": m["documented_meaning"]["focus"],
+            "setting": m["documented_meaning"]["setting"],
+            "limit": m["documented_meaning"]["limit"]
+        } for m in plan["members"] if m["meaning_covered"]]}, "five-r1")
+    model = {
+        "semantic_version": N2_SEMANTIC_VERSION,
+        "claims": [base, comparison],
+        "plan": {"primary": [], "secondary": [],
+                 "processes": [[base["id"], comparison["id"]]], "tensions": []},
+        "time_mode": "known", "warnings": [],
+        "source_engine_version": "r1", "source_rule_pack": "test-pack",
+    }
+    result = compose_narrative_n2(model)
+    p = next(p for s in result["sections"] for p in s["paragraphs"]
+             if p["kind"] == "process")
+    assert p["process_content_plan"]["path"] == path
+    assert p["process_content_plan"]["members"] == plan["members"]
+    assert p["claim_ids"] == ["five-base", "five-example"]
+    assert " → ".join(path) in p["semantic_text"]
+    assert "גורם לאחר" in p["semantic_text"] or "קשר סיבתי" in p["semantic_text"]
+    if missing_positions:
+        assert "השוואה חלקית בלבד" in p["semantic_text"]
+        assert f"{5 - len(missing_positions)} מתוך 5" in p["semantic_text"]
+        for i in missing_positions:
+            assert path[i] in p["semantic_text"]
+    else:
+        assert "כל 5 הרכיבים" in p["semantic_text"]
+
+
+@pytest.mark.parametrize("reason", [
+    "missing-catalog-coverage", "no-meaningful-distinction",
+    "no-supported-combined-assertion",
+])
+def test_abstention_reason_and_hebrew_explanation_are_truthful(reason):
+    path = ["יוזמה", "התמדה", "אחריות", "חשיבה"]
+    slots = [slot(axis, i, reason != "missing-catalog-coverage" or i != 2)
+             for i, axis in enumerate(path)]
+    if reason == "no-meaningful-distinction":
+        for x in slots:
+            x["witness"]["focus"] = "מוקד משותף"
+            x["witness"]["distinction"] = "הבחנה זהה"
+    plan = build_process_content_plan(path, slots, "עיבוד", None, True)
+    c = claim("abstention", "process-reading", {
+        "path": path, "slots": slots, "content_plan": plan,
+        "proof_search_complete": True}, "r1-abstention")
+    model = {
+        "semantic_version": N2_SEMANTIC_VERSION, "claims": [c],
+        "plan": {"primary": [], "secondary": [],
+                 "processes": [[c["id"]]], "tensions": []},
+        "time_mode": "known", "warnings": [],
+        "source_engine_version": "r1", "source_rule_pack": "test-pack",
+    }
+    result = compose_narrative_n2(model)
+    record = result["abstained_processes"][0]
+    paragraph = next(p for sec in result["sections"] for p in sec["paragraphs"]
+                     if p["kind"] == "process-abstention")
+    assert record["reason"] == reason
+    assert record["reason_explanation"] in paragraph["semantic_text"]
+    assert paragraph["claim_ids"] == [c["id"]]
+    assert record["coverage"] == plan["coverage"]
+    assert len(record["rule_ids"]) == 4
+    assert len(record["path"]) == 4
+    if reason == "missing-catalog-coverage":
+        assert "אחריות" in record["reason_explanation"]
+    elif reason == "no-meaningful-distinction":
+        assert not plan["comparison_is_supported"]
+    else:
+        assert plan["comparison_is_supported"]
+        assert not plan["new_cross_axis_assertion_supported"]
