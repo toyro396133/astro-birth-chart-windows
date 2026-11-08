@@ -174,11 +174,23 @@ def main():
     assert window.wheel.chart is not None
     assert "16.09.2023" in window.warnings.text()
     snapshot(window, "hebrew-after-midnight.png")
-    # Wider display snapshot additionally checks the elastic dashboard split.
+    # The hosted Windows desktop is 1024x768. A *shown* top-level widget
+    # is clamped by the window manager even after resize(1360, 860), so that
+    # screenshot cannot prove wide layout. Render the existing Qt widget
+    # while hidden at its true requested size and verify the saved pixels.
+    window.hide()
     window.resize(1360, 860)
     QTest.qWait(180)
+    assert window.width() >= 1360 and window.height() >= 860, (
+        "Wide widget layout was clamped", window.size())
     assert window.wheel.width() >= 430
     snapshot(window, "ui-wide.png")
+    from PySide6.QtGui import QImageReader
+    wide_path = ROOT / "qa-output" / "ui-wide.png"
+    decoded = QImageReader(str(wide_path)).size()
+    assert decoded.width() >= 1360 and decoded.height() >= 860, (
+        "The actual screenshot is not wide", decoded)
+
 
     report = {
         "hebrew": {
