@@ -534,6 +534,21 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
                     "members": list(members), "metrics": metrics,
                     "reason": "insufficient-distinct-evidence-patterns",
                     "classification": classification,
+                    "support_cases": measure["supports"],
+                    "counterexamples": measure["counterexamples"],
+                    "absent_case_ids": measure["absent_case_ids"],
+                    "dependent_case_ids": measure["dependent_case_ids"],
+                    "incomplete_proof_case_ids": measure["incomplete_proof_case_ids"],
+                    "rule_ids": sorted({rid for p in measure["supports"]
+                                        for rid in p["rule_ids"]}),
+                    "source_refs": sorted({src for p in measure["supports"]
+                                           for src in p["source_refs"]}),
+                    "source_review_statuses": sorted({
+                        status for p in measure["supports"]
+                        for status in p["source_review_statuses"]}),
+                    "all_supporting_reports_unverified_or_missing": (
+                        metrics["unverified_provenance_report_count"]
+                        == metrics["supporting_report_count"]),
                 })
                 continue
             if (metrics["lift_over_independent_presence"] < min_lift
