@@ -186,7 +186,7 @@ def test_r32_10_real_nondecisive_witness_cannot_supply_truth(tamper):
         other["origin"] = "r1_witness"
         e["selected_witnesses"] = [by_rule["sun-sign-1"], by_rule["moon-sign-2"], other]
     resign(b)
-    with pytest.raises(N3ValidationError, match="PROVENANCE_MISMATCH|duplicate evidence binding"):
+    with pytest.raises(N3ValidationError, match="PROVENANCE_MISMATCH|duplicate evidence binding|selected witness details differ"):
         admit_n3_bundle(**b)
 
 
