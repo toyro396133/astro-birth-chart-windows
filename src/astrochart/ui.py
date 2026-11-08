@@ -23,7 +23,7 @@ from .updater import (UpdateError, latest_release, is_newer, download_release,
                       is_installed_setup, SETUP_ASSET, ASSET,
                       auto_updates_enabled, save_auto_updates,
                       auto_install_enabled, save_auto_install)
-from .wheel import Wheel
+from .wheel import Wheel, format_body_label
 from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
@@ -395,6 +395,8 @@ class MainWindow(QMainWindow):
         self.wheel_legend = QLabel("לחץ על סמל במפה כדי לבחור גוף")
         self.wheel_legend.setObjectName("helperText")
         self.wheel_legend.setMinimumWidth(120)
+        self.wheel_legend.setMaximumWidth(355)
+        self.wheel_legend.setWordWrap(True)
         wheel_heading.addWidget(self.wheel_legend)
         wheel_layout.addLayout(wheel_heading)
         self.wheel = Wheel()
@@ -940,10 +942,12 @@ class MainWindow(QMainWindow):
                 b.name, signs,
                 f"{degree_in_sign(b.longitude):.3f}°" + (
                     " (דגימה)" if chart.time_certainty == "unknown"
-                    else " (משוער)" if b.degree_certainty == "estimated" else ""),
-                "—" if b.house is None else str(b.house), motion
+                    else " (משוער)" if chart.time_certainty == "estimated" else ""),
+                "—" if b.house is None else
+                f"{b.house} (משוער)" if chart.time_certainty == "estimated"
+                else str(b.house), motion
             ]
-            tooltip = f"{b.name} · {signs} · {degree_in_sign(b.longitude):.3f}°"
+            tooltip = format_body_label(chart, b, digits=3)
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setToolTip(tooltip)
@@ -987,11 +991,7 @@ class MainWindow(QMainWindow):
         if body is None:
             return
         self.wheel.set_selected_body(body.name)
-        location = f" · בית {body.house}" if body.house is not None else ""
-        if chart.approximate:
-            location = " · שעה לא ידועה"
-        self.wheel_legend.setText(
-            f"{body.name} · {body.sign} · {degree_in_sign(body.longitude):.1f}°{location}")
+        self.wheel_legend.setText(format_body_label(chart, body, digits=1))
 
     def _on_wheel_selection(self, name):
         if self._active_chart is None:

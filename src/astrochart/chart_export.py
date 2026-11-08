@@ -1,4 +1,5 @@
 """Qt-native local visual exports. No PDF dependency or network service."""
+import math
 from PySide6.QtCore import QPoint, QRectF, Qt
 from PySide6.QtGui import QFont, QPainter, QPdfWriter, QPixmap, QPageSize
 
@@ -19,6 +20,14 @@ def export_wheel_png(wheel, destination, scale=3):
         painter.end()
     if not image.save(str(destination), "PNG"):
         raise OSError("שמירת תמונת PNG נכשלה")
+
+
+def _wrapped_pdf_line_height(painter, width, text):
+    """Measure wrapped text in PDF painter coordinates before placing it."""
+    flags = (Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight
+             | Qt.TextFlag.TextWordWrap)
+    measured = painter.boundingRect(QRectF(0, 0, width, 20000), flags, text or " ")
+    return max(23, math.ceil(measured.height()) + 6)
 
 
 def export_chart_pdf(wheel, chart, destination):
@@ -52,13 +61,19 @@ def export_chart_pdf(wheel, chart, destination):
         else:
             line_y = 100
         painter.setFont(QFont("Segoe UI", 9))
+        text_width = page_w - 2 * margin
+        flags = (Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight
+                 | Qt.TextFlag.TextWordWrap)
         for text in format_chart_report(chart).splitlines():
-            if line_y > page_h - margin:
+            if not text:
+                line_y += 12
+                continue
+            height = _wrapped_pdf_line_height(painter, text_width, text)
+            if line_y + height > page_h - margin:
                 writer.newPage()
                 line_y = margin
-            painter.drawText(QRectF(margin, line_y, page_w - 2 * margin, 23),
-                             Qt.AlignmentFlag.AlignRight | Qt.TextFlag.TextWordWrap,
-                             text)
-            line_y += 23
+            painter.drawText(QRectF(margin, line_y, text_width, height),
+                             flags, text)
+            line_y += height
     finally:
         painter.end()

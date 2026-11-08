@@ -5,7 +5,7 @@ When several bodies are near each other, labels are spread tangentially and
 connected to their *true* angles instead of letting the symbols overlap.
 """
 import math
-from PySide6.QtCore import Qt, QPointF, Signal
+from PySide6.QtCore import Qt, QPointF, QRectF, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
@@ -16,6 +16,35 @@ SYMBOLS = {
     "מאדים": "♂", "צדק": "♃", "שבתאי": "♄", "אורנוס": "♅",
     "נפטון": "♆", "פלוטו": "♇",
 }
+
+
+def format_body_label(chart, body, digits=2):
+    """Shared, certainty-aware text for hover, table and selection labels."""
+    degree = f"{degree_in_sign(body.longitude):.{digits}f}°"
+    if chart.approximate or chart.time_certainty == "unknown":
+        possibilities = (" / ".join(SIGNS[i] for i in body.signs_possible)
+                         if body.signs_possible else body.sign)
+        kind = "מזלות אפשריים" if body.signs_possible else "מזל בדגימה"
+        return (f"{body.name} · {kind}: {possibilities} · "
+                f"{degree} (מעלת דגימת אמצע יום, לא מיקום לידה)")
+    house = f" · בית {body.house}" if body.house is not None else ""
+    if chart.time_certainty == "estimated":
+        return (f"{body.name} · {body.sign} · {degree} (לפי שעה משוערת)"
+                + (f"{house} (משוער)" if house else ""))
+    return f"{body.name} · {body.sign} · {degree}{house}"
+
+
+def wheel_certainty_note(chart):
+    """Certainty disclosure, present in both the interactive wheel and exports."""
+    if chart is None:
+        return ""
+    if chart.approximate or chart.time_certainty == "unknown":
+        return ("שעה לא ידועה — מיקומים והיבטים הם דגימת אמצע יום בלבד\n"
+                "מעלות אינן מיקומי לידה ודאיים; בתים לא חושבו")
+    if chart.time_certainty == "estimated":
+        return ("שעה משוערת — מיקומים, בתים והיבטים חושבו לפי שעה משוערת\n"
+                "הנתונים עשויים להשתנות אם שעת הלידה שונה")
+    return ""
 
 
 class Wheel(QWidget):
@@ -82,9 +111,7 @@ class Wheel(QWidget):
         name = self.nearest_marker(event.position())
         if name:
             body = next(b for b in self.chart.bodies if b.name == name)
-            self.setToolTip(
-                f"{name} · {body.sign} · {degree_in_sign(body.longitude):.2f}°"
-                + (f" · בית {body.house}" if body.house is not None else ""))
+            self.setToolTip(format_body_label(self.chart, body))
             self.setCursor(Qt.CursorShape.PointingHandCursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -113,8 +140,10 @@ class Wheel(QWidget):
             return
 
         w, h = self.width(), self.height()
-        r = max(95.0, min(w, h) * 0.438)
-        center = QPointF(w / 2, h / 2)
+        note = wheel_certainty_note(self.chart)
+        # Reserve a bottom footer without covering markers.
+        r = max(95.0, min(w, h) * (0.36 if note else 0.438))
+        center = QPointF(w / 2, h / 2 - (7 if note else 0))
         origin = self.chart.ascendant if self.chart.ascendant is not None else 0.0
 
         # Pale dial and precise concentric guides; no photographic assets.
@@ -211,9 +240,16 @@ class Wheel(QWidget):
             p.drawText(int(label.x() - 14), int(label.y() - 14), 28, 28,
                        Qt.AlignmentFlag.AlignCenter, SYMBOLS[body.name])
 
-        if self.chart.approximate:
-            p.setFont(QFont("Arial", 9))
-            p.setPen(QColor("#b77938"))
-            p.drawText(int(center.x() - 110), int(center.y() - 14), 220, 28,
-                       Qt.AlignmentFlag.AlignCenter, "שעה לא ידועה — ללא בתים")
+        if note:
+            # The disclosure is part of the widget and survives PNG/PDF rendering.
+            footer = QRectF(5, h - 54, w - 10, 51)
+            p.setPen(QPen(QColor("#d5a45d" if self.chart.approximate
+                                  else "#7398cc"), 1))
+            p.setBrush(QColor("#fff6e9" if self.chart.approximate else "#f0f6ff"))
+            p.drawRoundedRect(footer, 5, 5)
+            p.setPen(QColor("#674219" if self.chart.approximate else "#244b79"))
+            p.setFont(QFont("Segoe UI", 8))
+            p.drawText(footer.adjusted(5, 2, -5, -2),
+                       Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
+                       note)
         p.end()

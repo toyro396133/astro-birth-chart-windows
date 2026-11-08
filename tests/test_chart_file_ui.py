@@ -73,3 +73,97 @@ def test_native_png_pdf_and_text_exports(tmp_path, window, monkeypatch):
             assert destination.read_bytes().startswith(b"%PDF")
         else:
             assert "שמש" in destination.read_text(encoding="utf-8")
+
+
+def test_uncertainty_tooltips_selections_and_table_are_qualified(window):
+    """Unknown and estimated positions cannot masquerade as exact values."""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtTest import QTest
+    from astrochart.wheel import format_body_label
+
+    unknown = Chart([BodyPosition("ירח", 29.7, False, (0, 1))],
+                    [], None, None, True, [])
+    window._show_chart(unknown)
+    label = window.table.item(0, 0).toolTip()
+    assert "טלה / שור" in label
+    assert "דגימת אמצע יום" in label and "לא מיקום לידה" in label
+    window.table.setCurrentCell(0, 0)
+    assert "טלה / שור" in window.wheel_legend.text()
+    assert "דגימת אמצע יום" in window.wheel_legend.text()
+
+    window.wheel.grab()
+    marker = window.wheel._hit_targets["ירח"]
+    QTest.mouseMove(window.wheel, QPoint(round(marker.x()), round(marker.y())))
+    assert window.wheel.toolTip() == format_body_label(unknown, unknown.bodies[0])
+
+    estimated = Chart([BodyPosition("ירח", 29.7, False, house=3)],
+                      [], 15.0, 20.0, False, [], time_certainty="estimated")
+    window._show_chart(estimated)
+    assert "לפי שעה משוערת" in window.table.item(0, 0).toolTip()
+    assert "משוער" in window.table.item(0, 2).text()
+    assert "משוער" in window.table.item(0, 3).text()
+    window.table.setCurrentCell(0, 0)
+    assert "לפי שעה משוערת" in window.wheel_legend.text()
+    assert "בית 3" in window.wheel_legend.text()
+
+
+def test_uncertainty_note_survives_standalone_png(tmp_path, window):
+    from PySide6.QtGui import QImageReader, QColor
+    from astrochart.chart_export import export_wheel_png
+    from astrochart.wheel import wheel_certainty_note
+
+    cases = [
+        ("known", Chart([BodyPosition("ירח", 10, False)], [], 15, 20, False, [])),
+        ("estimated", Chart([BodyPosition("ירח", 10, False)], [], 15, 20,
+                            False, [], time_certainty="estimated")),
+        ("unknown", Chart([BodyPosition("ירח", 10, False, (0, 1))],
+                          [], None, None, True, [])),
+    ]
+    window.wheel.resize(400, 400)
+    for name, chart in cases:
+        window.wheel.set_chart(chart)
+        path = tmp_path / (name + ".png")
+        export_wheel_png(window.wheel, path, scale=2)
+        image = QImageReader(str(path)).read()
+        assert not image.isNull() and image.width() == 800 and image.height() == 800
+        note = wheel_certainty_note(chart)
+        if name == "known":
+            assert note == ""
+        else:
+            if name == "unknown":
+                assert "דגימת אמצע יום" in note
+            else:
+                assert "שעה משוערת" in note and "בתים והיבטים" in note
+            # Footer background is painted into the PNG, not only the UI panel.
+            assert image.pixelColor(20, 740) != QColor("#ffffff")
+
+
+def test_pdf_long_warning_wrap_and_render(tmp_path, window):
+    """A multi-line caution uses its measured height in the actual PDF."""
+    from PySide6.QtCore import QSize
+    from PySide6.QtGui import QFont, QImage, QPainter
+    from astrochart.chart_export import _wrapped_pdf_line_height, export_chart_pdf
+
+    warning = "אזהרת אי־ודאות: " + "שעת הלידה אינה מדויקת ולכן נדרש להיזהר בפרשנות. " * 32
+    image = QImage(900, 900, QImage.Format.Format_ARGB32)
+    painter = QPainter(image)
+    try:
+        painter.setFont(QFont("Segoe UI", 9))
+        assert _wrapped_pdf_line_height(painter, 360, warning) > 23
+    finally:
+        painter.end()
+    chart = Chart([BodyPosition("ירח", 29, False)], [], None, None, True,
+                  [warning])
+    window.wheel.set_chart(chart)
+    destination = tmp_path / "wrapped-warning.pdf"
+    export_chart_pdf(window.wheel, chart, destination)
+    assert destination.read_bytes().startswith(b"%PDF")
+    try:
+        from PySide6.QtPdf import QPdfDocument
+    except ImportError:
+        return  # The layout check and actual PDF export above are still mandatory.
+    doc = QPdfDocument()
+    assert doc.load(str(destination)) == QPdfDocument.Error.None_
+    assert doc.pageCount() >= 1
+    rendered = doc.render(doc.pageCount() - 1, QSize(900, 1250))
+    assert not rendered.isNull()
