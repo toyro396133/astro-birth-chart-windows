@@ -142,6 +142,8 @@ def test_n1_tension_has_exact_positive_and_negative_provenance():
         positive["source_review_statuses"] + negative["source_review_statuses"])
     assert "test-n1-negative" not in positive["rule_ids"]
     assert "test-n1-negative" in negative["rule_ids"]
+    assert "ראיות בעד:" in t["text"] and "ראיות נגד:" in t["text"]
+    assert "test-n1-negative" in t["text"]
     assert "https://example.org/test-opposition" in negative["source_refs"]
     assert "https://example.org/test-opposition" not in positive["source_refs"]
     assert t["provisional_time"] == axis["provisional_time"]
