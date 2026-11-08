@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "catalog_version": "0.1.0",
+  "editorial_status": "unreviewed-symbolic-expansion-not-astrological-rule",
+  "scope": "N2 editorial meanings attached only to supported R1 axis nodes; never back-propagate examples to rules.",
+  "entries": [
+    {
+      "id": "n2.axis.initiative",
+      "kind": "axis_meaning",
+      "axis": "יוזמה",
+      "definition": "נטייה להתחיל פעולה בלי להמתין למסלול מושלם",
+      "strength": "יכולת להפוך רעיון לצעד ראשון",
+      "challenge": "סכנה לדלג על בדיקות הכרחיות",
+      "example": {
+        "situation": "מול משימה חדשה",
+        "behavior": "עשוי להתחיל בבדיקת אפשרות קטנה במקום להמתין שכל הפרטים יתבהרו",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לפתוח צעד מעשי ראשון",
+      "recurrence_note": "התחלות חדשות עשויות לעורר אותה שוב, אך אין להסיק מכך אירוע שיתרחש",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.flexibility",
+      "kind": "axis_meaning",
+      "axis": "גמישות",
+      "definition": "יכולת לשנות דרך פעולה כאשר התנאים משתנים",
+      "strength": "פתיחות לחלופות שלא נלקחו מראש בחשבון",
+      "challenge": "קושי לשמור על רצף אם מחליפים כיוון לעיתים קרובות",
+      "example": {
+        "situation": "כאשר תוכנית משתנה",
+        "behavior": "עשוי לבחון נתיב אחר ולא להתעקש על הדרך הראשונה",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לשנות את שיטת העבודה לפי הנתונים",
+      "recurrence_note": "הצורך בהתאמה עשוי לחזור בסביבות שונות בלי להעיד על עבר מסוים",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.stability",
+      "kind": "axis_meaning",
+      "axis": "יציבות",
+      "definition": "העדפה לרצף, מסגרת וקצב צפוי",
+      "strength": "יכולת לבסס שגרה שמחזיקה משימה לאורך זמן",
+      "challenge": "קושי לעבור במהירות משיטה מוכרת לשיטה חדשה",
+      "example": {
+        "situation": "בתכנון שבוע עמוס",
+        "behavior": "עשוי לקבוע סדר פעולות קבוע לפני שמרחיבים את ההתחייבויות",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לקבוע בסיס יציב לפעולה",
+      "recurrence_note": "מסגרות מתחלפות עשויות להעלות שוב את שאלת הקביעות",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.persistence",
+      "kind": "axis_meaning",
+      "axis": "התמדה",
+      "definition": "יכולת לשוב למשימה גם כשנדרשים זמן וחזרות",
+      "strength": "התקדמות הדרגתית בזכות עקביות",
+      "challenge": "נטייה להמשיך גם כשכדאי לבחון שינוי מסלול",
+      "example": {
+        "situation": "כשהתקדמות הלמידה איטית",
+        "behavior": "עשוי לחזור לתרגול נוסף ולא להסתפק בניסיון ראשון",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "להחזיק רצף של פעולות",
+      "recurrence_note": "במשימות ארוכות ייתכן שהצורך להמשיך יתעורר שוב",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.responsibility",
+      "kind": "axis_meaning",
+      "axis": "אחריות",
+      "definition": "קשב להתחייבויות ולתוצאות של החלטות",
+      "strength": "נטייה לסגור קצוות ולבדוק עמידה במשימות",
+      "challenge": "עומס כאשר כל פרט נתפס כהתחייבות אישית",
+      "example": {
+        "situation": "כאשר מצטברות מטלות",
+        "behavior": "עשוי להגדיר מה הכרחי לבדוק ומה אפשר להשאיר לאחר כך",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לבדוק שהשלבים הושלמו",
+      "recurrence_note": "אחריות עשויה להיבחן מחדש עם שינוי מסגרות, לא כניבוי לתפקיד מסוים",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.creativity",
+      "kind": "axis_meaning",
+      "axis": "יצירתיות",
+      "definition": "חיפוש דרכי ביטוי או פתרון שאינן מוכתבות מראש",
+      "strength": "יכולת להציע נקודת מבט מקורית",
+      "challenge": "קושי לבחור בין רעיונות רבים או להעבירם לביצוע",
+      "example": {
+        "situation": "כשפתרון רגיל אינו מספיק",
+        "behavior": "עשוי לשרטט כמה חלופות ולהשוות ביניהן לפני בחירה",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "להציע אפשרות חדשה",
+      "recurrence_note": "מצבים לא מוכרים עשויים לעורר דפוס של יצירת חלופות",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.thinking",
+      "kind": "axis_meaning",
+      "axis": "חשיבה",
+      "definition": "עיבוד מידע באמצעות הבחנות והשוואת אפשרויות",
+      "strength": "יכולת לזהות פרטים והנחות שדורשים בירור",
+      "challenge": "נטייה לעכב החלטה בגלל עודף ניתוח",
+      "example": {
+        "situation": "לפני החלטה שיש לה כמה תנאים",
+        "behavior": "עשוי להפריד בין מה שידוע לבין מה שעדיין צריך בדיקה",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "להשוות אפשרויות והנחות",
+      "recurrence_note": "הצורך לברר עשוי להופיע בנושאי למידה ועבודה שונים",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.reflection",
+      "kind": "axis_meaning",
+      "axis": "התבוננות",
+      "definition": "נטייה לבחון רעיון מחדש ולזהות הבדלים עדינים",
+      "strength": "יכולת לראות מה דורש דיוק לאחר פעולה",
+      "challenge": "סכנה לעיסוק חוזר במה שכבר נבחן",
+      "example": {
+        "situation": "לאחר השלמת משימה",
+        "behavior": "עשוי לחזור למה שעשה ולבדוק מה ראוי לשפר בפעם הבאה",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לבחון מחדש את התוצאה",
+      "recurrence_note": "בדיקה חוזרת עשויה לשמש כלי למידה, בלי לטעון שכך כבר קרה",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.communication",
+      "kind": "axis_meaning",
+      "axis": "תקשורת",
+      "definition": "יכולת להעביר מחשבה ולהתאים מסר לשומעים",
+      "strength": "אפשרות להבהיר רעיון מסובך במילים",
+      "challenge": "קושי כאשר יש פער בין העושר הפנימי לניסוח הזמין",
+      "example": {
+        "situation": "בהסבר של רעיון מורכב",
+        "behavior": "עשוי לבחור בדוגמה מעשית כדי שהדברים יהיו ברורים יותר",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לנסח את המסקנה במילים",
+      "recurrence_note": "הצורך להסביר עשוי ללוות מצבי עבודה ולמידה שונים",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.sensitivity",
+      "kind": "axis_meaning",
+      "axis": "רגישות",
+      "definition": "קשב לדקויות בגירויים ובתגובות של הסביבה",
+      "strength": "יכולת להבחין במה שלא נאמר במפורש",
+      "challenge": "עומס כאשר נדרשת תגובה לכל שינוי קטן",
+      "example": {
+        "situation": "בסביבה רועשת או עמוסה",
+        "behavior": "עשוי להקדיש רגע להבחין אילו אותות חשובים ואילו חולפים",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לקלוט שינויי הקשר עדינים",
+      "recurrence_note": "סביבות שונות עשויות לשנות את מידת הנוכחות של רגישות זו",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.independence",
+      "kind": "axis_meaning",
+      "axis": "עצמאות",
+      "definition": "נטייה להפעיל שיקול דעת אישי בבחירת דרך",
+      "strength": "יכולת לפעול בלי להמתין לאישור בכל צעד",
+      "challenge": "קושי להיעזר בדעות נוספות בזמן המתאים",
+      "example": {
+        "situation": "כשמוצגות לו עצות שונות",
+        "behavior": "עשוי לבדוק מה מהן מתאים לשיקול דעתו לפני אימוץ החלטה",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לגבש בחירה אישית",
+      "recurrence_note": "בחירות חדשות עשויות להעלות שוב את שאלת האוטונומיה",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.cooperation",
+      "kind": "axis_meaning",
+      "axis": "שיתופיות",
+      "definition": "נכונות לתאם פעולות עם אנשים אחרים",
+      "strength": "יכולת לשלב נקודות מבט ולעבוד יחד",
+      "challenge": "עיכוב כאשר נדרש תיאום רב לפני התחלה",
+      "example": {
+        "situation": "בעבודה עם כמה משתתפים",
+        "behavior": "עשוי לחפש חלוקת משימות ברורה כדי למנוע כפילויות",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לתאם את הפעולה עם אחרים",
+      "recurrence_note": "שיתוף פעולה עשוי להשתנות לפי ההקשר והמשימה",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    },
+    {
+      "id": "n2.axis.harmony",
+      "kind": "axis_meaning",
+      "axis": "הרמוניה",
+      "definition": "חיפוש איזון בין צרכים ודרכי פעולה",
+      "strength": "יכולת להפחית חיכוך ולמצוא הסדר מעשי",
+      "challenge": "סכנה לדחות הכרעה כדי לשמר שקט זמני",
+      "example": {
+        "situation": "כאשר שתי דרישות מתנגשות",
+        "behavior": "עשוי לנסות לסמן על מה אפשר להתפשר ועל מה לא",
+        "classification": "possible-behavior-example"
+      },
+      "process_action": "לחפש איזון מעשי",
+      "recurrence_note": "התלבטות בין דרישות עשויה להופיע במסגרות שונות",
+      "eligibility": "positive independent R1 axis evidence without unresolved counter-evidence",
+      "provenance": {
+        "origin": "N2 editorial interpretation of existing R1 axis vocabulary",
+        "review_status": "unverified",
+        "astrological_rule": false
+      }
+    }
+  ]
+}
