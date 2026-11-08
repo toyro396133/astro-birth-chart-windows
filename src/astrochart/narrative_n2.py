@@ -25,9 +25,10 @@ def _he_list(items: list[str]) -> str:
 
 def _source_line(item: dict) -> str:
     x = item["content"]
-    status = item["source_review_statuses"]
-    status_text = _he_list([STATUS_HE.get(a, a) for a in status])
-    source = ", ".join(item["source_refs"]) or "מקור שלא סופקה לו כתובת"
+    # A selected rule has its own status and URL. Group-wide union statuses
+    # are lineage metadata only; never attribute another rule's status to it.
+    status_text = STATUS_HE.get(x["review_status"], x["review_status"])
+    source = x.get("selected_source_url") or "מקור שלא סופקה לו כתובת"
     return (f"{x['chart_evidence']} — כלל {x['selected_rule_id']} "
             f"({status_text}); מקור: {source}; נוסח הכלל: {x['rule_text']}")
 
