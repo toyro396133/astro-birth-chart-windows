@@ -518,3 +518,28 @@ def test_review_protocol_uses_real_r1_inputs_and_freezes_holdout_thresholds():
     assert output["E_permutation_control"]["seed"] == 20261108
     assert output["E_permutation_control"]["iterations"] == 1200
     assert output["research_conclusion"]["level_2_new_semantic_relation"] is False
+
+
+def test_original_eight_recurring_patterns_keep_unverified_source_provenance():
+    import importlib.util
+    from pathlib import Path
+    script = Path(__file__).parents[1] / "scripts" / "run_r2_experiment.py"
+    spec = importlib.util.spec_from_file_location("r2_original_audit", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    data = module.run_experiment()
+    observed = data["r2"]["recurring_but_not_diverse_patterns"]
+    assert len(observed) == 8
+    assert all(item["source_review_statuses"] == ["unverified"]
+               for item in observed)
+    assert all(item["metrics"]["supporting_report_count"] == 6
+               for item in observed)
+    assert all(item["metrics"]["distinct_evidence_signature_count"] == 1
+               for item in observed)
+    assert all(item["all_supporting_reports_unverified_or_missing"]
+               for item in observed)
+    assert all(item["support_cases"] and item["rule_ids"]
+               for item in observed)
+    core = data["target_cross_domain_pattern"]
+    assert core["recurrent_without_diversity"] and not core["found"]
+    assert core["recurrence_metrics"]["distinct_data_template_count"] == 1
