@@ -32,7 +32,7 @@ jobs:
         run: |
           git fetch origin +refs/pull/29/head:refs/remotes/origin/pr29-p1-locked
           ACTUAL="$(git rev-parse refs/remotes/origin/pr29-p1-locked)"
-          EXPECTED="aea7fe31ab2107e70787163965de142b4242b6de"
+          EXPECTED="d03e4c8127007b70f69e28da7708097c46f901b4"
           test "$ACTUAL" = "$EXPECTED" || { echo "PR29 HEAD DRIFT: $ACTUAL"; exit 1; }
           git show "$EXPECTED:src/astrochart/meaning_catalog_n2.json" > "$RUNNER_TEMP/n2-pr29.json"
           python scripts/n3_p1_admit_locked_pr29.py "$RUNNER_TEMP/n2-pr29.json" --locked-git-head "$EXPECTED" --report qa-output/n3-p1/pr29-locked.json

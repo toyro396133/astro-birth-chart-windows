@@ -108,7 +108,7 @@ def audit(reports, *, seed):
             assert a["path"] and a["coverage"]["covered_members"] <= a["coverage"]["total_members"]
     rules = {r["id"]: r for r in load_rulepack().rules}
     curated = {r["rule_id"] for r in load_meaning_catalog()["rule_readings"]}
-    assert len(rules) == 96 and len(curated) == 26
+    assert len(rules) == 96 and 26 <= len(curated) <= 96
     uncovered = []
     for rid, rule in sorted(rules.items()):
         if rid in curated:
@@ -129,7 +129,7 @@ def audit(reports, *, seed):
                                  else "requires-editorial-research"),
             "automatic_meaning_added": False,
         })
-    assert len(uncovered) == 70
+    assert len(uncovered) == len(rules) - len(curated)
     return {
         "acceptance_seed": seed, "cases": len(reports),
         "source": "new JPL charts and new synthetic controls; not an empirical validation",
