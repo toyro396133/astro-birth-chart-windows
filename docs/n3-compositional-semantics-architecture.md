@@ -9,7 +9,7 @@
 
 N3 הוא מנוע **הסקה סמלית מורשית־מקור**: משמעות משולבת מותרת רק כאשר תנאים במפה מתאימים להגדרת יחס, והמקור הפרשני מתיר את *היחס המסוים* ואת גבולות הניסוח. אין ראיה אמפירית לאישיות; רישוי מקור אסטרולוגי איננו רישוי סיבתי/מדעי. קריאת N2 אטומית אינה הופכת לטענת קשר גם אם היא מנוסחת היטב. הופעת R1 path, צמידות מילים, או coactivation ב־R2 אינן מקור ליחס.
 
-**ממצאים מאומתים מקבצי המאגר:** RulePack schema 1, pack_version 0.2.0, כולל 96 כללים: 72 placement, 11 aspect, 9 house, 4 composite. ארבעתם enabled, review_status=unverified, modifier_only בעת ההתאמה, עם weight אפקטיבי 0. R1 אינו קולט modifier_only למועמדים, מוגבל ל־MAX_NODES=192 ו־MAX_PROOF_STATES=20000. N2 catalog ב־PR #27 הוא 0.2.0 / 26 rule_readings; בענף האח PR #29 הוא 0.3.0 / 86, כולן עריכתיות לא מאומתות; ארבעת כללי ה־composite ללא rule_reading בשני הענפים.
+**ממצאים מאומתים מקבצי המאגר:** RulePack schema 1, pack_version 0.2.0, כולל 96 כללים: 72 placement, 11 aspect, 9 house, 4 composite. ארבעתם enabled, review_status=unverified, modifier_only בעת ההתאמה, עם weight אפקטיבי 0. R1 אינו קולט modifier_only למועמדים, מוגבל ל־MAX_NODES=192 ו־MAX_PROOF_STATES=20000. N2 catalog ב־PR #27 הוא 0.2.0 עם 26 rule_readings; בענף האח PR #29 ב־HEAD aea7fe31ab2107e70787163965de142b4242b6de הוא 0.3.1 עם 77 rule_readings, 6 symbolic_explanations ו־3 withheld_editorial_readings. אין 86 הרחבות התנהגותיות פעילות; ארבעת כללי ה־composite חסרי rule_reading. יש לנעול מחדש את PR #29 בכל admission עתידי.
 
 **תוצאת P0 ראשונית:** לכל ארבעת כללי ה־composite המקורות המשויכים ב־RulePack הם framework-only ואינם מאשרים פרטנית קשר. במהלך בדיקה נפרדת אותר *מועמד מקור היסטורי פרטני* ל־sun-aries-moon-taurus בספר Alan Leo, Astrology for All (1899), פרק XVIII, עמ' 62. טקסט מהדורה סרוקה ותעתיק זמינים (ראו סעיף 7). זו עדות טקסטואלית ספציפית מועמדת, **אך טרם הושלמו ביקורת מקור עצמאית, אימות מסגור/תנאים, השוואה דקדקנית למשמעות המותרת ואישור בודק**. לפיכך מספר מקרי gold חיוביים *מאושרים לפרסום* כעת: **0**. תכנון וניסויי Shadow יכולים להימשך; אין שינוי בדוח משתמש.
 
@@ -50,339 +50,1941 @@ CHART + ORIGINAL RULEPACK(96) + EXACT RULEHITS
 
 **כללי union:** מפתחות מועמד הם (definition_id, semantic_definition_version, ordered_bindings_hash); במקרה של שתי דרכי איתור שמור discovery_routes=[r1_path,original_composite], raw_candidate_ids ו־RuleHits תואמים. לעולם אין להכפיל ראיות/ספירת עצמאות בגלל שני מסלולי איתור. כלל composite חסר אינו ראיה להעדר יחס אחר; RelationDefinitions ישירות יכולות להגדיר predicates נפרדים כאשר יש מקור מפורש מתאים.
 
-## 2. שלושה חוזים עצמאיים, גרסאות וזהויות — ARCH-02
 
-שלושה סוגי אובייקטים בלבד, ללא שדות בעלי תפקיד כפול. חוזה P1 יתמוך ב־JSON Schema 2020-12 ואימות סמנטי אחרי parsing. **כל additionalProperties=false**, אלא אם נפתחה גרסת schema חדשה. שדות id, hash, ref, status אינם ריקים; arrays של ids ממוינות וייחודיות. כל סטטוס רישוי נגזר ממקור וביקורת מאומתים, לא מדירוג כמותי.
+**Route-scoped completion (מחייב):** אם R1 Route A נקטע או proof_search.complete=false, יש לרשום רק את A כ־INDETERMINATE. Route B מבצע בדיקת original composite independently ולפיכך יכול להיות fully proven; אין "incomplete-search" גלובלי שחוסם Claim שמותר על B, בכפוף לשער source/meaning נפרד. במקרה שהקשר תלוי מפורשות בתנאי A עצמו, חובה להראות זאת ב־Predicate וב־proof, ואז אין להסתפק ב־B.
 
-**RelationDefinition** (קטלוג, עצמאי ממפה): definition_id, schema_version, definition_revision, definition_hash, operator, direction, participant_specs (role, allowed rule_ids, required_atom fields, reading_policy), predicate_ast, evidence_policy, licensed_effects, prohibited_effects, source_anchors, provenance, relation_review, compatible_snapshot. אין בו chart_id, run_id, evidence_key, r1_node_id, selected_witnesses, טקסט פלט למפה או proof חישובי. מזהה definition נשאר יציב לתכלית מושגית; שינוי סמנטי או מקור מחייב revision חדש ו־hash חדש; מזהה לא ממוחזר ליחס אחר.
+## 2. חוזי נתונים, מזהים ו־DAG חתימות — B1 / ARCH-02
 
-**RelationEvaluation** (מופע במפה/ריצה): evaluation_id, definition_id + definition_hash, snapshot_id, chart_fingerprint, run_id, candidate_id, discovery_routes, matched_rule_hits, bindings, alternatives, selected_witnesses, original_composite_match, dependency_proof, time_proof, conflict_proof, search, checks, decision, reasons, trace_digest. לא משכתב הגדרת מקור, אינו מעלה סטטוס ביקורת ואינו יוצר פסקה.
+**נורמטיבי:** N3-contract-2 מחליף את N3-contract-1. שלוש הישויות נשמרות: RelationDefinition (גלובלי), RelationEvaluation (מפה/ריצה), NarrativeClaim (טענה); נוסף N3Plan מאומת להכרעה ו־UpstreamManifest ו־RelationCatalog למניעת mismatch. לכל schema: additionalProperties=false, שדות required, enums, typed arrays ו־cross-validators לפי סעיפים 3–9. ב־JSON Schema נבדק המבנה; דרוש גם validator דטרמיניסטי של האינוואריאנטים בין מסמכים. כל שדה שחסר או unknown ⇒ fail-closed.
 
-**NarrativeClaim** (פלט מורשה בלבד): claim_id, evaluation_id, licensed_effect_id, derived_predicate, evidence_refs, source_anchor_refs, semantic_delta, novelty_proof, limits, attribution, status, audience, realization_plan. חייב להישען על evaluation עם decision=RELATION_LICENSED; טענת השוואה אינה NarrativeClaim מסוג relation אלא ComparisonPlan נפרד. claim_id לא זהה ל־relation_id או evaluation_id.
+### 2.1 סדר חישוב חתימות — גרף מכוון ללא מעגלים
 
-**זהויות וחתימות:** canonical JSON עם מפתחות ממוינים, NFC לערכי טקסט, UTF-8, בלי floating point לא תקין; SHA-256 של bytes קנוניים. definition_id = מזהה קטלוג יציב מפוקח (למשל n3.rel.sun-aries-moon-taurus.complement), definition_hash = digest של *כל תוכן* ההגדרה כולל anchors/reviews. snapshot_id = digest של RulePack + N2 catalog + N3 relation catalog + ontology version + matcher/semantic contract versions. chart_fingerprint = digest של עובדות מפה מאומתות + time_mode, ללא שם/מזהה אישי. run_id מזהה הרצה חדש (גם אם אותה מפה) ומגובה ב־execution manifest; evaluation_id = SHA-256(snapshot_id, chart_fingerprint, run_id, definition_hash, ordered_bindings_hash, candidate_id). claim_id = SHA-256(evaluation_id, licensed_effect_id, derived_predicate, source_anchor_refs). אין להשתמש ב־profile_id כתחליף לזהות ריצה.
+~~~text
+RulePack digest + N2 catalog digest and category/policy digests
+         + R1 ontology digest + versions of R1/N2/adapter/AST contracts
+                                   |
+                                   v
+                 compatible_upstream_hash
+                                   |
+      review registry anchors ---> | <--- controlled term registry digest
+      [anchor_hash before definition_hash, no snapshot links]
+                                   |
+                                   v
+       canonical RelationDefinition payload minus definition_hash
+              (compatible_upstream_hash fixed)
+                                   |
+                                   v
+                 definition_hashes sorted by definition_id
+                                   |
+                                   v
+           RelationCatalog catalog_digest [definition hashes
+              + controlled term registry + source registry]
+                                   |
+                                   v
+             snapshot_id = SHA256(canonical(
+              compatible_upstream_hash, catalog_digest,
+              execution_contract_version))
+                                   |
+              chart_fingerprint + run_id + bindings
+                                   v
+                 evaluation_id -> claim_id / plan_id
+~~~
 
-### 2.1 JSON Schema מחייב לתכנון (N3-contract-1)
+הגדרות אינן מכילות snapshot_id, relation_catalog_digest או evaluation_id; בפרט השדה הישן \`compatible_snapshot\` **אסור** ונפסל על ידי additionalProperties=false. \`compatible_upstream_hash\` מבוסס רק על קלט שמעל N3: כללים מקוריים, קטלוג N2, קטגוריות ומדיניות התצוגה שלו, אונטולוגיית R1 וגרסאות הממשקים. \`term_registry_hash\` ו־\`anchor_hash\` מחושבים לפני ההגדרה; הם אינם מחזיקים הפניה חוזרת להגדרה/לקטלוג. \`definition_hash = SHA256(canonical(definition minus definition_hash))\`; \`catalog_digest = SHA256(canonical(catalog minus catalog_digest, including ordered definitions and term/source registry digests))\`; \`snapshot_id = SHA256(canonical({compatible_upstream_hash,catalog_digest,execution_contract_version}))\`. הגדר גרסאות/serialization canonical UTF-8 + Unicode NFC, sorted map keys, stable array order כמוגדר לכל שדה; reject אם נדרש sort שלא נעשה או כפילויות. אין hashing של חתימה בתוך עצמה.
 
-זהו חוזה הייצוג המוצע. בדיקות הלוגיקה והעקיבות המפורטות בסעיפים הבאים הן תוספת נדרשת ל־JSON Schema, ולא הנחה שהסכימה לבדה מספיקה.
+**קביעות מזהים:** definition_id יציב למושג, definition_revision משתנה בכל שינוי משמעות, definition_hash מזהה תוכן וביקורת. snapshot_id מזהה סט כולל של תוכן/ממשקים, אך **לא מופיע בשום אובייקט המשמש לחישובו**. chart_fingerprint נגזר מעובדות מפה מאומתות, פרופיל חישוב ו־time_mode, ללא PII; run_id ייחודי להרצה ונרשם ב־manifest גם כאשר אותה מפה מחושבת שוב. evaluation_id = SHA256(canonical({snapshot_id,chart_fingerprint,run_id,definition_hash,ordered_bindings_hash,candidate_id})); claim_id = SHA256(canonical({evaluation_id,licensed_effect_id,derived_effect_key,source_anchor_refs})); plan_id = SHA256(canonical({evaluation_id,decision,primary_reason,route_proof_hashes,reason_records,claim_ids})). identical frozen input => identical digest; run_id שונה => מזהה הערכה שונה.
+
+**בדיקות B1:** topological sort לכל ששת השלבים; snapshot→definition edge אסור; byte-for-byte repeat determinism; שינוי שדה יחיד בנוסח N2 / category policy / source anchor / definition חייב לבטל hash downstream; דחייה אטומית של definition.compatible_upstream_hash≠manifest ו־snapshot שנגזר מרכיבים אחרים; "hash" כ־64 תווים אינו מספיק, חובה recomputation והשוואה.
+
+### 2.2 JSON Schema 2020-12 — גרסה נורמטיבית מתוקנת
 
 ~~~json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:astro-birth-chart:n3:contracts:1",
+  "$id": "urn:astro-birth-chart:n3:contracts:2",
   "oneOf": [
-    {"$ref": "#/$defs/RelationDefinition"},
-    {"$ref": "#/$defs/RelationEvaluation"},
-    {"$ref": "#/$defs/NarrativeClaim"}
+    {
+      "$ref": "#/$defs/UpstreamManifest"
+    },
+    {
+      "$ref": "#/$defs/RelationDefinition"
+    },
+    {
+      "$ref": "#/$defs/RelationCatalog"
+    },
+    {
+      "$ref": "#/$defs/RelationEvaluation"
+    },
+    {
+      "$ref": "#/$defs/NarrativeClaim"
+    },
+    {
+      "$ref": "#/$defs/N3Plan"
+    }
   ],
   "$defs": {
-    "Hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "Id": {"type": "string", "minLength": 1, "maxLength": 256},
-    "SourceAnchor": {
-      "type": "object", "additionalProperties": false,
-      "required": ["anchor_id","source_id","source_origin","title","edition","url",
-        "location","excerpt","exact_claim_scope","support_kind","review_status",
-        "reviewer_id","reviewed_at","review_revision","supported_effect_ids"],
-      "properties": {
-        "anchor_id": {"$ref": "#/$defs/Id"},
-        "source_id": {"$ref": "#/$defs/Id"},
-        "source_origin": {"enum": ["external_primary","external_secondary","internal_editorial"]},
-        "title": {"type": "string", "minLength": 1},
-        "edition": {"type": "string", "minLength": 1},
-        "url": {"type": ["string","null"], "format": "uri"},
-        "location": {"type": "string", "minLength": 1},
-        "excerpt": {"type": "string"},
-        "exact_claim_scope": {"type": "string", "minLength": 1},
-        "support_kind": {"enum": ["explicit_attestation","explicit_attestation_candidate",
-          "framework_only","editorial_synthesis","hypothesis","contradicting","rejected","none"]},
-        "review_status": {"enum": ["unverified","under_review","reviewed","approved",
-          "conflicting","rejected"]},
-        "reviewer_id": {"type": ["string","null"]},
-        "reviewed_at": {"type": ["string","null"], "format": "date-time"},
-        "review_revision": {"type": "integer", "minimum": 0},
-        "supported_effect_ids": {"type": "array", "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}}
-      }
+    "Hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     },
-    "ParticipantSpec": {
-      "type": "object", "additionalProperties": false,
-      "required": ["role","allowed_rule_ids","reading_policy","atom_constraints"],
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "TermId": {
+      "type": "string",
+      "pattern": "^n3\\.(scope|context|boundary|focus|concept)\\.[a-z0-9][a-z0-9.-]*$"
+    },
+    "SourceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chapter",
+        "printed_page",
+        "section",
+        "line_start",
+        "line_end",
+        "scan_page_index"
+      ],
       "properties": {
-        "role": {"$ref": "#/$defs/Id"},
-        "allowed_rule_ids": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}},
-        "reading_policy": {"enum": ["n2_exact_required","original_atomic_allowed"]},
-        "atom_constraints": {"$ref": "#/$defs/Predicate"}
+        "chapter": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "printed_page": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "section": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "line_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scan_page_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "Predicate": {
-      "type": "object", "additionalProperties": false,
-      "required": ["op","operands"],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/All"
+        },
+        {
+          "$ref": "#/$defs/Any"
+        },
+        {
+          "$ref": "#/$defs/Not"
+        },
+        {
+          "$ref": "#/$defs/RuleHitExact"
+        },
+        {
+          "$ref": "#/$defs/PlacementExact"
+        },
+        {
+          "$ref": "#/$defs/AspectExact"
+        },
+        {
+          "$ref": "#/$defs/HouseExact"
+        },
+        {
+          "$ref": "#/$defs/PolarityExact"
+        },
+        {
+          "$ref": "#/$defs/TimeStable"
+        },
+        {
+          "$ref": "#/$defs/AtomTermEquals"
+        },
+        {
+          "$ref": "#/$defs/NoBlockingTension"
+        }
+      ]
+    },
+    "All": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
       "properties": {
-        "op": {"enum": ["all","any","not","rule_hit_exact","placement_exact",
-          "aspect_exact","house_exact","polarity_exact","time_stable","atom_field_exact",
-          "no_blocking_tension"]},
-        "operands": {"type": "array", "items": {"oneOf": [
-          {"$ref": "#/$defs/Predicate"},
-          {"type": "string"}, {"type": "integer"}, {"type": "boolean"}
-        ]}}
+        "op": {
+          "const": "all"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          }
+        }
+      }
+    },
+    "Any": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "const": "any"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          }
+        }
+      }
+    },
+    "Not": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "arg"
+      ],
+      "properties": {
+        "op": {
+          "const": "not"
+        },
+        "arg": {
+          "$ref": "#/$defs/Predicate"
+        }
+      }
+    },
+    "RuleHitExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "rule_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "rule_hit_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "PlacementExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "body",
+        "sign"
+      ],
+      "properties": {
+        "op": {
+          "const": "placement_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sign": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "AspectExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "body_a",
+        "body_b",
+        "aspect_kind"
+      ],
+      "properties": {
+        "op": {
+          "const": "aspect_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body_a": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body_b": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "aspect_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "HouseExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "body",
+        "house"
+      ],
+      "properties": {
+        "op": {
+          "const": "house_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "house": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        }
+      }
+    },
+    "PolarityExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "value"
+      ],
+      "properties": {
+        "op": {
+          "const": "polarity_exact"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "value": {
+          "enum": [
+            -1,
+            1
+          ]
+        }
+      }
+    },
+    "TimeStable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role"
+      ],
+      "properties": {
+        "op": {
+          "const": "time_stable"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "AtomTermEquals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "role",
+        "field",
+        "term_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "atom_term_equals"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "field": {
+          "enum": [
+            "focus",
+            "context",
+            "scope",
+            "boundary"
+          ]
+        },
+        "term_id": {
+          "$ref": "#/$defs/TermId"
+        }
+      }
+    },
+    "NoBlockingTension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "roles"
+      ],
+      "properties": {
+        "op": {
+          "const": "no_blocking_tension"
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "SourceAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_id",
+        "anchor_hash",
+        "source_id",
+        "source_origin",
+        "source_version",
+        "title",
+        "edition",
+        "url",
+        "location",
+        "language",
+        "accessed_at",
+        "excerpt",
+        "scope_id",
+        "matching_conditions",
+        "support_kind",
+        "review_status",
+        "source_text_verification",
+        "visual_verification",
+        "reviewer_id",
+        "reviewed_at",
+        "review_revision",
+        "supported_effect_ids"
+      ],
+      "properties": {
+        "anchor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "anchor_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "source_origin": {
+          "enum": [
+            "external_primary",
+            "external_secondary",
+            "internal_editorial"
+          ]
+        },
+        "source_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$"
+        },
+        "accessed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "scope_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "matching_conditions": {
+          "$ref": "#/$defs/Predicate"
+        },
+        "support_kind": {
+          "enum": [
+            "explicit_attestation",
+            "explicit_attestation_candidate",
+            "framework_only",
+            "editorial_synthesis",
+            "hypothesis",
+            "contradicting",
+            "rejected",
+            "none"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "unverified",
+            "under_review",
+            "reviewed",
+            "approved",
+            "conflicting",
+            "rejected"
+          ]
+        },
+        "source_text_verification": {
+          "enum": [
+            "not_checked",
+            "text_indexed",
+            "primary_text_checked"
+          ]
+        },
+        "visual_verification": {
+          "enum": [
+            "pending",
+            "verified",
+            "not_applicable"
+          ]
+        },
+        "reviewer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "review_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supported_effect_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "ParticipantSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "allowed_rule_ids",
+        "reading_policy",
+        "atom_constraints"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "allowed_rule_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "reading_policy": {
+          "enum": [
+            "n2_exact_required",
+            "original_atomic_allowed"
+          ]
+        },
+        "atom_constraints": {
+          "$ref": "#/$defs/Predicate"
+        }
       }
     },
     "Effect": {
-      "type": "object", "additionalProperties": false,
-      "required": ["effect_id","predicate","subject_role","object_role",
-        "context","scope","boundary","source_anchor_ids"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect_id",
+        "predicate",
+        "subject_role",
+        "object_role",
+        "context_id",
+        "scope_id",
+        "boundary_ids",
+        "source_anchor_ids",
+        "modal_strength"
+      ],
       "properties": {
-        "effect_id": {"$ref": "#/$defs/Id"},
-        "predicate": {"enum": ["qualified_in_context","restricted_by",
-          "symbolic_contrast","symbolic_coordination","symbolic_complement"]},
-        "subject_role": {"$ref": "#/$defs/Id"},
-        "object_role": {"$ref": "#/$defs/Id"},
-        "context": {"type": "string", "minLength": 1},
-        "scope": {"type": "string", "minLength": 1},
-        "boundary": {"type": "string", "minLength": 1},
-        "source_anchor_ids": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}}
+        "effect_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "predicate": {
+          "enum": [
+            "qualified_in_context",
+            "restricted_by",
+            "symbolic_contrast",
+            "symbolic_coordination",
+            "symbolic_complement"
+          ]
+        },
+        "subject_role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "object_role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "context_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "scope_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "boundary_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/TermId"
+          }
+        },
+        "source_anchor_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "modal_strength": {
+          "const": "source_attributed_symbolic_possible"
+        }
       }
     },
     "EvidenceBinding": {
-      "type": "object", "additionalProperties": false,
-      "required": ["role","rule_id","rule_hit_id","evidence_key","fact_keys",
-        "dependency_roots","source_refs","rule_review_status","meaning_ref","origin"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "rule_id",
+        "rule_hit_id",
+        "evidence_key",
+        "fact_keys",
+        "witness_group_id",
+        "alternative_set_id",
+        "dependency_roots",
+        "source_refs",
+        "rule_review_status",
+        "meaning_ref",
+        "content_category",
+        "origin"
+      ],
       "properties": {
-        "role": {"$ref": "#/$defs/Id"},
-        "rule_id": {"$ref": "#/$defs/Id"},
-        "rule_hit_id": {"$ref": "#/$defs/Id"},
-        "evidence_key": {"$ref": "#/$defs/Id"},
-        "fact_keys": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}},
-        "dependency_roots": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}},
-        "source_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
-        "rule_review_status": {"enum": ["unverified","reviewed","approved","conflicting","rejected"]},
-        "meaning_ref": {"type": ["string","null"]},
-        "origin": {"enum": ["r1_witness","direct_composite_component"]}
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_hit_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "fact_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "witness_group_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "alternative_set_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dependency_roots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "rule_review_status": {
+          "enum": [
+            "unverified",
+            "reviewed",
+            "approved",
+            "conflicting",
+            "rejected"
+          ]
+        },
+        "meaning_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_category": {
+          "enum": [
+            "behavioral_rule_reading",
+            "symbolic_explanation",
+            "withheld_editorial_reading",
+            "original_atomic_only"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "r1_witness",
+            "direct_composite_component"
+          ]
+        }
       }
     },
     "Check": {
-      "type": "object", "additionalProperties": false,
-      "required": ["name","status","reason","evidence_refs"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "status",
+        "reason",
+        "evidence_refs"
+      ],
       "properties": {
-        "name": {"$ref": "#/$defs/Id"},
-        "status": {"enum": ["pass","fail","unknown","not_applicable"]},
-        "reason": {"type": "string"},
-        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}}
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
       }
     },
     "CompositeMatch": {
-      "type": "object", "additionalProperties": false,
-      "required": ["composite_rule_id","exact_when_hash","component_rule_hit_ids",
-        "component_fact_keys","component_dependency_roots","related_rule_ids",
-        "rule_review_status","composite_is_independent_evidence"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "composite_rule_id",
+        "exact_when_hash",
+        "component_rule_hit_ids",
+        "component_fact_keys",
+        "component_dependency_roots",
+        "related_rule_ids",
+        "rule_review_status",
+        "composite_is_independent_evidence"
+      ],
       "properties": {
-        "composite_rule_id": {"$ref": "#/$defs/Id"},
-        "exact_when_hash": {"$ref": "#/$defs/Hash"},
-        "component_rule_hit_ids": {"type": "array", "minItems": 2,
-          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
-        "component_fact_keys": {"type": "array", "minItems": 2,
-          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
-        "component_dependency_roots": {"type": "array", "minItems": 1,
-          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
-        "related_rule_ids": {"type": "array", "minItems": 2,
-          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
-        "rule_review_status": {"enum": ["unverified","reviewed","approved","conflicting","rejected"]},
-        "composite_is_independent_evidence": {"const": false}
+        "composite_rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "exact_when_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "component_rule_hit_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "component_fact_keys": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "component_dependency_roots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "related_rule_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "rule_review_status": {
+          "enum": [
+            "unverified",
+            "reviewed",
+            "approved",
+            "conflicting",
+            "rejected"
+          ]
+        },
+        "composite_is_independent_evidence": {
+          "const": false
+        }
+      }
+    },
+    "RouteProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "candidate_state",
+        "search_state",
+        "search_complete",
+        "visited",
+        "cap",
+        "proof_result",
+        "selected_binding_ids",
+        "alternative_set_ids",
+        "source_fact_refs",
+        "failure_reasons",
+        "trace_hash"
+      ],
+      "properties": {
+        "route": {
+          "enum": [
+            "r1_path",
+            "original_composite"
+          ]
+        },
+        "candidate_state": {
+          "enum": [
+            "candidate",
+            "not_candidate",
+            "not_executed"
+          ]
+        },
+        "search_state": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "not_applicable"
+          ]
+        },
+        "search_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "visited": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proof_result": {
+          "enum": [
+            "proven",
+            "unmatched",
+            "blocked",
+            "unknown",
+            "not_candidate"
+          ]
+        },
+        "selected_binding_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "alternative_set_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "source_fact_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "failure_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          }
+        },
+        "trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "ReasonCode": {
+      "enum": [
+        "NONE",
+        "INVALID_SCHEMA",
+        "SNAPSHOT_MISMATCH",
+        "PROVENANCE_MISMATCH",
+        "BAD_ID",
+        "UNCERTAIN_TIME",
+        "INCOMPLETE_SEARCH",
+        "PROOF_UNKNOWN",
+        "RESOURCE_CAP",
+        "UNMATCHED_CONDITIONS",
+        "CONFLICTING_SOURCES",
+        "REJECTED_SOURCE",
+        "MATERIAL_TENSION",
+        "DEPENDENT_ROOTS",
+        "MISSING_READING",
+        "MISSING_ATOM_MAPPING",
+        "NO_RELATION_SOURCE",
+        "FRAMEWORK_ONLY",
+        "EDITORIAL_ONLY",
+        "UNVERIFIED_RELATION",
+        "UNLICENSED_DELTA",
+        "PARAPHRASE_ONLY",
+        "SOURCE_SCOPE_EXCEEDED",
+        "OPERATOR_EFFECT_MISMATCH",
+        "CANDIDATE_NOT_FOUND"
+      ]
+    },
+    "ReasonRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "route",
+        "blocking",
+        "evidence_refs"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "route": {
+          "enum": [
+            "r1_path",
+            "original_composite",
+            "global"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
       }
     },
     "RelationDefinition": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind","schema_version","definition_id","definition_revision",
-        "definition_hash","operator","direction","participant_specs","predicate_ast",
-        "evidence_policy","licensed_effects","prohibited_effects","source_anchors",
-        "provenance","relation_review","compatible_snapshot"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "definition_id",
+        "definition_revision",
+        "definition_hash",
+        "compatible_upstream_hash",
+        "term_registry_hash",
+        "operator",
+        "direction",
+        "participant_specs",
+        "predicate_ast",
+        "evidence_policy",
+        "licensed_effects",
+        "prohibited_effects",
+        "source_anchors",
+        "provenance",
+        "relation_review"
+      ],
       "properties": {
-        "kind": {"const": "RelationDefinition"},
-        "schema_version": {"const": "N3-contract-1"},
-        "definition_id": {"$ref": "#/$defs/Id"},
-        "definition_revision": {"type": "integer", "minimum": 1},
-        "definition_hash": {"$ref": "#/$defs/Hash"},
-        "operator": {"enum": ["qualifies","restricts","contrasts","coordinates","complements"]},
-        "direction": {"enum": ["A_to_B","B_to_A","symmetric"]},
-        "participant_specs": {"type": "array", "minItems": 2,
-          "items": {"$ref": "#/$defs/ParticipantSpec"}},
-        "predicate_ast": {"$ref": "#/$defs/Predicate"},
-        "evidence_policy": {"type": "object", "additionalProperties": false,
-          "required": ["independent_roots_required","time_policy","conflict_policy","proof_complete_required"],
+        "kind": {
+          "const": "RelationDefinition"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "definition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "definition_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "definition_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "compatible_upstream_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "term_registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "operator": {
+          "enum": [
+            "qualifies",
+            "restricts",
+            "contrasts",
+            "coordinates",
+            "complements"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "A_to_B",
+            "B_to_A",
+            "symmetric"
+          ]
+        },
+        "participant_specs": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/ParticipantSpec"
+          }
+        },
+        "predicate_ast": {
+          "$ref": "#/$defs/Predicate"
+        },
+        "evidence_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "independent_roots_required",
+            "time_policy",
+            "conflict_policy",
+            "proof_complete_required"
+          ],
           "properties": {
-            "independent_roots_required": {"type": "boolean"},
-            "time_policy": {"enum": ["known_only","stable_placements_allowed"]},
-            "conflict_policy": {"enum": ["fail_on_material_conflict"]},
-            "proof_complete_required": {"const": true}
-          }},
-        "licensed_effects": {"type": "array", "minItems": 1,
-          "items": {"$ref": "#/$defs/Effect"}},
-        "prohibited_effects": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
-        "source_anchors": {"type": "array", "minItems": 1,
-          "items": {"$ref": "#/$defs/SourceAnchor"}},
-        "provenance": {"enum": ["human_curated","rule_text_bounded","experimental"]},
-        "relation_review": {"type": "object", "additionalProperties": false,
-          "required": ["status","reviewer_id","reviewed_at","review_revision"],
+            "independent_roots_required": {
+              "type": "boolean"
+            },
+            "time_policy": {
+              "enum": [
+                "known_only",
+                "stable_placements_allowed"
+              ]
+            },
+            "conflict_policy": {
+              "const": "fail_on_material_conflict"
+            },
+            "proof_complete_required": {
+              "const": true
+            }
+          }
+        },
+        "licensed_effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Effect"
+          }
+        },
+        "prohibited_effects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/SourceAnchor"
+          }
+        },
+        "provenance": {
+          "enum": [
+            "human_curated",
+            "rule_text_bounded",
+            "experimental"
+          ]
+        },
+        "relation_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reviewer_id",
+            "reviewed_at",
+            "review_revision"
+          ],
           "properties": {
-            "status": {"enum": ["unverified","under_review","reviewed",
-              "approved_for_symbolic_wording","conflicting","rejected"]},
-            "reviewer_id": {"type": ["string","null"]},
-            "reviewed_at": {"type": ["string","null"], "format": "date-time"},
-            "review_revision": {"type": "integer", "minimum": 0}
-          }},
-        "compatible_snapshot": {"$ref": "#/$defs/Hash"}
+            "status": {
+              "enum": [
+                "unverified",
+                "under_review",
+                "reviewed",
+                "approved_for_symbolic_wording",
+                "conflicting",
+                "rejected"
+              ]
+            },
+            "reviewer_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reviewed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "review_revision": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "RelationCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "catalog_version",
+        "compatible_upstream_hash",
+        "term_registry_hash",
+        "definitions",
+        "catalog_digest"
+      ],
+      "properties": {
+        "kind": {
+          "const": "RelationCatalog"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "catalog_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "compatible_upstream_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "term_registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RelationDefinition"
+          }
+        },
+        "catalog_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "UpstreamManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "rulepack_digest",
+        "rulepack_version",
+        "rulepack_schema_version",
+        "n2_catalog_digest",
+        "n2_catalog_version",
+        "n2_catalog_schema_version",
+        "n2_category_digests",
+        "n2_category_policies_digest",
+        "ontology_digest",
+        "r1_contract_version",
+        "n2_contract_version",
+        "adapter_contract_version",
+        "predicate_contract_version",
+        "compatible_upstream_hash"
+      ],
+      "properties": {
+        "kind": {
+          "const": "UpstreamManifest"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "rulepack_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rulepack_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rulepack_schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n2_catalog_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "n2_catalog_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "n2_catalog_schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n2_category_digests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_readings",
+            "symbolic_explanations",
+            "withheld_editorial_readings",
+            "entries"
+          ],
+          "properties": {
+            "rule_readings": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "symbolic_explanations": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "withheld_editorial_readings": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "entries": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "n2_category_policies_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "ontology_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "r1_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "n2_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "adapter_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "predicate_contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "compatible_upstream_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "RelationEvaluation": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind","schema_version","evaluation_id","definition_id",
-        "definition_hash","snapshot_id","chart_fingerprint","run_id","candidate_id",
-        "discovery_routes","matched_rule_hits","bindings","alternatives",
-        "selected_witnesses","original_composite_match","dependency_proof",
-        "time_proof","conflict_proof","search","checks","decision","reasons",
-        "trace_digest"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "evaluation_id",
+        "definition_id",
+        "definition_hash",
+        "snapshot_id",
+        "chart_fingerprint",
+        "run_id",
+        "candidate_id",
+        "discovery_routes",
+        "matched_rule_hits",
+        "bindings",
+        "alternatives",
+        "selected_witnesses",
+        "original_composite_match",
+        "dependency_proof",
+        "time_proof",
+        "conflict_proof",
+        "route_proofs",
+        "source_license_check",
+        "novelty_check",
+        "checks",
+        "trace_digest"
+      ],
       "properties": {
-        "kind": {"const": "RelationEvaluation"},
-        "schema_version": {"const": "N3-contract-1"},
-        "evaluation_id": {"$ref": "#/$defs/Hash"},
-        "definition_id": {"$ref": "#/$defs/Id"},
-        "definition_hash": {"$ref": "#/$defs/Hash"},
-        "snapshot_id": {"$ref": "#/$defs/Hash"},
-        "chart_fingerprint": {"$ref": "#/$defs/Hash"},
-        "run_id": {"$ref": "#/$defs/Id"},
-        "candidate_id": {"$ref": "#/$defs/Hash"},
-        "discovery_routes": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"enum": ["r1_path","original_composite","direct_definition"]}},
-        "matched_rule_hits": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
-        "bindings": {"type": "array", "items": {"$ref": "#/$defs/EvidenceBinding"}},
-        "alternatives": {"type": "array", "items": {"$ref": "#/$defs/EvidenceBinding"}},
-        "selected_witnesses": {"type": "array", "items": {"$ref": "#/$defs/EvidenceBinding"}},
-        "original_composite_match": {"oneOf": [{"$ref": "#/$defs/CompositeMatch"}, {"type": "null"}]},
-        "dependency_proof": {"$ref": "#/$defs/Check"},
-        "time_proof": {"$ref": "#/$defs/Check"},
-        "conflict_proof": {"$ref": "#/$defs/Check"},
-        "search": {"type": "object", "additionalProperties": false,
-          "required": ["complete","visited","cap","truncated_reason","proof_digest"],
-          "properties": {
-            "complete": {"type": "boolean"},
-            "visited": {"type": "integer", "minimum": 0},
-            "cap": {"type": "integer", "minimum": 1},
-            "truncated_reason": {"type": ["string","null"]},
-            "proof_digest": {"$ref": "#/$defs/Hash"}
-          }},
-        "checks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Check"}},
-        "decision": {"enum": ["RELATION_LICENSED","COMPARISON_ONLY","ABSTAIN",
-          "NOT_APPLICABLE","QUARANTINE","INDETERMINATE","INVALID_INPUT"]},
-        "reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
-        "trace_digest": {"$ref": "#/$defs/Hash"}
+        "kind": {
+          "const": "RelationEvaluation"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "definition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "definition_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "chart_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "discovery_routes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "r1_path",
+              "original_composite"
+            ]
+          }
+        },
+        "matched_rule_hits": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceBinding"
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceBinding"
+          }
+        },
+        "selected_witnesses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceBinding"
+          }
+        },
+        "original_composite_match": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompositeMatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dependency_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "time_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "conflict_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "route_proofs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/RouteProof"
+          }
+        },
+        "source_license_check": {
+          "$ref": "#/$defs/Check"
+        },
+        "novelty_check": {
+          "$ref": "#/$defs/Check"
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Check"
+          }
+        },
+        "trace_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "NarrativeClaim": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind","schema_version","claim_id","evaluation_id",
-        "licensed_effect_id","derived_predicate","evidence_refs","source_anchor_refs",
-        "semantic_delta","novelty_proof","limits","attribution","status","audience",
-        "realization_plan"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "claim_id",
+        "evaluation_id",
+        "licensed_effect_id",
+        "derived_predicate",
+        "evidence_refs",
+        "source_anchor_refs",
+        "semantic_delta",
+        "novelty_proof",
+        "limits",
+        "attribution",
+        "status",
+        "audience",
+        "realization_plan"
+      ],
       "properties": {
-        "kind": {"const": "NarrativeClaim"},
-        "schema_version": {"const": "N3-contract-1"},
-        "claim_id": {"$ref": "#/$defs/Hash"},
-        "evaluation_id": {"$ref": "#/$defs/Hash"},
-        "licensed_effect_id": {"$ref": "#/$defs/Id"},
-        "derived_predicate": {"$ref": "#/$defs/Effect"},
-        "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}},
-        "source_anchor_refs": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/Id"}},
-        "semantic_delta": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Effect"}},
-        "novelty_proof": {"$ref": "#/$defs/Check"},
-        "limits": {"type": "array", "items": {"type": "string"}},
-        "attribution": {"type": "string", "minLength": 1},
-        "status": {"enum": ["licensed_symbolic","shadow_only"]},
-        "audience": {"enum": ["shadow","reviewer","user"]},
-        "realization_plan": {"type": "array", "items": {"enum": ["premise_A",
-          "premise_B","documented_relation","scope","qualification","counterfactual"]}}
+        "kind": {
+          "const": "NarrativeClaim"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "claim_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "licensed_effect_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "derived_predicate": {
+          "$ref": "#/$defs/Effect"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "semantic_delta": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Effect"
+          }
+        },
+        "novelty_proof": {
+          "$ref": "#/$defs/Check"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "licensed_symbolic",
+            "shadow_only"
+          ]
+        },
+        "audience": {
+          "enum": [
+            "shadow",
+            "reviewer",
+            "user"
+          ]
+        },
+        "realization_plan": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "premise_A",
+              "premise_B",
+              "documented_relation",
+              "scope",
+              "qualification",
+              "counterfactual"
+            ]
+          }
+        }
+      }
+    },
+    "N3Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "plan_id",
+        "snapshot_id",
+        "definition_id",
+        "evaluation_id",
+        "decision",
+        "primary_reason",
+        "reasons",
+        "retained_atomic_rule_ids",
+        "comparison_state",
+        "relation_claim_state",
+        "relation_claim_ids",
+        "route_proofs",
+        "trace"
+      ],
+      "properties": {
+        "kind": {
+          "const": "N3Plan"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "definition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision": {
+          "enum": [
+            "RELATION_LICENSED",
+            "COMPARISON_ONLY",
+            "ABSTAIN",
+            "NOT_APPLICABLE",
+            "QUARANTINE",
+            "INDETERMINATE",
+            "INVALID_INPUT"
+          ]
+        },
+        "primary_reason": {
+          "$ref": "#/$defs/ReasonCode"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReasonRecord"
+          }
+        },
+        "retained_atomic_rule_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "comparison_state": {
+          "enum": [
+            "available",
+            "withheld",
+            "unavailable"
+          ]
+        },
+        "relation_claim_state": {
+          "enum": [
+            "licensed_shadow",
+            "blocked",
+            "not_applicable",
+            "indeterminate"
+          ]
+        },
+        "relation_claim_ids": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "route_proofs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/RouteProof"
+          }
+        },
+        "trace": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_snapshot_hash",
+            "adapter_trace_hash",
+            "evaluation_trace_hash",
+            "selected_decisive_route",
+            "atomic_evidence_refs"
+          ],
+          "properties": {
+            "source_snapshot_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "adapter_trace_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "evaluation_trace_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "selected_decisive_route": {
+              "enum": [
+                "r1_path",
+                "original_composite",
+                "none"
+              ]
+            },
+            "atomic_evidence_refs": {
+              "type": "array",
+              "minItems": 0,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        }
       }
     }
   }
 }
 ~~~
 
-**Cross-object validators מחייבים (fail closed):** (1) כל referenced id/hash קיים ב־snapshot חתום; (2) definition_hash אינו כולל את שדה עצמו ומחושב מ־canonical payload, ולא ניתן לשנותו בלי revision; (3) relation_review, מקור, תמיכת effect, reviewer וה־scope תואמים; (4) source_anchor מסוג none/framework_only אינו יכול לתמוך ב־licensed_effect; (5) לכל role נבחרה ראיה שלמה ואותה ראיה משתקפת ב־matched hits, alternative sets, lineage ו־comparison; (6) original_composite_match מאומת מול when.all ולא רק מול RuleHit; (7) check unknown או search.complete=false אינם שקולים ל־fail הוכח; (8) audience=user אסור לפני P4, הגדרת approved_for_symbolic_wording וגם החלטת מוצר; (9) claimed effect שווה ל־effect מותר לאחר binding, בלי מילים פרשניות חדשות; (10) הצהרת review ללא reviewer_id/time/revision תקינים נפסלת; (11) array של participants: roles ייחודיים, A/B מוגדרים, לכל effect roles קיימים; (12) original_composite_match כפוף ל־CompositeMatch הקשיח (כולל exact_when_hash, related_rule_ids, כל עובדות המקור ו־composite_is_independent_evidence=false), או null; התאמת ה־hash ל־when.all היא בדיקת לוגיקה מחייבת.
+**תקפות מעבר ל־JSON Schema (חובה בכל admission):**
+1. Validate relation operator ↔ כל licensed_effect לפי מפת סעיף 3; גם SourceAnchor.supported_effect_ids ↔ effect_id וטווח מתאים. אין Effect שבעליו חסר source anchor מאושר.
+2. Invariants של זהויות: אין התנגשות ids, אין עריכה שקטה של definition_revision, digest מחושב מחדש (כולל review statuses), references קיימות בתוך snapshot חתום יחיד. שמירת categorical N2 provenance לכל reading.
+3. \`participant_specs\` roles ייחודיים; עבור כל role קיים proof חיובי מחייב ב־predicate_ast שאינו תחת not/any ואינו מוגבל ל־axis name. \`not\` מותר רק כ־negative guard, לא כתחליף ל־proof. \`any\` חייב לשמור כל role mandatory בחוץ.
+4. Source location line_end≥line_start, language תקינה, accessed_at מתועד, anchor_hash מחושב בלי anchor_hash; review approved מחייב reviewer_id, reviewed_at, visual verification לפי מדיניות source type, source license ו־separate relation approval.
+5. \`CompositeMatch\` תואם בדיוק RulePack.when.all ו־related_rule_ids; \`fact_keys\` נגזרים מן המפה, לא מן הכותרת או מהתיאור. \`search_complete\` NULL רק כאשר route not_candidate/not_executed; TRUE/FALSE ב־candidate. כל RouteProof route יופיע פעם אחת (A,B).
+6. \`NarrativeClaim\` דורש N3Plan RELATION_LICENSED ו־evaluation.source_license_check=pass, novelty_check=pass, proof complete ב־route decisive, effect מוכח ומאושר, ו־audience=user רק אחרי אישור P4; רשומת \`N3Plan\` חייבת להצביע על Claim IDs קיימים.
+7. \`N3Plan.primary_reason\` חייב להתאים למצב evidence *במסלול המכריע*, לא למצב route אחר; mapping decision/relation_claim_state/reasons/retained atoms לפי סעיף 8.
+8. \`SourceAnchor\` הוא תיעוד תוכן מחקרי: חתימה/סטטוס מאומתים ב־registry נפרד מאישור RelationDefinition. מחרוזות excerpt אינן הסקת תוכן אוטומטית.
 
-## 3. שפת טענות, אופרטורים ובדיקת תוספת סמנטית — ARCH-04
+## 3. דקדוק AST והכרעת תוספת משמעות — B3 / ARCH-04
 
-**קלט:** (א) טענות אטומיות N2 קיימות ומזהי meaning_id או, עבור Route B בלבד, נוסח הכללים המקוריים כ־original_atomic ללא המצאת reading; (ב) עובדות RuleHits + fact keys ומעמד המקור לכל rule; (ג) RelationDefinition עם predicates, licensed_effects ומקור; (ד) evaluation של המפה, הוכחת התאמה, זמן ושורשים. **פלט:** אפקט טיפוסי, הוכחת מקור, delta מול איחוד הטענות, ניסוח סמלי מוגבל או הימנעות. הערכת מקור אינה תצפית שמימית.
+### 3.1 טיפוסים וארגומנטים
 
-**ייצוג אטום:** SemanticAtom = (subject/role, context, focus, scope, polarity, boundary, rule_id, meaning_id-or-original-text-ref, rule_review_status). לא מפיקים predicates אוטומטית על ידי NLP חופשי: מיפוי N2 לשפה זו מחייב מיפוי ידני מבוקר ו־versioned mapping; חוסר מיפוי = MISSING_MEANING או ORIGINAL_ATOMIC_ONLY. השפה אינה מסוגלת לטעון התרחשות ביוגרפית, קביעה קלינית, סיבתיות או ודאות.
+\`Predicate\` הוא typed discriminated union ב־N3-contract-2, ללא \`operands\` שרירותיים. דקדוק הבסיס:
 
-**סמנטיקה טיפוסית של אופרטורים — לא תבניות צמדים:**
+~~~text
+P ::= all([P,P,...])        # >=2, Kleene 3-valued conjunction
+    | any([P,P,...])        # >=2, Kleene 3-valued disjunction
+    | not(P)                # 1, רק guard של היעדר/שלילה ממוקדת
+    | rule_hit_exact(role:Id, rule_id:Id)
+    | placement_exact(role:Id, body:Id, sign:Id)
+    | aspect_exact(role:Id, body_a:Id, body_b:Id, aspect_kind:Id)
+    | house_exact(role:Id, body:Id, house:1..12)
+    | polarity_exact(role:Id, value:-1|1)
+    | time_stable(role:Id)
+    | atom_term_equals(role:Id, field:focus|context|scope|boundary, term_id:TermId)
+    | no_blocking_tension(roles:unique[Id] of length >=2)
+~~~
 
-| operator | תנאים מחייבים | אפקט יחסי יחיד שמותר ליצור | מה אסור להסיק |
-| --- | --- | --- | --- |
-| qualifies(A,B) | מקור מאשר שב־context מסוים A מסייג את B; direction/scope מוצהרים | qualified_in_context(B,A,scope) | תכונה כללית חדשה, סיבתיות |
-| restricts(A,B) | מקור מגדיר גבול מדויק, polarity ו־boundary | restricted_by(B,A,scope) | תדירות/חומרת התנהגות |
-| contrasts(A,B) | מקור מזהה *ניגוד בין הסמלים הספציפיים* והקשר משותף | symbolic_contrast(A,B,context) | קונפליקט בחיי אדם |
-| coordinates(A,B) | מקור דורש מפורשות תיאום בין תפקודים; התנאים המלאים מתקיימים | symbolic_coordination(A,B,context) | תיאום מוצלח בפועל |
-| complements(A,B) | מקור מציין שמרכיב מסוים משלים חוסר ברכיב האחר | symbolic_complement(A,B,source-bounded-scope) | מהו החוסר הספציפי אם לא פורש במקור; הצלחה |
+**סמנטיקה:** תוצאת כל leaf היא TRUE/FALSE/UNKNOWN, עם trace ל־RuleHit/observed fact. \`all\` מחזיר FALSE אם אחד FALSE; TRUE אם כולם TRUE; אחרת UNKNOWN. \`any\` TRUE אם יש TRUE; FALSE רק אם כולם FALSE *וכל חיפושי הראיות הרלוונטיים מלאים*; אחרת UNKNOWN. \`not(TRUE)=FALSE\`, \`not(FALSE)=TRUE\` רק אחרי complete search לגבי עובדת השלילה; \`not(UNKNOWN)=UNKNOWN\`. חוסר נתון אינו הכחשה. אין closed-world assumption ביחס לשעת לידה/ראיה חסרה/חיפוש חלקי.
 
-אין אופרטור causal_effect או temporal_order פעיל. איחוד של 3+ רכיבים אפשרי אם RelationDefinition עצמה מכילה תנאי מורשה רב־משתתפים, או אם תוצאת אפקט קודם מורשית במפורש כקלט עם source anchor נפרד; **אין לבצע שרשור אוטומטי** של שתי טענות כאילו הוכח הקשר שלישוני.
+**כל־המשתתפים:** השורש של predicate_ast חייב להיות \`all\`, ויש בו עבור *כל* participant role לפחות \`rule_hit_exact\` תואם ואימות placement/aspect/house רלוונטי בענף חיובי שאינו מוקף ב־any/not; \`any\` רשאי לבחור *חלופות לאותו role* בלבד אחרי שמוכח קיומו, ואין לו רשות להחליף/להשמיט role נדרש. \`not\` רשאי רק לשלול forbidden fact מוגדר או tension כאשר בוצעה סריקה שלמה; טענת \`not(rule_hit_exact)\` אינה מקור רישוי חיובי. שינוי AST מחייב revision + hash, ו־P1 validator נדרש לבצע structural AST well-typedness + role coverage + depth/node caps + 3-valued evaluation.
 
-**מתמטיקה של רישוי:** יהי A אוסף ה־SemanticAtoms המתאימים למפה; D היא Definition; B היא binding מוכחת. הפונקציה apply(D,B,A) מותרת רק כאשר:
-1. כל predicates על facts, polarity, time, independent roots, meaning fields וסייגי מקור מתקיימים, ו־search.complete=true.
-2. יש עוגן מקור חיצוני פרטני שעבר ביקורת, המאשר *אותו* effect, direction, conditions, scope; סטטוס ההגדרה approved_for_symbolic_wording.
-3. output_effect הוא איחוד של instantiation מדויק של licensed_effects בלבד; אין חיבור שדות טקסט חופשי למסקנה.
-4. ההבדל Delta = closure(A + output_effect) minus closure(A) כולל predicate בינרית יחסית חדשה שלא הייתה באטומים, ב־N2 ComparisonPlan או ב־R1 authored path כהצהרה מאושרת. closure הוא **רק** substitution של מזהי roles, זהות קנונית, שוויון וקשרי scope שהוגדרו במפורש ב־definition; אין ידע עולם, אנלוגיות, או הכללה חופשית.
-5. source entailment: לכל effect תואמים עוגן+טווח+excerpt מפורש; ההסקה נשמרת בגבולות המשפט המקורי מבחינת mode (symbolic), subject, direction, scope, modal strength ו־exceptions. כל שינוי משמעותי דורש ביקורת ולא ניתן להסיקו מסמיכות מילים.
+**סוגי leaf:** \`rule_hit_exact\` נקשר ל־ID מדויק בתוך RulePack; placement/aspect/house נקשרים לעובדות מחושבות ו־when של כלל (לא לשמות צירים בלבד); \`aspect_exact\` כולל pair canonical ו־orb verified דרך matcher קיים; \`time_stable\` אמת רק אם כל דגימות הזמן משמרות את העובדה הנתמכת; \`atom_term_equals\` מקבל TermId מתוך vocab חתום ומיפוי מבוקר; \`no_blocking_tension\` דורש בדיקת סתירות מלאה עבור roles.
 
-**מבחן novelty תפעולי:** אפקט עם אותו tuple של predicate/roles/context/scope שכבר נמצא ב־closure(A) הוא PARAPHRASE_ONLY. אפקט חדש תחבירית אך בלתי מורשה הוא UNLICENSED_DELTA. אפקט מורשה שאינו ב־closure(A) הוא LICENSED_DELTA_CANDIDATE; מסמך ביקורת אנושי משלים בודק שהרכיב החדש ניכר בתוכן ולא רק באורך. המדד העיקרי = מספר distinct licensed relation predicates חדשים / מספר candidate relations תקינים; מדדים נלווים: recall על gold, false-positive על negatives, contradiction rate, counterfactual locality, provenance completeness, blinded human semantic improvement מול N2. אורך טקסט, BLEU וספירת שמות צירים אינם מדדי עומק.
+### 3.2 מפת operator → Effect (אימות קשיח)
 
-**Realizer עתידי ללא LLM וטבלת צמדים:** לוקח semantic effects + roles + attribution + boundary ויוצר מבנה שיח כללי (רכיבים→יחס מתועד→היקף→סייג), עם כלי תחביר עברי דטרמיניסטי. כל מילה טוענתית חייבת להיות מוסברת על ידי predicate/anchor; תחביר אינו מוסיף premises. כשל בביקורת הפלט חוזר ל־COMPARISON_ONLY. אין טבלת משפטים ייעודית לכל צירוף.
-
-## 4. התאמת ראיות והוכחה — ARCH-05
-
-**החוזה:** CandidateGeneration → ExactMatch → SourceLicenseGate → RelationSpecificProof → NoveltyGate → Claim. שמור את כל הראיות המקוריות ואת ה־RuleHit IDs; לעולם אין לבחור hits[0] באופן שקט.
-
-1. **ExactMatch:** match טיפוסי של when.body+sign; composite.when.all (כל clauses); when.pair+kind עם recheck של orb וזוויות מול המיקומים; when.house עם time_mode וה־ascendant; polarity וזיהוי evidence_group. אין matching על פי axis בלבד. השווה chart provenance, rule text hash ו־source_detail.scope ל־manifest. כלל שמחושב כ־modifier הוא edge editorial בלבד, ולא root חדש.
-2. **Alternative bindings:** לכל role צרף כל witness_group ואת כל ה־rule_hit members תחת evidence_key, עם rules/text/status/source_url/polarity. חיפוש דטרמיניסטי על כל חלופות הראיה המורשות; סדר canonical לפי (rule_id, evidence_key, fact_key) לא לפי ציונים. ב־Route A selected_witnesses_by_axis אינו מוחלף אלא אם נפתח relation-specific search נפרד עם trace; ב־Route B בחר את שני component facts של composite ישירות. שמור גם rejected alternatives והסיבה.
-3. **Independence:** roots במודל R1 מתפשטים מ־placement→body, aspect→שני bodies, house→body+angle, composite→union of component roots. אל תספור composite בנפרד. כאשר האפקט מחייב *שתי ראיות בלתי תלויות* יש לדרוש disjoint roots בין roles ולהציג proof. כאשר המקור מתאר *מפורשות צירוף שתי תצפיות של אותם שורשים* (למשל אותו גוף ב־placement/aspect), כפילות השורשים אינה מניעה בהכרח source-attributed exact composite — אבל אסור להציג זאת כשתי עדויות עצמאיות או לטעון לחיזוק סטטיסטי. הגדרה מפורשת evidence_policy קובעת זאת, ולא ויתור רנדומלי.
-4. **Time certainty:** known / estimated / unknown. היעדר שעת לידה חוסם aspect/house כשחוזה interpretation._match חוסם; placement מותר רק אם sign יציב בכל הדגימות כאשר approximate, או רחוק מסף 1° לפי כלל estimated במימוש הבסיס. אין להסתמך על מעלה מדויקת או שעה שנוח להניח. time_proof מתעד ranges, sample hash, כל עילת אי־ודאות.
-5. **Conflict:** בדוק tension בין evidence polarities במפה, contradiction בין source anchors, שינוי סטטוס מקור, וכן alternative explanations. השאר ראיות משני הצדדים. אין להכריע לפי משקל עריכתי/ספירת מופעים. מקור conflicting או rejected חוסם את היחס התלוי בו, גם אם אחד האטומים עדיין מוצג.
-6. **Resource guard:** MAX_PROOF_STATES=20000 ו־MAX_NODES=192 הם caps של R1, לא הוכחות שליליות. לכל proof יש complete:boolean *חובה* (אין default=true), visited/cap/truncated_reason; relation-specific bounded search מחזיר INDETERMINATE + INCOMPLETE_SEARCH אם לא הסתיים. Negative result חוקי רק אחרי exhaustive search בתחום המוגדר. מי שאינו יודע אם חיפוש הושלם אינו טוען no_relation.
-
-**טבלת מקרי קצה:**
-
-| מצב | תגובה | נשמר ב־trace |
+| RelationDefinition.operator | Effect.predicate היחיד המותר | כיוון ומגבלות |
 | --- | --- | --- |
-| חלופות רבות לציר | חיפוש מלא/תחום מוגדר, ללא קידום הראשון | כל קבוצות החלופות, sorting, chosen, failed |
-| roots משותפים | חסימת אי־תלות אם נדרשת; composite direct יכול להישאר exact-match, ללא כפל עדות | union roots, policy, overlap |
-| composite modifier_only | exact match עצמאי מ־R1; אין משקל נוסף | rule_id, when.all, related_rule_ids, two original facts |
-| שעה לא ודאית | מאמת sign stability; חוסם מסקנות על house/aspect | time_mode, samples, edge margins |
-| סתירת ראיות/מקורות | אין להכריע ביחס בעייתי; האטומים נשמרים | conflicting IDs, statuses, provenance |
-| cap או search truncated | INDETERMINATE, לא NOT_APPLICABLE | complete=false, cap, visited, reason |
-| חסר N2 rule_reading ב־Route B | מותר להשתמש *רק* בטקסט אטומי המקורי בהגדרה שמאשרת original_atomic_allowed; אין לייצר meaning_id מדומה | null meaning_ref, reading policy |
-| כלל מקור קיים אך אין יחס מתועד | COMPARISON_ONLY או ABSTAIN, לא NarrativeClaim | candidate, no_relation_source |
+| qualifies | qualified_in_context | Subject=A מסייג Object=B; context/scope מדויקים במקור |
+| restricts | restricted_by | Subject=A מצמצם Object=B, boundary_ids מתועדים |
+| contrasts | symbolic_contrast | A/B בתנאי מקור מפורש; אין הסקת קונפליקט אישי |
+| coordinates | symbolic_coordination | A/B מתוארים בתיאום סמלי מפורש בלבד; אין תוצאה בפועל |
+| complements | symbolic_complement | A משלים B בגבולות המקור, א־סימטרי אם כך נכתב |
 
-## 5. רישוי והכרעת מקורות — ARCH-03
+אימות מחייב \`Effect.subject_role/object_role\` מתוך participant_specs ובהתאם ל־direction, אין orientation swap בלי מקור נוסף, ואין \`symbolic_complement\` מתוך \`coordinates\` ולהיפך. שני role IDs חייבים להיות שונים; בריבוי משתתפים כל licensed effect מציין בדיוק מי הוכח ואיזו השפעה מותרת; שרשור effects אינו אוטומטי. \`context_id/scope_id/boundary_ids\` נבדקים מול controlled \`TermRegistry\` בגרסה חתומה (namespace n3.context/scope/boundary/focus/concept); IDs שאינם קיימים או שלא עברו semantic review אסורים. \`modal_strength\` נעול ל־source_attributed_symbolic_possible; אין clinical/causal/empirical operator.
 
-**SourceAnchor** איננו RuleHit. מקור פרשני מחייב source_id, מהדורה, כתובת/עותק, עמוד/סעיף/טווח, excerpt רלוונטי ומוגבל, שפת הטקסט, תאריך גישה (ב־audit manifest), exact_claim_scope, support_kind, supported_effect_ids, תנאים, reviewer_id, reviewed_at, review_revision ו־hash. review_status של כלל מקור ושל כל anchor ושל RelationDefinition הן שלוש עובדות שונות. מעמד authored rule אינו אישור של קשר.
+### 3.3 Novelty / entailment שאינו רק JSON difference
 
-**מטריצת הרישוי:**
+Baseline הכרחי \`B\` = (1) כל האטומים/מיפויי meanings של N2 המותרים במפה — עם מקורם, (2) כל נוסחי RulePack האקטיביים, (3) כל טענות original composite או N1 modifier שמופיעות כבר בנוסח עריכתי, גם אם מקורם framework-only, (4) comparison/distinctions של N2 ו־R1 authored paths **רק לעניין כפל טקסט**, לא כהוכחות מקור. מיפוי טקסטים למושגי TermRegistry מבוקר־אדם; טקסט original composite שאינו מאומת **נכנס לבסיס החידוש** כדי להימנע מייחוס חידוש מדומה, אך אינו מקור שמכשיר מסקנה.
 
-| סוג ראיה ליחס | מה מוכח | האם מתיר Claim משתמש? |
+מנגנון מתוכנן: \`licensed_effect = instantiate(RelationDefinition.licensed_effects, verified_binding)\`; \`closure(B)\` = שקילות מוכרעת של מונחי scope/focus/role/relations ב־TermRegistry + חוקי substitution מוצהרים בלבד. \`Delta = closure(B ∪ licensed_effect) - closure(B)\`. אם tuple relation חדש רק תחבירית וה־source statement כבר קיים ב־composite, התוצאה \`PARAPHRASE_ONLY\`; אם effect חדש אבל לא נתמך בעוגן source → \`UNLICENSED_DELTA\`; אם structured deduction אינה מוכיחה equivalence/entailment/source scope → \`HUMAN_REVIEW_REQUIRED\` (ב־N3Plan: COMPARISON_ONLY/QUARANTINE) ולא "licensed" אוטומטי.
+
+**שער ביקורת אנושי נפרד:** בודק תוכן עצמאי מאשר (א) source excerpt וסעיף, (ב) source→predicate entailment, כיוון, scope, conditional, modality, (ג) שקילות מול baseline טקסטואלי (כולל composite), (ד) novelty רעיוני אמיתי, (ה) עברית ומגבלות. החלטה נשמרת כ־signed review revision בתוך definition/anchor; שינוי vocab, baseline, excerpt או reviewer approval מבטל digest. מדד הצלחה: novel **licensed** relation predicates מול N2/RulePack baseline והבחנה אנושית עיוורת, לא ספירת מילים, JSON שונה או משפטים מורכבים. בלי אישור מקור/יחס: Shadow או Comparison בלבד.
+
+## 4. חוזה EvidenceAdapter קריאה בלבד — B4 / ARCH-05
+
+**אין שינוי ל־interpretation.py, R1 או N2.** \`RuleHit\` קיים כולל \`rule_id,axis,polarity,weight,text,evidence,source,provisional,review_status,evidence_key,source_url,modifier_only\`; הוא **אינו** מכיל \`rule_hit_id\` או \`fact_keys\`. לכן N3-P1 יגדיר \`EvidenceAdapterV1\` חיצוני, read-only, שבודק כל Raw RuleHit מול RulePack ומפת העובדות המחושבת ואינו מוסיף שדות בחזרה למקור. לא מסתמכים על תיאורי Hebrew evidence/עיגולי longitude כדי להמציא facts.
+
+### 4.1 נגזרת עובדות מקוריות
+
+1. קבע snapshot חתום ו־chart_fingerprint ממפת עובדות מחושבת + chart calculation profile + time_mode (בלי PII). קרא \`RulePack[rule_id]\`; דרוש type, when, axis, polarity, exact original text, source_url, review_status, modifier_only, weight policy תואמים ל־Raw RuleHit. mismatch ⇒ PROVENANCE_MISMATCH ולא silent repair.
+2. לפי סוג \`rule.when\`, קרא מחדש read-only את אותם תנאים שה־matcher המקורי מפעיל; בעובדה יציבה: \`placement:{body}:{sign}\`; \`aspect:{sorted(body_a,body_b).join(':')}:{aspect_kind}\` עם orb/angles rechecked; \`house:{body}:{house}\` עם time gate; \`composite\`: **רשימת** כל component placement fact keys מתוך \`when.all\`, ולא string מורכב כראיה שלישית. יש לאמת הקבלה ל־legacy \`composite:+\` evidence_key generated (כאשר אין evidence_group override) ולזהות override רק כ־group label, לא fact.
+3. \`fact_keys\` הם רשימת facts מקורית ממוינת וייחודית; composite מחייב >=2 components, \`related_rule_ids\` תואמים ל־when.all לכל rule מתאים ו־\`CompositeMatch.component_fact_keys\` שווים להם בדיוק. \`dependency_roots\`: placement→body:{body}; aspect→שני body roots; house→body+angle:ascendant; composite→union roots של components. ראיות חופפות נשארות חופפות, בלי ספירה עצמאית.
+4. \`fact_identity_digest = SHA256(canonical({chart_fingerprint,rulepack_digest,rule_id,when_canonical,fact_keys,time_mode}))\`; \`rule_hit_id = SHA256(canonical({fact_identity_digest,raw_rule_hit_exact_fields}))\`. ה־raw exact fields כוללים את כל ה־12 שדות ש־RuleHit פולט, כולל \`evidence_key\`, \`provisional\`, ו־\`weight\`; עיבוד טקסט canonical NFC, floats כ־canonical decimal אחרי בדיקת finite. כך אותו chart+pack+hit מניב מזהה זהה; אם שני raw hits זהים בתוך אותה ריצה — **reject duplicate** (אין ordinal מומצא).
+5. \`witness_group_id = SHA256(canonical({chart_fingerprint,axis,polarity,raw_evidence_key,sorted(rule_hit_ids)}))\`; השדות \`evidence_key\` ו־\`fact_keys\` נשארים נפרדים; שינוי membership משנה group ID. \`alternative_set_id = SHA256(canonical({snapshot_id,route,definition_id,role,sorted(witness_group_ids)}))\`. בדיקת רשימת כל ה־members לכל group וכל חלופה ושמירת rejected proof reasons היא חובה. אין להתבסס על \`hits[0]\` של N2.
+6. Route A: בצע read-only מיפוי \`R1.selected_witnesses_by_axis\` ו־\`alternative_facts_by_axis\` ל־groups שנגזרו וננעלו; אי־התאמה בין selected evidence_key ו־full member provenance ⇒ fail-closed. Route B: מיפוי שני component raw RuleHits לפי \`related_rule_ids\`, \`when.all\`, chart facts ו־source review; \`CompositeMatch.composite_is_independent_evidence=false\`. שמור legacy modifier RuleHit כמקור rule authoring/provenance, **לא** כ־root נוסף.
+7. כל deriving step יוצר trace: input content digest, verification checks, rule_id, original canonical predicate, matched raw hit fields digest, fact_keys, roots, witness_group_id, all alternatives, audit order; stable hash reproducibility וניקוי PII. chart changes update chart_fingerprint ולכן IDs לא ניתנים למחזור על מפה חדשה.
+
+### 4.2 ראיות חלקיות והוכחות לפי מסלול
+
+לכל RelationEvaluation יש **שני RouteProof**: אחד לכל \`r1_path\` ואחד ל־\`original_composite\`. אם מסלול כלל אינו רלוונטי: candidate_state=not_candidate, search_state=not_applicable, search_complete=null, proof_result=not_candidate, visited=0. למסלול מועמד search_complete הוא true/false בלבד; false+visited cap => proof_result=unknown, failure_reason INCOMPLETE_SEARCH. הוכחת Route B נערכת מחדש מרכיבי \`when.all\`; היא אינה מותנית ב־R1 proof_search.complete, גם אם יש נתון R1 חסר/מוגבל. מסלול R1 שנקטע **אינו רשאי לדרוס Route B מלא**. זמן לא ודאי וסתירה ייבדקו ביחס לראיות שבחר כל route, ולסייגי המקור.
+
+**היעדר ראיה:** RuleHit חסר, עובדה שמשתנה בדגימות, alternative שנבחרה בלי proof, או roots לא מורשים ⇒ check fail/unknown מפורש. מוכנות להצגת אטומים תקינים בנפרד נשמרת. אם כל החיפושים הרלוונטיים נקטעו אין negative claim; אם Route B הוכח והיחס מורשה ניתן להכריע לפיו גם כאשר Route A incomplete (תנאי N3Plan בסעיף 8).
+
+## 5. SourceAnchor, רישוי מקור ובקרת תוכן — השלמת ARCH-03
+
+\`SourceAnchor\` כעת כולל schema מלאה של \`SourceLocation\` (chapter, printed_page, section, line_start/end, scan_page_index; null רק כשלא ידוע ומדווח), \`language\`, \`accessed_at\`, \`source_version\`, \`anchor_hash\`, \`matching_conditions\` typed AST, \`scope_id\` מבוקר, מקור/מהדורה/כתובת, excerpt מוגבל, support_kind, review_status, source_text_verification, visual_verification, reviewer_id/time/revision ו־supported_effect_ids. ל־SourceAnchor חתימה עצמאית \`anchor_hash = SHA256(canonical(anchor excluding anchor_hash))\`; מקור יכול להיות תחת ביקורת גם אם definition לא אושרה ולהפך.
+
+**שער כפול:** (א) Source review: קיום מקור פרטני, חיתוך excerpt בסעיף אמיתי, בדיקת תנאים ו־scope, אימות טקסט/צילום, reviewer+timestamp; (ב) Relation meaning review: האם העוגן מתיר בדיוק effect, כיוון, modality, limits, registry term semantics. \`reviewed\` אינו \`approved\`, וגם \`approved\` של מקור אינו \`approved_for_symbolic_wording\` של יחס. עד אישור שני השערים אין User Claim; statuses conflicting/rejected/framework_only/editorial/under_review חסומים.
+
+| support_kind | שימוש מותר | חסם |
 | --- | --- | --- |
-| external explicit_attestation + excerpt exact + reviewed and approved relation | מקור מסוים מתאר יחס מסוים בגבולות מסוימים | רק לאחר כל gates ואישור מוצר ב־P4 |
-| explicit_attestation_candidate או unverified | אותר טקסט פרטני, אך ביקורת היחס לא הושלמה | לא; research/shadow בלבד |
-| framework_only | רק רקע על גוף/מיקום כללי; scope אינו מכסה צירוף | לא |
-| editorial_synthesis | ניסוח פנימי של 96 הכללים, כולל composite | לא, גם כשה־RuleHit matched |
-| hypothesis / R2 | תדירות/דפוס במחקר; אין מקור תוכן | לא |
-| conflicting / rejected / none | העדר רישיון או סתירה מהותית | לא, עם reason ו־audit |
+| explicit_attestation + review_status=approved + licensed effect checked | אפשר להעריך את היחס בצירוף review עצמאי מאושר | עדיין כפוף P4/owner |
+| explicit_attestation_candidate / under_review | רשומת מחקר, reviewer-only/shadow | אין Claim משתמש |
+| framework_only / editorial_synthesis / hypothesis | תיאור מקור כללי/עריכתי/מחקרי | אין סמכות להסיק relation |
+| contradicting / rejected / none | trace ו־abstention | אין claim |
 
-**תהליך ביקורת מקור אנושי:** איתור primary edition ותעתיק, אימות page/section + צילום מקור אם אפשר, זיהוי טענה יחסית מפורשת, קידוד tuple (roles, direction, predicate, scope, modal), רישום exclusions ו־wording ceiling, בדיקת מקור נוסף/סתירות, החלטת בודק שונה מן המחבר, review_revision, timestamp וחתימה. החלטת reviewed אינה approved. שינוי נוסח rule, מהדורה, anchor, source scope, meaning_id או effect מבטל אישור ישן ב־digest cascade; אין מכניזם של grandfathering. excerpt של framework אינו יכול להפוך לאישור implicit.
+**מקרה Alan Leo, תחת P0 בלבד:** printed page 62, Chapter XVIII, "The Sun in Aries and Moon in Taurus"; \`complements\` אפשרי רק כ־\`explicit_attestation_candidate\` מוגבל ליחס סמלי א־סימטרי; \`coordinates\` אינו מאושר מן המקור שנבדק, ואינו מאשר "שני קצבים שדורשים תיאום". source_text_verification=text_indexed; visual_verification=pending, reviewer_id=null, review_status=under_review; relation_review.status=under_review. צילום חזותי לא אומת; הספר נושא imprint year 1899 ו־actual publication year עדיין disputed (1900 candidate), עד ביבליוגרפיה עצמאית. אין מקור חיובי שאושר: **0 approved positive gold**. רק בודק עצמאי יוכל לעדכן סטטוסים; מסמך זה אינו אישור תוכן. אין המצאת מקורות נוספים, ו־P0 נפרד דורש אישור בעל מוצר.
 
 ## 6. ביקורת ארבעת כללי ה־composite — ממצאי P0
 
@@ -399,7 +2001,7 @@ CHART + ORIGINAL RULEPACK(96) + EXACT RULEHITS
 
 ### 6.1 מקור פרטני נוסף שהתגלה — לא מחליף את השדה המקורי
 
-**Candidate N3-SRC-AL-1899-p62**: Alan Leo, *Astrology for All*, מהדורת 1899, Chapter XVIII, "The Sun in Aries and Moon in Taurus", printed page 62. 
+**Candidate N3-SRC-AL-1899-p62**: Alan Leo, *Astrology for All*, imprint year 1899 (actual publication year disputed; 1900 candidate), Chapter XVIII, "The Sun in Aries and Moon in Taurus", printed page 62. מקור במעמד under_review בלבד; complements כיחס סמלי מועמד, coordinates אינו מאושר. 
 - סריקת מהדורה: https://iapsop.com/ssoc/1899__leo___astrology_for_all.pdf ; OCR מציג כותרת ופסקה בעמ' 62. תעתיק נגיש: https://umbrielastrology.com/library/alan-leo-sun-moon-combinations.html# (Chapter XVIII, [p. 62]).
 - excerpt צר: **"the Moon in Taurus supplying what the Sun in Aries usually lacks."** טקסט באותו מיקום מתאר צירוף צד מעשי עם דחף שמשי, ומבדיל בין הרכיבים; הוא **אינו** אומר שבכל מפה האדם משיג תיאום מוצלח.
 - source_origin=external_primary (עותק סרוק), support_kind=explicit_attestation_candidate, exact_claim_scope=Sun in Aries AND Moon in Taurus, possible operator=complements, direction=Moon component complements Sun component; reviewer_id=null, review_status=under_review, reviewed_at=null, review_revision=0. **אין supported_effect_ids מאושרים.**
@@ -426,91 +2028,271 @@ CHART + ORIGINAL RULEPACK(96) + EXACT RULEHITS
 
 **בדיקת היתכנות:** exact-match + counterfactual demonstrable בהגדרת fixture; external explicit textual candidate identified, אך **0 approved positive gold cases**. לכן P1–P3 יישארו Shadow, P4 יחסום כל claim חדש.
 
-## 8. מכונת החלטות, precedence והימנעות — ARCH-08
+## 8. N3Plan מכונה מאומתת והכרעות לפי מסלול — B5 / ARCH-01/08
 
-החלטה היא על **relation evaluation**, לא על כל פסקת N2. לכל candidate מוחזקים כל checks (pass/fail/unknown) וכל reasons, גם כאשר ה־primary_reason נבחר לפי סדר; אין מחיקה של האטומים. Negative relation מותר רק לאחר בדיקת תנאים סופית וחיפוש שהושלם. אין המרה של UNKNOWN ל־FALSE.
+במקום DecisionPlan לא־מאומת יש \`N3Plan\` נורמטיבי ב־N3-contract-2. הישות מכילה \`decision\`, \`primary_reason\`, \`reasons[]\` מטיפוס ReasonRecord (code+route+blocking+evidence_refs), \`retained_atomic_rule_ids\`, \`comparison_state\`, \`relation_claim_state\`, \`relation_claim_ids\`, \`route_proofs\` לשני המסלולים ו־\`trace\` חתום. בדיקה סמנטית מחייבת decision→claim state→proof status→source license→novelty, ולא רק סוגי JSON.
 
-**סדר הכרעה דטרמיניסטי:**
+### 8.1 אלגוריתם הכרעה מפורש
 
-| קדימות | condition / reason | decision והשלכה |
-| ---: | --- | --- |
-| 0 | INVALID_SCHEMA, SNAPSHOT_MISMATCH, PROVENANCE_MISMATCH, BAD_ID | INVALID_INPUT; אין claim, אין שימוש במידע לא חתום |
-| 1 | UNCERTAIN_TIME affecting predicate / missing reliable chart fact | INDETERMINATE (UNCERTAIN_TIME); אפשר להשאיר האטומים שאושרו בנפרד |
-| 2 | INCOMPLETE_SEARCH, PROOF_UNKNOWN, RESOURCE_CAP | INDETERMINATE; **לא** NOT_APPLICABLE, אין מסקנה שלילית |
-| 3 | UNMATCHED_CONDITIONS after exhaustive exact match | NOT_APPLICABLE; אין relation claim, ייתכנו קריאות אטומיות |
-| 4 | CONFLICTING_SOURCES, REJECTED_SOURCE, MATERIAL_TENSION | ABSTAIN/QUARANTINE; אין relation claim |
-| 5 | DEPENDENT_ROOTS when policy requires independence | ABSTAIN (DEPENDENT_ROOTS); אין claim מחזק או כפל ראיות |
-| 6 | MISSING_READING / MISSING_ATOM_MAPPING when n2_exact_required | COMPARISON_ONLY or ABSTAIN (MISSING_READING); original_atomic_allowed אינו reading מומצא |
-| 7 | NO_RELATION_SOURCE, FRAMEWORK_ONLY, EDITORIAL_ONLY, UNVERIFIED_RELATION | COMPARISON_ONLY / QUARANTINE; בלי טענה יחסית |
-| 8 | UNLICENSED_DELTA, PARAPHRASE_ONLY, SOURCE_SCOPE_EXCEEDED | COMPARISON_ONLY או ABSTAIN (no novelty / no license) |
-| 9 | כל התנאים, הראיות, המקור והחידוש עברו | RELATION_LICENSED במישור התכנון; audience=shadow עד gate של P4 |
+**קדימות גלובלית:** INVALID_SCHEMA/SNAPSHOT_MISMATCH/PROVENANCE_MISMATCH/BAD_ID ⇒ INVALID_INPUT; פגיעה ברישוי מקור גלובלי (CONFLICTING_SOURCES/REJECTED_SOURCE) ⇒ QUARANTINE או ABSTAIN. לאחר validation, כל route מחושב **לבד**:
+1. \`candidate_state=not_candidate\` + exhaustive exact match ⇒ NOT_APPLICABLE למסלול הזה, לא סיבת כישלון למסלול אחר.
+2. \`candidate_state=candidate\`, \`search_complete=false\` או proof unknown ⇒ מסלול INDETERMINATE; אין להכריז no relation על סמך התוצאה.
+3. \`search_complete=true\`, \`proof_result=proven\` ⇒ route eligible (בכפוף לתנאים, roots, time, tensions, source, meaning, novelty). ב־Route B ההוכחה **עצמאית** מ־R1, אינה נשענת על \`selected_witnesses_by_axis\`.
+4. דרג routes eligible קנונית לפי \`original_composite\` ואז \`r1_path\` כששניהם מפיקים אותו effect; שמור שניהם ב־trace. Route A incomplete לא חסם את Route B proven.
+5. לכל route proven, החלת gates: UNCERTAIN_TIME/DEPENDENT_ROOTS/MATERIAL_TENSION → ABSTAIN עבור אותו proof; MISSING_READING → COMPARISON_ONLY/ABSTAIN בהתאם ל־policy; NO_RELATION_SOURCE/FRAMEWORK_ONLY/EDITORIAL_ONLY/UNVERIFIED_RELATION → COMPARISON_ONLY/QUARANTINE; PARAPHRASE_ONLY/UNLICENSED_DELTA/SOURCE_SCOPE_EXCEEDED/OPERATOR_EFFECT_MISMATCH → COMPARISON_ONLY/ABSTAIN; רק כל passes ⇒ RELATION_LICENSED (audience shadow עד P4).
+6. **אם אף route eligible לא השלים, ולפחות route רלוונטי אחד INDETERMINATE** ⇒ N3Plan INDETERMINATE. **אם Route B proven וה־source לא מורשה**, החלטת plan על B תהיה COMPARISON_ONLY/QUARANTINE, גם אם Route A incomplete; ראיית A מקבלת reason \`blocking=false\` בלבד.
+7. אם שני routes מוכחים אבל מובילים ל־effects מנוגדים, material conflict מסומן ואינו נבחר לפי "כמה ראיות"; החסם אינו פוגע בקריאות האטומיות התקינות. אם routes מוכחים לאותו effect, dedupe ואין כפילות ראיה.
 
-**סדר תפעולי:** בדיקות רלוונטיות נאספות עד כמה שניתן גם אם primary fail מוקדם; סדר הקדימות קובע מה מוצג בראש, אך reasons[] מציג את כולן. בלוק יחסי אינו מסיר atom/contrast התואם N2. failed proof search שומר why_not_proved; no relation source שומר source candidates, provenance ו־review status; comparison תופק ממסלול N2 הקיים בלבד או מתיאור רכיבים מדויק, לא מאפקט N3 פסול. אפילו RELATION_LICENSED בהקשר Shadow אינו מגדיל audience בעצמו.
+**Priority מקומי (רק ל־decisive route):** invalid > source contradiction > time uncertainty > incomplete proof > unmatched conditions > material tension > independent roots violation > missing required reading/atom mapping > absent/unapproved source > operator/scope/novelty violation > license passes. \`primary_reason\` הוא code של העילה החוסמת הגבוהה ביותר על route שהכריע (או NONE כאשר licensed). \`reasons[]\` שומר את כולן, כולל diagnostic nonblocking של route אחר; sorted by (route priority, blocking desc, code), primary חייב להתקיים ברשומות כאשר אינו NONE. COMPLETED Route B אינו inherit incomplete from Route A. כל output מסמן במפורש comparison_state, relation_claim_state ואילו אטומים תקינים נשמרו.
+
+**כללי consistency לדוגמה:** 
+- \`RELATION_LICENSED\` מחייב source_license_check=pass, novelty_check=pass, decisive route proven+complete, \`relation_claim_state=licensed_shadow\`, claim_ids nonempty and verified; primary_reason=NONE (רק במצב Shadow לפני P4).
+- \`COMPARISON_ONLY\` מחייב 0 relation_claim_ids, \`relation_claim_state=blocked\`, comparison_state=available, source/meaning/effect reason תואם.
+- \`INDETERMINATE\` מחייב route candidate incomplete/unknown *שלא הוכרע בידי מסלול מלא אחר*, ללא relation claim, reason INCOMPLETE_SEARCH/PROOF_UNKNOWN/UNCERTAIN_TIME.
+- \`NOT_APPLICABLE\` מחייב שני routes שלא סיפקו candidate לאחר חיפוש ראיות רלוונטי שהושלם או not_applicable; false negative אסור.
+- \`INVALID_INPUT\` מחייב validation error; retained atoms רק אם אומתו עצמאית ולא נפגעו מ־snapshot mismatch.
+- \`ABSTAIN\` ו־\`QUARANTINE\` אינם הופכים מקור לא מאושר למורשה; N2 atoms מוגבלים נשמרים לפי gate המקורי.
+
+### 8.2 דוגמאות JSON מאומתות מבנית
+
+**VALID, מקור לא מאושר: Route B proven; R1 truncated** — נבחרה השוואה, לא הסתמכות על חיפוש R1 החלקי:
 
 ~~~json
 {
+  "kind": "N3Plan",
+  "schema_version": "N3-contract-2",
+  "plan_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "snapshot_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "definition_id": "n3.rel.sun-aries-moon-taurus.complement",
+  "evaluation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "decision": "COMPARISON_ONLY",
   "primary_reason": "NO_RELATION_SOURCE",
-  "reasons": ["NO_RELATION_SOURCE", "UNVERIFIED_RELATION"],
-  "relation_claims": [],
-  "retained_atomic_rule_ids": ["sun-sign-1", "moon-sign-2"],
+  "reasons": [
+    {
+      "code": "NO_RELATION_SOURCE",
+      "route": "original_composite",
+      "blocking": true,
+      "evidence_refs": []
+    },
+    {
+      "code": "INCOMPLETE_SEARCH",
+      "route": "r1_path",
+      "blocking": false,
+      "evidence_refs": []
+    }
+  ],
+  "retained_atomic_rule_ids": [
+    "moon-sign-2",
+    "sun-sign-1"
+  ],
+  "comparison_state": "available",
+  "relation_claim_state": "blocked",
+  "relation_claim_ids": [],
+  "route_proofs": [
+    {
+      "route": "r1_path",
+      "candidate_state": "candidate",
+      "search_state": "incomplete",
+      "search_complete": false,
+      "visited": 20000,
+      "cap": 20000,
+      "proof_result": "unknown",
+      "selected_binding_ids": [],
+      "alternative_set_ids": [],
+      "source_fact_refs": [],
+      "failure_reasons": [
+        "INCOMPLETE_SEARCH"
+      ],
+      "trace_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "route": "original_composite",
+      "candidate_state": "candidate",
+      "search_state": "complete",
+      "search_complete": true,
+      "visited": 2,
+      "cap": 20000,
+      "proof_result": "proven",
+      "selected_binding_ids": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      ],
+      "alternative_set_ids": [],
+      "source_fact_refs": [
+        "placement:שמש:טלה",
+        "placement:ירח:שור"
+      ],
+      "failure_reasons": [],
+      "trace_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
   "trace": {
-    "candidate_route": "original_composite",
-    "original_composite_rule_id": "sun-aries-moon-taurus",
-    "source_candidate": "N3-SRC-AL-1899-p62",
-    "source_status": "under_review",
-    "proof_search_complete": true
+    "source_snapshot_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "adapter_trace_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "evaluation_trace_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "selected_decisive_route": "original_composite",
+    "atomic_evidence_refs": [
+      "placement:שמש:טלה",
+      "placement:ירח:שור"
+    ]
   }
 }
 ~~~
 
-האובייקט לעיל הוא **DecisionPlan** הסברתי מחוץ לשלוש הסכמות העיקריות; הסכימה המלאה ב־P1 תכלול במפורש גם primary_reason, retained_atomic_rule_ids ו־trace במעטפת N3Plan. אין להחדיר שדות אלה לתוך RelationDefinition.
+**INVALID SEMANTIC DECISION** — JSON כשלעצמו עומד בטיפוסים, אך אותה ראיה עם \`NO_RELATION_SOURCE\` אינה יכולה להניב \`RELATION_LICENSED\`. validator חוצה־אובייקטים חייב לדחות:
 
-## 9. גרסאות, קליטה מ־PR #29 ואיסור כפילות — ARCH-06
+~~~json
+{
+  "kind": "N3Plan",
+  "schema_version": "N3-contract-2",
+  "plan_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "snapshot_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "definition_id": "n3.rel.sun-aries-moon-taurus.complement",
+  "evaluation_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "decision": "RELATION_LICENSED",
+  "primary_reason": "NO_RELATION_SOURCE",
+  "reasons": [
+    {
+      "code": "NO_RELATION_SOURCE",
+      "route": "original_composite",
+      "blocking": true,
+      "evidence_refs": []
+    },
+    {
+      "code": "INCOMPLETE_SEARCH",
+      "route": "r1_path",
+      "blocking": false,
+      "evidence_refs": []
+    }
+  ],
+  "retained_atomic_rule_ids": [
+    "moon-sign-2",
+    "sun-sign-1"
+  ],
+  "comparison_state": "available",
+  "relation_claim_state": "licensed_shadow",
+  "relation_claim_ids": [
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  ],
+  "route_proofs": [
+    {
+      "route": "r1_path",
+      "candidate_state": "candidate",
+      "search_state": "incomplete",
+      "search_complete": false,
+      "visited": 20000,
+      "cap": 20000,
+      "proof_result": "unknown",
+      "selected_binding_ids": [],
+      "alternative_set_ids": [],
+      "source_fact_refs": [],
+      "failure_reasons": [
+        "INCOMPLETE_SEARCH"
+      ],
+      "trace_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "route": "original_composite",
+      "candidate_state": "candidate",
+      "search_state": "complete",
+      "search_complete": true,
+      "visited": 2,
+      "cap": 20000,
+      "proof_result": "proven",
+      "selected_binding_ids": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      ],
+      "alternative_set_ids": [],
+      "source_fact_refs": [
+        "placement:שמש:טלה",
+        "placement:ירח:שור"
+      ],
+      "failure_reasons": [],
+      "trace_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "trace": {
+    "source_snapshot_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "adapter_trace_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "evaluation_trace_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "selected_decisive_route": "original_composite",
+    "atomic_evidence_refs": [
+      "placement:שמש:טלה",
+      "placement:ירח:שור"
+    ]
+  }
+}
+~~~
 
-המקור האחד ל־96 הכללים נשאר **src/astrochart/interpretation_rules.json**, schema=1, pack_version=0.2.0, 96 רשומות. N2 catalog אחד הוא **src/astrochart/meaning_catalog_n2.json**, גרסת 0.2.0 בענף בסיס PR #27 ו־0.3.0 ב־PR #29, עם 86/96 extensions. RelationDefinition catalog עתידי יהיה קובץ **נפרד של *יחסים***, ללא שכפול rule records/reading records. יחסי N3 מחזיקים reference ל־rule_id ו־meaning_id, לא עותקים שניתנים לעריכה.
+**INVALID AST** — \`any\` עם ארגומנט יחיד ו־\`not\` ללא arg חוקי חייבים להידחות על ידי JSON Schema:
 
-**Contract manifest:** fields required: rulepack_schema_version, rulepack_version, original_rule_ids_hash, original_rule_texts_when_source_scope_hash, n2_catalog_schema_version, n2_catalog_version, n2_catalog_digest, meaning_id_rule_id_text_scope_digest, n2_semantic_version, r1_ontology_version, relation_catalog_schema_version, relation_catalog_digest, validator_version, source_review_registry_digest. כל digest canonical JSON לפי סעיף 2; גם presence/counted rules 96/86/4 הוא validation, לא תחליף ל־digest. שינוי status/source scope/review מאפס תוצאת רישוי שתלויה בו.
+~~~json
+{"op":"any","args":[{"op":"time_stable","role":"A"}]}
+~~~
 
-**הליך:** N3 design ב־PR #30 **אינו** מעתיק ידנית את 60 ההרחבות מ־PR #29 ואינו משכתב/עוקף קובץ N2. ב־P1 יוכנס adapter קריאה בלבד לסנאפשוט **אחד**, רק אחרי ש־PR #29 נקלט באופן תקין לענף האינטגרציה בהרשאה נפרדת, או באמצעות fixture חתום מחוץ ל־production בענף ניסוי. 86/96 הם יעד תאימות, לא מצב קיים בתוך PR #30. אימות אטומי על startup: references, rule_id→exact text+when+scope, reading_id→rule_id, catalogue digest, ontology digest; כל mismatch דוחה את snapshot כולו, בלי fallback שקט ל־26 או "מיזוג" 26+60 בזיכרון. ארבעת composite נשארים ללא rule_reading; השימוש ב־original_atomic_allowed מבוקר כמתואר.
+**INVALID Effect** — RelationDefinition.operator=coordinates עם Effect.predicate=symbolic_complement נכשל ב־operator/effect cross validator, גם אם Effect JSON תקין בפני עצמו. דוגמת bare effect בעלת predicate חלופי לא מהווה היתר.
 
-**מדיניות תלות:** עד קליטת PR #29 ניתן לתכנן ולבדוק 26/96 עם manifest מדויק, ובנפרד לבדוק fixture של 86/96 במחקר. אין לשנות PR #29 במשימה זו; אין לשנות R1, N1, N2, R2 או 96 כללי המקור.
+**תנאי test:** validation ב־P1 חייב לחשב מחדש signature IDs ולהראות שאין "קידום" בגלל חיפוש חלקי או מקור לא מאומת. דוגמאות עם hash תבניתי (a…f) הן fixture תחבירי בלבד, **לא חתימות אמיתיות** ולא objects שניתן לטעון למאגר production; כשמפעילים hash validator תרחיש זה נכשל במכוון עד החלפתן בחתימות שנגזרו בפועל.
 
-## 10. תוכנית עתידית P0–P4: כניסה, תוצר, בדיקות וקבלה
+## 9. חוזה PR #29 / N2 content categories ו־snapshot admission — B2 / ARCH-06
 
-| שלב | תנאי כניסה | תוצר מבוקש לאחר אישור עתידי | בדיקות ושער קבלה עצמאי |
+**קריאת GitHub מאומתת בתאריך 2026-11-08:** PR #29 היה ב־HEAD \`aea7fe31ab2107e70787163965de142b4242b6de\` בעת התיקון (ה־HEAD עשוי להתעדכן שוב); \`meaning_catalog_n2.json\`: schema_version=1, catalog_version=\`0.3.1\`, \`entries=13\`, \`rule_readings=77\`, \`symbolic_explanations=6\`, \`withheld_editorial_readings=3\`. קודם בגרסת בסיס PR #27: catalog \`0.2.0\` עם \`rule_readings=26\`. המספר 86 משקף סך רשומות 77+6+3 בתמונת 0.3.1, **לא** 86 הרחבות פעילות. SHA הקטלוג של תמונת האימות: \`6138abf94b8eb8a0490d04f05fb52d095a382bf5\` (Git blob SHA; אינו תחליף ל־SHA256 של canonical bytes).
+
+**טיפוסי תוכן נפרדים:**
+- \`rule_readings\`: \`kind=rule_reading\`, מקור טקסט מקורי תואם, focus/setting/behavior/distinction/limit; קטגוריה \`behavioral_rule_reading\`, סטטוס \`unverified\`, רק כאשר מדיניות N2 מרשה בהקשר ותנאי rule/polarity תואמים. אינם מקור אישור ליחס N3.
+- \`symbolic_explanations\`: \`kind=symbolic-explanation\`, \`source_support=original-unverified-rule-text-only\`, \`display_policy=non-behavioral-metadata-only-not-personality-N2\`. קטגוריה \`symbolic_explanation\`; **metadata symbolic** ללא behavior/diagnosis ואינו הופך אוטומטית ל־SemanticAtom התנהגותי.
+- \`withheld_editorial_readings\`: \`status=quarantined-from-N2-display\` עם reason, original_editorial_reading, original source text. קטגוריה \`withheld_editorial_reading\`; לעולם אין לצרף ל־NarrativeClaim או להשלים ממנו missing N2 reading, גם כאשר כלל המקור matched.
+- \`entries\`: axis meanings של R1, **לא** רישיון לקישור semantic_relation. מקור RulePack 96 כללים לא משתנה.
+
+**UpstreamManifest admissibility, ללא ספירת תוכן קשיחה:** בקרת schema_version, catalog_version + SHA256 canonical מלא, חותמות נפרדות של ארבע קטגוריות (\`entries\`, \`rule_readings\`, \`symbolic_explanations\`, \`withheld_editorial_readings\`) + digest מדיניות \`rule_reading_policy\` ומדיניות display מפורשת בכל רשומה. אמת ID uniqueness, disjoint eligible rule_id across categories, exact source_rule_text מול RulePack, type/axis/polarity, provenance.review_status, license policy; withheld רשומות גוברות על גרסאות פירוש ישנות (no fallback to older active). אין merge של category arrays בזיכרון בין ענפים. \`compatible_upstream_hash\` נגזר מ־UpstreamManifest **בלי קטלוג N3**, לפי סעיף 2; manifest header מחויב ל־versions + content digest, לא count קבוע.
+
+**Branch drift protocol:** לפני כל P1 test / runtime admission / release: fetch PR #29 HEAD מחדש ולקרוא את קובץ JSON מאותו commit (לא להסתמך על PR body/README או על HEAD ידני ישן); אם SHA התחלף, עצור admission, צור immutable manifest חדש, פתח impact report על שינויים בקטגוריות/IDs/source text/status/display policies, rerun cross-catalog validation וגילוי בעיות; קבל חתימה חדשה רק לאחר בקרת תוכן. בעת test היסטורי רשום במפורש \`upstream_ref_type=locked_fixture\` ו־HEAD, ולא טען שזו הגרסה העדכנית. במוצר, snapshot בלתי תואם נדחה אטומית (אין fallback 26/77 או 77+6+3 כאילו כולם readings).
+
+**אין שינוי ב־PR #29**, אין העתקה ידנית של הקטלוג, אין RulePack כפול ואין שינוי R1/N1/N2/R2. N3 מתייחס ל־source-of-truth דרך read-only adapter וחוזה חתימות.
+
+## 10. תוכנית עתידית P0–P4: תנאי כניסה ותנאי קבלה
+
+| שלב | תנאי כניסה | תוצר עתידי | בדיקות/קבלה |
 | --- | --- | --- | --- |
-| **P0 — Knowledge/source audit** | מפרט N3 מתוקן, 96 original rules בלתי משתנים, הרשאת מחקר בלבד | registry ל־4 composite עם when/all, exact excerpt/scope/status, source candidate Alan Leo, contradictions, reviewer checklist | 4/4 מתועדים; אין framework-only כ־approved; מקור היסטורי נבדק מן הסריקה בידי בודק; feasibility status מדויק: 0 approved gold עד אישור |
-| **P1 — Contracts/validators** | חתימת מפרט בביקורת עצמאית ואישור מוצר לתשתית ניסויית; manifest מאומת | JSON Schemas ניתנות להרצה, immutable relation definitions, evaluation/claims, review registry, version adapter | fail-closed לכל required/hash/status/source/meaning mismatch; 3 identities נפרדים; round trip deterministic; 86/96 נקלטים רק מסנאפשוט חתום |
-| **P2 — Matcher (Shadow)** | P1 עבר, RuleHits+R1+N2 fixtures חתומים; סיווג מקורות לפחות preliminary | dual candidate routes, relation-specific proof, exact-match, audit+counterfactual harness | 4/4 composites מזוהים גם בלי R1; 3+ participants; all alternatives, roots/time/conflict/caps; 100% trace; אפס claims לא מורשים |
-| **P3 — Semantic composition (Shadow)** | P2 עבר; לפחות synthetic gold with explicitly licensed fixture; תוכנית השוואה ל־N2 | typed operators+closure/entailment+novelty+realizer דטרמיניסטי + N3Plan | paired N2/N3, ablations, negative controls, blinded review; semantic delta > 0 רק כאשר license קיים; ללא source approved — synthetic tests בלבד, **0 user claims** |
-| **P4 — Read-only integration** | P0–P3 עברו; לפחות gold positive *אמיתי ומאושר*; ביקורת תוכן והנדסה; אישור בעל מוצר נפרד | feature flag כבוי כברירת מחדל, UI/export distinct N3 claims, provenance + limitations | Linux/Windows E2E, GUI/EXE/PDF/PNG/no regression; golden counterfactuals; source revocation tests; R2 quarantined; אין Release/merge בלי הרשאה |
+| **P0 — Knowledge/source audit** | אישור בעל מוצר למחקר מקורות נפרד; המפרט בלבד | צילום עמוד/הכרעה ב־Alan Leo, תיעוד 4 composite, הפרדה source/relation review | visual primary check + בודק עצמאי; complements candidate בלבד עד חתימה; coordinates לא מאושר; 0 gold positive approved עד אישור |
+| **P1 — Contracts/validators** | ביקורת חוזרת עצמאית המאשרת B1–B5 **ואישור בעל מוצר מפורש נפרד** | N3-contract-2, UpstreamManifest, TermRegistry, EvidenceAdapter, N3Plan validators | DAG acyclic, repeat deterministic, fail-closed snapshot/AST/effect/ID/route decision; אין מימוש לפני האישורים |
+| **P2 — Matcher (Shadow)** | P1 מאושר ועומד בבדיקות; frozen N2 snapshot מכל קטגוריה | dual-route matcher, proof/alternatives/trace | 4/4 composite ב־Route B; R1 incomplete לא חוסם B proven; independent/uncertain/conflicting/capped cases |
+| **P3 — Semantic composition (Shadow)** | P2 עבר, synthetic licensed fixtures ו־baseline עם RulePack original composite/N2 | typed effects, entailment, novelty, human review | N2-vs-N3 paired, no false novelty from text paraphrase, source scope, blinded judges, 0 user claims ללא approved gold |
+| **P4 — Read-only integration** | approved real positive gold, content + engineering review, owner approval | disabled-by-default feature flag, scoped symbolic claims | Linux/Windows E2E, GUI/EXE/export regression, source revocation and no-R2 approval, no merge/release אוטומטי |
 
-**מדיניות מעבר:** גם אם P1–P3 הצליחו על דוגמאות סינתטיות בלבד, הן נשארות Shadow ואינן מאשרות P4. פרסום relation claim מחייב case חיובי אמיתי מאושר ב־P0, כיסוי של מקור/תנאים בתוכן claim, וקבלת בעל מוצר. אין חובה להריץ GUI/EXE ב־P0; שלבי אינטגרציה מחייבים זאת.
+**P0 ניתן לבצע כמחקר נפרד רק באישור בעל מוצר; P1–P4 אינם מאושרים למימוש**. Schema validation מקומית של מסמך אינה אישור מפורש לעבור שלב.
 
-## 11. בדיקות מפרט מחייבות ו־acceptance matrix
+## 11. אימות מסמך ובדיקות קבלה ל־B1–B5
 
-- **T-01…T-04:** לכל composite exact when.all יוצר Route B candidate ללא R1; status unverified; modifier weight=0; related RuleHits verified.
-- **T-05:** במקרה שיש גם R1 path, union אינו סופר עדות שלישית ושומר שני discovery routes.
-- **T-06…T-09:** replacement of one sign, alternative axis evidence, aspect same sign without valid orb, house under unknown time ⇒ אין false match.
-- **T-10…T-13:** עצמאות roots, composite union of roots, selected/alternative witness audit, 3+ participants relation-specific proof.
-- **T-14…T-16:** cap=20000, MAX_NODES=192, missing complete marker ⇒ INDETERMINATE/INVALID ולא negative.
-- **T-17…T-20:** rule_status approved but relation source framework_only; external source unverified; conflicting/rejected; revocation ⇒ 0 relational claims.
-- **T-21…T-24:** null N2 reading for composite; wrong meaning_id; catalog 0.2 vs 0.3 incompatible; changed source scope while text unchanged ⇒ fail-closed with preserved atoms.
-- **T-25…T-29:** all five operators: allowed effect exactly equals bound licensed_effect; scope widening, role reversal, empirical assertion, added causal verb ⇒ blocked.
-- **T-30…T-33:** paraphrase/duplicated relation yields zero novel delta; new relation without source yields blocked; paired one-fact perturbation deletes only dependent claim; blinded reviewers can identify why N3 adds bounded information.
-- **T-34…T-36:** audit determinism, privacy-safe chart_fingerprint, run/evaluation/claim IDs stable under identical defined inputs; claim revocation on source change.
-- **T-37:** no changes to R1/N1/N2/R2/RulePack, no network/LLM runtime, no N3 user output before P4.
+| Test | ציפייה |
+| --- | --- |
+| B1-01 topological DAG | RulePack/N2/ontology/interfaces→upstream→definition→relation catalog→snapshot→evaluation/claim; אין cycle |
+| B1-02 deterministic | canonical replay זהה ⇒ אותם hashes; שינוי source/reading/category policy ⇒ invalidated downstream |
+| B1-03 mismatch | compatible_upstream_hash, definition_hash, catalog_digest או snapshot_id שגוי ⇒ reject atomic |
+| B2-01 current structure | ב־0.3.1 ממוינות 77 behavioral, 6 symbolic, 3 withheld, בלי hard-coded acceptance counts |
+| B2-02 new HEAD | שינוי PR #29 HEAD או schema/categories/policy מחייב re-pin+review; no silent fallback |
+| B3-01 AST | any עם בן יחיד, not ללא arg, unknown leaf/field, negated mandatory role ⇒ reject |
+| B3-02 operator | coordinates→symbolic_complement / scope ID missing / direction swap ⇒ reject |
+| B3-03 novelty | relation שכבר הוזכר ב־original composite אינו "חדש" בגלל JSON key שונה |
+| B3-04 human | unknown semantic equivalence/entailment ⇒ human gate, not licensed |
+| B4-01 identity | RuleHit המקורי (ללא rule_hit_id) יוצר ID דטרמיניסטי מהמקור; repeat stable |
+| B4-02 composite | 2 original fact keys + union of roots; no third fact, no duplicated witness count |
+| B4-03 alternatives | every original grouped member retained; no silent hits[0] or alternative swap |
+| B5-01 envelope | schema for DecisionPlan=N3Plan; primary_reason/reasons/atomic/comparison/relation/trace required |
+| B5-02 partial | R1 incomplete, B independently complete ⇒ B eligible; A warning nonblocking |
+| B5-03 all incomplete | INDETERMINATE, never negative exhaustion claim |
+| B5-04 forbidden decision | no source + RELATION_LICENSED rejected despite syntactically valid JSON |
+| Source-01 | language/location/access date/anchor_hash/matching_conditions required and cross-reviewed |
+| Source-02 | Alan Leo under_review, visual pending, complements candidate; coordinates blocked; gold=0 |
 
-**דוגמאות gold:** gold-positive סינתטי עם מקור בדיקה מפורש שמאשר operator/conditions/term boundaries (לא מקור אמיתי), plus negative gold שמחקה exactly framework_only, missing meaning, dependent roots, contradiction, uncertain time, incomplete search. מקרה Alan Leo הוא *historical-source candidate*, לא positive approved gold; יש להשוות את מקורו לצילום העמוד ולרשום verdict עצמאי לפני העלאה.
+**סוג הבדיקה כיום:** המפרט מכיל JSON Schema מבנית ודוגמאות, שייבדקו בניתוח JSON, refs, required keys והדגמת פסילות מבניות. לא נוצרו Python validators / מנוע N3 במסגרת המשימה. בדיקת entailment האנושית ו־visual primary source מחייבות עבודה נפרדת ב־P0.
 
-## 12. חסמים, החלטות בעל מוצר וגבולות ביצוע
+## 12. חסמים וגבולות
 
-**חסמים פתוחים:** (1) החלטת reviewer עצמאית לגבי פרק XVIII עמ' 62, ושאלת מה בדיוק מתיר מקור ההשלמה; (2) ביקורת מקורות חיצוניים נוספת ליתר 3 composite; (3) מיפוי semantic atoms ל־86 קריאות N2 בביקורת; (4) final schema P1 ל־original_composite_match ול־N3Plan validation וגרסאות hash; (5) בניית gold set שאינו מכריח אישור באמצעות ניסוח מחדש; (6) קליטת PR #29 באופן מתואם בלבד לאחר אישור בעל מוצר.
+**טרם הוכרע:** (1) ביקורת ארכיטקטורה עצמאית חוזרת על B1–B5; (2) בעל מוצר מאשר/דוחה תחילת P0 מחקרית ואת P1 בהמשך בהליך נפרד; (3) אימות צילום עמוד Alan Leo, מפתחות ביבליוגרפיים והכרעת source review ו־relation review נפרדות; (4) תרגום typed TermRegistry של מקור + N2 לאנוטציות מבוקרות לאחר אישור; (5) gold test corpus אמיתי אחרי אישור מקור; (6) קליטת snapshot PR #29 הסופי לפי immutable content digest. **נכון למסירה: 0 positive gold approved.**
 
-**החלטות בעל מוצר נדרשות לפני מימוש:** אישור ארכיטקטורה אחרי ביקורת בלתי תלויה; האם להקדיש P0 לאימות מקור ספרותי היסטורי ולפי אילו קריטריונים; אישור מסגרת טענות symbolic בלבד; הרשאה לכל חבילת P1–P4 בנפרד והחלטת פרסום מפורשת. ללא מקור פרטני מאושר, היעד הוא **comparison/abstention, not synthetic meaning invention**.
-
-**גבולות מחייבים כעת:** מסמך בלבד. לא מיישמים N3, לא משנים R1/N1/N2/R2, לא מעדכנים 96 כללים, לא משנים PR #29, לא מוסיפים LLM, לא מציגים claims למשתמש, לא ממזגים ל־main ולא מפרסמים Release. אין אישור עצמי: הביקורת העצמאית הבאה חייבת להחליט מחדש.
+**איסורים:** אין מימוש N3/P1, אין שינוי R1/N1/N2/R2, RulePack 96 או PR #29, אין LLM, אין פרשנות משולבת בדוח משתמש, אין merge ל־main ואין Release. כל claims הם symbolic source-attributed בלבד, לא טענה אמפירית/ביוגרפית. המפרט אינו מאשר את עצמו; נדרשת הכרעת ביקורת עצמאית ואישור בעל מוצר אחריה.
 
 ---
-**שורת הכרעה תכנונית:** ארכיטקטורה אופרטיבית יכולה לגזור תוספת סמנטית *רק* מהפעלת יחס טיפוסי שעוגן המקור והראיות נותנים לו רישיון, עם novelty+entailment ו־proof נשמרים. הימנעות מדויקת והצגת האטומים הנפרדים היא תוצאה תקינה, לא כשל של המנוע.
+**הכרעת תכנון:** תכנון N3 מחייב DAG חתימות, מיפוי קטגוריות N2 חתום, AST טיפוסי עם scope מבוקר, מזהי עובדות נגזרים ממקור ו־N3Plan עם הכרעות לפי route. היתרונות נבחנים על delta סמנטי מורשה ולא על מספר המשפטים; הימנעות עם trace היא תוצאה תקינה.
