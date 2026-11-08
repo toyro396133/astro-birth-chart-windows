@@ -70,6 +70,14 @@ and the existing separate N2/N1/other GUI tabs and copy behaviors remain.
   and should **not** be confused with a blind human validation sample.
 - `semantic_only_n2` strips citations, raw rule quotes, URL, identifiers
   and fixed disclaimers, while comparing only semantic paragraphs.
+- Because a later implementation refinement used the first holdout's aggregate
+  repetition statistics, that **22-case set is now classified as a development
+  validation set**, not a final untouched holdout. The new
+  `python scripts/n2_holdout.py --sealed` executes **12 additional actual
+  JPL charts** with a different seed `2026110827`, distinct inputs and
+  outputs under `qa-output/n2-final-holdout/`. Its inputs were frozen
+  before examination, and its results must not be used to retune the
+  implementation before independent acceptance review.
 - `holdout-metrics.json` contains per-chart semantic concept signatures,
   pairwise concept Jaccard, pairwise semantic-only text similarity,
   counts of exact re-used semantic paragraphs and separately defined
@@ -130,13 +138,13 @@ and the existing separate N2/N1/other GUI tabs and copy behaviors remain.
 ## Reproducibility
 
 Windows: `.github/workflows/windows-build.yml` now runs the full pytest
-suite, original N1/N2 comparison, the 22-case holdout, actual GUI QA,
+suite, original N1/N2 comparison, the 22-case development-validation batch, the untouched 12-chart sealed JPL holdout, actual GUI QA,
 offline PyInstaller EXE, ZIP and Windows installer/upgrade/uninstall tests.
 It uploads all reports and proof traces to `AstroBirthChart-GUI-QA`.
 
 Linux: `.github/workflows/n2-linux.yml` runs full Python/Qt tests
 (`QT_QPA_PLATFORM=offscreen`), pinned JPL ephemeris download, original
-paired reports, and the independent 22-case holdout. It uploads artifacts
+paired reports, the 22-case development-validation batch and the additional untouched 12-JPL-chart holdout. It uploads artifacts
 as `AstroBirthChart-N2-Linux-Holdout`.
 
 A CI success is necessary **but not sufficient** for acceptance. A separate
