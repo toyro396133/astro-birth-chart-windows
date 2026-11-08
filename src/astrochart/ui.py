@@ -540,6 +540,7 @@ class MainWindow(QMainWindow):
             self.lat.valueChanged, self.lon.valueChanged, self.tz.textChanged,
             self.date_mode.currentIndexChanged, self.hebrew_year.valueChanged,
             self.hebrew_month.currentIndexChanged, self.hebrew_day.valueChanged,
+            self.mixed_year.valueChanged, self.mixed_choice.currentIndexChanged,
             self.phase.currentIndexChanged,
         ):
             signal.connect(self._invalidate_chart)
