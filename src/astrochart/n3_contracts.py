@@ -511,15 +511,39 @@ def _verify_decision_reasons(plan: dict, evaluation: dict, definition: dict,
     # observed overlap. Never treat shared roots as two independent proofs.
     dependent_routes = set()
     if independent and dependency_failed:
+        from itertools import product
         for route_name in ROUTES:
+            # A genuine independence *failure* means no available full
+            # role-assignment can be pairwise disjoint. A single dependent
+            # *unused alternative* is not a reason to mark a proven route bad.
+            if proofs[route_name]["proof_result"] == "proven":
+                continue
             origin = ("r1_witness" if route_name == "r1_path"
                       else "direct_composite_component")
-            entries = [b for b in evaluation["bindings"] if b["origin"] == origin]
-            for i, first in enumerate(entries):
-                for second in entries[i + 1:]:
-                    if (first["role"] != second["role"] and
-                            set(first["dependency_roots"]) & set(second["dependency_roots"])):
-                        dependent_routes.add(route_name)
+            options = []
+            for spec in definition["participant_specs"]:
+                options.append([b for b in evaluation["bindings"]
+                                if b["origin"] == origin and b["role"] == spec["role"]])
+            if any(not group for group in options):
+                continue  # Missing candidate is not dependent roots.
+            combinations = 1
+            for group in options:
+                combinations *= len(group)
+            _assert(combinations <= 4096, "REASON_MISMATCH: root-search resource cap")
+            overlap_seen = False
+            full_disjoint_assignment = False
+            for assignment in product(*options):
+                used = set()
+                overlap = False
+                for binding in assignment:
+                    roots = set(binding["dependency_roots"])
+                    if used & roots:
+                        overlap = True
+                    used.update(roots)
+                overlap_seen |= overlap
+                full_disjoint_assignment |= not overlap
+            if overlap_seen and not full_disjoint_assignment:
+                dependent_routes.add(route_name)
     source_missing = not source_eligible(definition, sources)
     status = evaluation["source_license_check"]["status"]
     _assert(not (source_missing or source_state != "TRUE") or status != "pass",
