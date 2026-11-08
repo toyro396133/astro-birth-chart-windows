@@ -26,6 +26,8 @@ jobs:
         run: python scripts/n2_comparison.py
       - name: N2 independent JPL holdout and semantic-only comparison
         run: python scripts/n2_holdout.py
+      - name: N2 untouched JPL final holdout
+        run: python scripts/n2_holdout.py --sealed
       - name: Build offline Windows EXE (one-directory / LGPL friendly)
         run: python -m PyInstaller --noconfirm --clean astro_app.spec
       - name: Bundle independent updater worker
