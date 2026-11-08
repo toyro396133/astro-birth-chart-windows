@@ -103,7 +103,7 @@ def a_incomplete_b_proven():
     proofs=[route("r1_path",False),route("original_composite",True)]
     ev={"snapshot_id":digest("snapshot"),"evaluation_id":digest("evaluation"),
         "definition_id":d["definition_id"],"route_proofs":proofs,
-        "source_license_check":{"status":"fail"},"novelty_check":{"status":"unknown"}}
+        "source_license_check":{"status":"fail"},"novelty_check":{"status":"unknown"},"trace_digest":digest("eval")}
     plan={"kind":"N3Plan","schema_version":"N3-contract-2",
         "snapshot_id":ev["snapshot_id"],"definition_id":d["definition_id"],
         "evaluation_id":ev["evaluation_id"],"decision":"COMPARISON_ONLY",
@@ -112,7 +112,7 @@ def a_incomplete_b_proven():
             {"code":"NO_RELATION_SOURCE","route":"original_composite","blocking":True,"evidence_refs":[]}],
         "retained_atomic_rule_ids":["moon-sign-2","sun-sign-1"],
         "comparison_state":"available","relation_claim_state":"blocked","relation_claim_ids":[],
-        "route_proofs":proofs,"trace":{"source_snapshot_hash":digest("source"),
+        "route_proofs":proofs,"trace":{"source_snapshot_hash":s["registry_hash"],
         "adapter_trace_hash":digest("adapter"),"evaluation_trace_hash":digest("eval"),
         "selected_decisive_route":"original_composite",
         "atomic_evidence_refs":["placement:שמש:טלה","placement:ירח:שור"]}}
@@ -234,6 +234,8 @@ def test_r1_truncated_b_complete_source_under_review_and_invalid_plan():
     validate_schema("N3Plan",plan)
     verify_plan(plan,ev,d,s)
     for mutate in (
+        lambda p:p["trace"].update(source_snapshot_hash=digest("forged source")),
+        lambda p:p["trace"].update(evaluation_trace_hash=digest("forged evaluation")),
         lambda p:p.update(decision="RELATION_LICENSED",primary_reason="NONE",
                           relation_claim_state="licensed_shadow",relation_claim_ids=[digest("claim")]),
         lambda p:p["route_proofs"][0].update(proof_result="proven"),
