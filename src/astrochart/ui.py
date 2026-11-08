@@ -28,6 +28,7 @@ from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
 from .chart_export import export_wheel_png, export_chart_pdf
+from .aspect_explorer import AspectExplorerDialog
 from .display_preferences import (
     DisplayPreferences, read_preferences, save_preferences,
     FONT_PERCENTS, ROW_HEIGHTS, SYMBOL_SIZES,
@@ -96,6 +97,7 @@ class MainWindow(QMainWindow):
         self.calc = None
         self._interpretation_chart = None
         self._active_chart = None
+        self._aspect_dialog = None
         self._active_record = None
         self._current_file = None
         self._display_settings = QSettings("AstroBirthChart", "AstroBirthChart")
@@ -454,7 +456,15 @@ class MainWindow(QMainWindow):
         details_layout.addWidget(self.table, 1)
 
         self.aspects_title = section_title("היבטים בין הגופים")
-        details_layout.addWidget(self.aspects_title)
+        aspect_heading = QHBoxLayout()
+        aspect_heading.addWidget(self.aspects_title)
+        aspect_heading.addStretch()
+        self.aspect_explorer_button = QPushButton("חקירת היבטים")
+        self.aspect_explorer_button.setObjectName("aspectExplorerButton")
+        self.aspect_explorer_button.setEnabled(False)
+        self.aspect_explorer_button.clicked.connect(self._open_aspect_explorer)
+        aspect_heading.addWidget(self.aspect_explorer_button)
+        details_layout.addLayout(aspect_heading)
         self.aspects = QTextEdit()
         self.aspects.setObjectName("aspectText")
         self.aspects.setReadOnly(True)
@@ -558,7 +568,11 @@ class MainWindow(QMainWindow):
             return
         self._active_chart = None
         self._interpretation_chart = None
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+            self._aspect_dialog = None
         self._active_record = None
+        self.aspect_explorer_button.setEnabled(False)
         self.copy_button.setEnabled(False)
         self.interpret_button.setEnabled(False)
         self.wheel.set_chart(None)
@@ -897,7 +911,11 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
     def _show_chart(self, chart):
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+            self._aspect_dialog = None
         self._active_chart = chart
+        self.aspect_explorer_button.setEnabled(True)
         self._interpretation_chart = chart
         self.copy_button.setEnabled(True)
         self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
@@ -939,6 +957,17 @@ class MainWindow(QMainWindow):
             f" | ציר נגדי: {chart.descendant:.3f}°")
         self.warnings.setText("\n".join(chart.warnings) + angles)
         self.wheel.set_chart(chart)
+
+    def _open_aspect_explorer(self):
+        if self._active_chart is None:
+            return
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+        dialog = AspectExplorerDialog(self._active_chart, self)
+        dialog.aspectSelected.connect(self.wheel.set_selected_aspect_pair)
+        self._aspect_dialog = dialog
+        dialog.show()
+        dialog.raise_()
 
     def _on_table_selection(self, row, column, previous_row, previous_column):
         chart = self._active_chart
