@@ -367,7 +367,7 @@ def build_personality_model(synthesis: dict, interpretation: dict | None = None,
             order.append(axis)
     order += [n["axis"] for n in ranked if n["axis"] not in order]
     plan = {"primary": [], "secondary": [], "processes": [], "tensions": []}
-    claims, covered, skipped = [], [], []
+    claims, covered, skipped, unexpanded = [], [], [], []
     safe_input = (isinstance(interpretation, dict)
                   and isinstance(interpretation.get("signals"), list)
                   and interpretation.get("time_mode") == mode)
@@ -383,6 +383,11 @@ def build_personality_model(synthesis: dict, interpretation: dict | None = None,
             items = _axis_claims(node, by_axis[axis], interpretation, readings, rule_types)
             if not items:
                 skipped.append(axis)
+                continue
+            # No curated per-rule behavior: do not consume scarce narrative
+            # slots with a generic axis paragraph that could fit every chart.
+            if not any(item["kind"] == "axis-example" for item in items):
+                unexpanded.append(axis)
                 continue
             claims.extend(items)
             plan[target].append([c["id"] for c in items])
@@ -424,5 +429,6 @@ def build_personality_model(synthesis: dict, interpretation: dict | None = None,
         "local_language_model_enabled": False,
         "claims": claims, "plan": plan,
         "displayed_axis_names": covered, "skipped_unverifiable_axes": _distinct(skipped),
+        "unexpanded_axis_names": _distinct(unexpanded),
         "warnings": warnings,
     }
