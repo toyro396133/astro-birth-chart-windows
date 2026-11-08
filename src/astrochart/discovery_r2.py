@@ -651,6 +651,13 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
     if any(h["provenance_quality"]["all_supporting_reports_unverified_or_missing"]
            for h in hypotheses):
         warnings.append("Some hypotheses rely entirely on unverified/missing source evidence.")
+    recurring_unverified_count = sum(
+        bool(p["all_supporting_reports_unverified_or_missing"])
+        for p in recurrent_only)
+    if recurring_unverified_count:
+        warnings.append(
+            f"{recurring_unverified_count} recurrent patterns rely entirely on "
+            "unverified or missing source provenance; none is source-approved.")
     if truncated or not witness_complete or not r1_input_complete:
         warnings.append("Search was incomplete: missing evidence is NOT a negative result.")
     return {
@@ -696,6 +703,7 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
             "possible_r1_directed_compositions": len(ontology["directed_paths"]),
             "predefined_r1_pattern_count": len(predefined),
             "recurrent_insufficient_diversity_count": len(recurrent_only),
+            "recurrent_unverified_or_missing_provenance_count": recurring_unverified_count,
             "candidate_patterns_tested": evaluated,
             "novel_hypotheses": len(hypotheses),
             "novel_pair_relations": sum(len(h["members"]) == 2 for h in hypotheses),
