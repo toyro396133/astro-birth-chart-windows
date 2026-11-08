@@ -32,6 +32,8 @@ jobs:
         run: python scripts/n2_catalog_impact.py
       - name: N2 expanded catalog separate sealed cohort
         run: python scripts/n2_catalog_impact.py --sealed
+      - name: C29 full failing-SHA versus repaired code on 30 entirely fresh cases
+        run: python scripts/n2_c29_quality.py
       - name: N2 independent JPL holdout and semantic-only comparison
         run: python scripts/n2_holdout.py
       - name: N2 untouched JPL final holdout
