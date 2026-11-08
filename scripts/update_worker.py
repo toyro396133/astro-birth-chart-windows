@@ -6,6 +6,7 @@ Wait for the parent process, swap folders, keep old version, restart.
 import json
 from hashlib import sha256
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -73,9 +74,22 @@ def install(installed, stage, version, launch=None):
 def install_setup(installed, setup, version, expected_digest, invoke=None):
     """Use Inno Setup for registered installs. Never folder-swap uninstall logs."""
     installed, setup = Path(installed).resolve(), Path(setup).resolve()
+    delta = re.fullmatch(
+        r"AstroBirthChart-Setup-Delta-from-v([0-9]+\.[0-9]+\.[0-9]+)-to-v([0-9]+\.[0-9]+\.[0-9]+)\.exe",
+        setup.name)
+    if (delta is not None and delta.group(2) != version):
+        raise InstallationError("גרסת חבילת העדכון החלקי אינה תואמת")
+    if delta is not None:
+        try:
+            base = json.loads((installed / "version.json").read_text("utf-8"))
+        except (OSError, ValueError) as exc:
+            raise InstallationError("אין אפשרות לזהות את גרסת המקור") from exc
+        if base != {"version": delta.group(1), "platform": "windows-x64"}:
+            raise InstallationError("גרסת המקור אינה תואמת לעדכון החלקי")
     if (installed.name != "AstroBirthChart"
         or not (installed / "installed-by-setup.marker").is_file()
-        or setup.name != "AstroBirthChart-Setup.exe" or not setup.is_file()):
+        or (setup.name != "AstroBirthChart-Setup.exe" and delta is None)
+        or not setup.is_file()):
         raise InstallationError("נתיב התקנה או קובץ מתקין אינם תקינים")
     if len(expected_digest) != 64 or any(c not in "0123456789abcdef" for c in expected_digest):
         raise InstallationError("חתימת העדכון אינה תקינה")
