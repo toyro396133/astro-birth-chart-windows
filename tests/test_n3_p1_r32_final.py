@@ -14,6 +14,7 @@ from astrochart.interpretation import interpret_chart
 from astrochart.n3_admission import admit_n3_bundle, limited_r1_trace
 from astrochart.n3_contracts import (
     N3ValidationError, digest, seal, evaluation_id, plan_id, make_snapshot_id,
+    verify_plan,
 )
 from astrochart.n3_evidence import adapt_hits, match_composite, alternative_set_id
 from astrochart.n3_n2 import classify_rule
@@ -351,3 +352,18 @@ def test_r32_10_authentic_unselected_alternative_cannot_change_semantic_truth():
     resign(b)
     with pytest.raises(N3ValidationError):
         admit_n3_bundle(**b)
+
+
+
+def test_r32_08_helper_recomputes_instead_of_trusting_claimed_semantic_verdicts():
+    b = _bundle()
+    adapted = adapt_hits(b["chart"], b["report"], PACK, RULES)
+    definition = b["relation_catalog"]["definitions"][0]
+    # A baseline valid comparison may be inspected in the lower-level helper.
+    verify_plan(b["plan"], b["evaluation"], definition, b["sources"],
+                adapted=adapted, n2_catalog=N2)
+    # The helper cannot be bypassed merely by passing caller-authored labels.
+    for claimed in ({"relation_state": "FALSE"}, {"source_state": "UNKNOWN"}):
+        with pytest.raises(N3ValidationError, match="REASON_MISMATCH"):
+            verify_plan(b["plan"], b["evaluation"], definition, b["sources"],
+                        adapted=adapted, n2_catalog=N2, **claimed)
