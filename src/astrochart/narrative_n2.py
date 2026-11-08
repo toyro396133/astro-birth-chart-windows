@@ -1,30 +1,50 @@
-"""N2 paragraph planning and offline Hebrew realization.
+"""Offline Hebrew realization from verified, rule-conditioned N2 claims.
 
-Each paragraph is a view over already attributed atomic semantic claims.
-The realizer cannot add chart facts, independent evidence or discovered links.
+Rendered paragraphs keep evidence quotations in a separate evidence_text field.
+semantic_text is the report's meaning, excluding citations and fixed disclosures:
+it is the correct target for differential acceptance and duplicate tests.
 """
 from __future__ import annotations
 
 from .semantics_n2 import N2_SEMANTIC_VERSION
 
-N2_NARRATIVE_VERSION = "0.1.0"
+N2_NARRATIVE_VERSION = "0.2.0"
+STATUS_HE = {
+    "unverified": "טרם אומת", "reviewed": "נבדק, לא אושר",
+    "approved": "מאושר בכלל המקורי בלבד",
+    "conflicting": "מקור שנוי במחלוקת",
+    "rejected": "נדחה",
+}
 
 
-def _list_he(items: list[str]) -> str:
-    if len(items) < 2:
-        return "".join(items)
+def _he_list(items: list[str]) -> str:
+    if len(items) == 1:
+        return items[0]
     return ", ".join(items[:-1]) + " ו" + items[-1]
 
 
-def _merge(section: str, kind: str, claims: list[dict], text: str) -> dict:
+def _source_line(item: dict) -> str:
+    x = item["content"]
+    status = item["source_review_statuses"]
+    status_text = _he_list([STATUS_HE.get(a, a) for a in status])
+    source = ", ".join(item["source_refs"]) or "מקור שלא סופקה לו כתובת"
+    return (f"{x['chart_evidence']} — כלל {x['selected_rule_id']} "
+            f"({status_text}); מקור: {source}; נוסח הכלל: {x['rule_text']}")
+
+
+def _merge(section: str, kind: str, claims: list[dict], semantic: str,
+           evidence: str = "") -> dict:
     def union(field: str) -> list[str]:
         return sorted({x for c in claims for x in c.get(field, [])})
     return {
-        "kind": kind, "text": text, "section": section,
+        "kind": kind,
+        "text": semantic + ("\n" + evidence if evidence else ""),
+        "semantic_text": semantic,
+        "evidence_text": evidence,
+        "section": section,
         "claim_ids": [c["id"] for c in claims],
         "classifications": sorted({c["classification"] for c in claims}),
-        "node_ids": union("node_ids"),
-        "rule_ids": union("rule_ids"),
+        "node_ids": union("node_ids"), "rule_ids": union("rule_ids"),
         "source_refs": union("source_refs"),
         "source_review_statuses": union("source_review_statuses"),
         "evidence_keys": union("evidence_keys"),
@@ -35,153 +55,186 @@ def _merge(section: str, kind: str, claims: list[dict], text: str) -> dict:
     }
 
 
-def _section(section_id: str, title: str, paragraphs: list[dict]) -> dict:
-    return {"id": section_id, "title": title, "paragraphs": paragraphs}
+def _section(name: str, title: str, paragraphs: list[dict]) -> dict:
+    return {"id": name, "title": title, "paragraphs": paragraphs}
 
 
 class DeterministicHebrewRealizer:
-    """Replaceable local-only surface adapter; source claims remain immutable."""
+    """Presentation adapter only: no free-form link mining or guessed context."""
 
-    def axis(self, claims: list[dict], index: int, *, secondary: bool) -> str:
-        by_kind = {c["kind"]: c for c in claims}
-        meaning = by_kind["axis-meaning"]["content"]
-        example = by_kind["axis-example"]["content"]
-        anchor = by_kind.get("rule-anchor")
+    def axis(self, claims: list[dict], index: int, *,
+             secondary: bool) -> tuple[str, str]:
+        meaning = next(c for c in claims if c["kind"] == "axis-meaning")["content"]
+        anchors = [c for c in claims if c["kind"] == "rule-anchor"]
+        examples = [c["content"] for c in claims if c["kind"] == "axis-example"]
         axis = meaning["axis"]
-        definition = meaning["definition"].rstrip(".")
-        situation, behavior = example["situation"], example["behavior"]
-        strength = meaning["strength"].rstrip(".")
-        challenge = meaning["challenge"].rstrip(".")
-        if secondary:
+        count = meaning["independent_evidence_count"]
+        evidence = "ראיות הכללים שנבחרו ב־R1:\n" + "\n".join(
+            "• " + _source_line(a) for a in anchors)
+        if not examples:
             text = (
-                f"עוד אפשרות העולה מן המפה היא {axis} — {definition}. "
-                f"{situation}, בעל המפה {behavior}. "
-                f"מצד אחד אפשר לראות בכך {strength}; מצד אחר, ייתכן גם {challenge}.")
-        elif index == 0:
-            text = (
-                f"מאפיין אפשרי מרכזי הוא {axis}: {definition}. "
-                f"{situation}, בעל המפה {behavior}. "
-                f"מצד אחד אפשר לראות בכך {strength}; לצד זאת ייתכן גם {challenge}.")
-        elif index == 1:
-            text = (
-                f"{situation}, בעל המפה {behavior}. האפשרות הזו משתלבת בציר {axis}, "
-                f"שמשמעותו {definition}. "
-                f"אפשר לראות בכך {strength}; עם זאת, ייתכן גם {challenge}.")
-        else:
-            text = (
-                f"לא כל הדפוסים פועלים באותה צורה: ציר {axis} מתאר {definition}. "
-                f"מצד אחד, {strength}. מצד אחר, {challenge}. "
-                f"למשל, {situation}, בעל המפה {behavior}.")
-        if anchor is not None:
-            fact = anchor["content"]
-            text += (
-                f" העוגן במפה הוא {fact['chart_evidence']}; "
-                f"הכלל הקיים מתאר זאת כך: {fact['rule_text'].rstrip('.')}."
-            )
-        if index == 0 and not secondary:
-            text += (" אם הנטייה הזו אכן מתאימה לבעל המפה, היא עשויה להופיע "
-                     "גם בהקשרים אחרים: " + example["recurrence_note"].rstrip(".")
-                     + ". אין בכך תיאור של עברו או תחזית לאירוע.")
-        return text
+                f"המפה מציגה ראיות לציר {axis}, אך במאגר N2 אין עדיין "
+                "משמעות התנהגותית ייחודית ומבוססת־כלל עבור הראיות שנבחרו. "
+                "לכן אין להסיק מהן תרחיש חיים מפורט. "
+                f"ההגדרה הכללית של הציר היא {meaning['definition']}.")
+            return text, evidence
+        if len(examples) == 1:
+            e = examples[0]
+            if e["evidence_type"] == "house":
+                intro = f"בקריאה זו ציר {axis} מופיע דרך סמליות של בית: "
+            elif e["evidence_type"] == "aspect":
+                intro = f"כאן ציר {axis} נקשר להיבט אסטרולוגי קיים: "
+            else:
+                intro = (f"נקודת המוצא לציר {axis} היא " if index == 0
+                         else f"בציר {axis} ניכר דגש מסוים: ")
+            text = (intro + e["focus"] + ". "
+                    + f"{e['situation']}, אפשר שבעל המפה {e['behavior']}. "
+                    + e["distinction"] + ". "
+                    + e["limit"] + ".")
+            if count > 1:
+                text += (f" ל־R1 נבחרו {count} קבוצות ראיה עצמאיות לציר הזה; "
+                         "רק זו שתוארה כאן כוללת הרחבה התנהגותית מבוקרת במאגר.")
+            return text, evidence
+        phrases = [f"{e['focus']}" for e in examples]
+        detail = "; ".join(
+            f"לפי כלל {e['selected_rule_id']}: {e['distinction']}" for e in examples)
+        text = (
+            f"ציר {axis} נתמך בכמה ראיות עצמאיות שאינן אומרות בדיוק אותו הדבר: "
+            + _he_list(phrases) + ". "
+            + detail + ". "
+            + f"{examples[0]['situation']}, אפשר שבעל המפה "
+              f"{examples[0]['behavior']}; "
+            + f"בנסיבות אחרות, {examples[1]['situation']}, "
+              f"אפשר ש{examples[1]['behavior']}. "
+            + "אלה דוגמאות נפרדות התלויות בכללי המקור; אין בכך ראיה "
+              "ששני הדפוסים מתרחשים יחד או שאחד גורם לשני.")
+        if count > len(examples):
+            text += " לחלק מן הראיות אין עדיין פירוש התנהגותי ייחודי במאגר."
+        return text, evidence
 
-    def process(self, claims: list[dict], index: int) -> str:
-        by_kind = {c["kind"]: c for c in claims}
-        reading = by_kind["process-reading"]["content"]
-        example = by_kind["process-example"]["content"]
+    def process(self, claims: list[dict], index: int) -> tuple[str, str]:
+        reading = next(c for c in claims if c["kind"] == "process-reading")["content"]
         path = reading["path"]
-        actions = example["actions"]
-        sequence = actions[0] + "".join(", ובהמשך " + action for action in actions[1:])
-        intro = ("מתוך הצירוף המסוים של הראיות במפה עולה גם אפשרות "
-                 "לקריאה משולבת. " if index == 0 else
-                 "צירוף נוסף שאפשר לבחון בנפרד: ")
-        return (
-            intro + f"{example['scenario']}, ייתכן שבעל המפה ינסה "
-            + sequence + ". "
-            + f"הצירים {_list_he(path)} מופיעים כמסלול ב־R1, "
-            + "אך החיבור ביניהם הוא השערת סינתזה ולא כלל מאושר. "
-            + "התרחיש מתאר כיצד הדבר יכול להיראות בחיי היום־יום; "
-            + "אין ראיה שבעל המפה נהג כך בפועל."
-            + ("" if reading["proof_search_complete"] else
-               " חיפוש חלופות הראיות למסלול זה הוגבל.")
-        )
+        slots = reading["slots"]
+        compare = next((c for c in claims if c["kind"] == "process-example"), None)
+        evidence = "ראיות המסלול שנבחרו ב־R1:\n" + "\n".join(
+            f"• {slot['axis']}: {slot['witness']['evidence']} "
+            f"(כלל {slot['witness']['rule_id']}; "
+            f"{STATUS_HE.get(slot['witness']['review_status'], slot['witness']['review_status'])}; "
+            f"מקור: {slot['witness']['source_url'] or 'לא צוין'})"
+            for slot in slots)
+        if compare is None:
+            text = (
+                f"R1 מציע מסלול תפקודי בין הצירים {_he_list(path)}. "
+                "אף שיש ראיות נפרדות לכל ציר, אין די במשמעויות "
+                "המתועדות שנבחרו כדי להסביר כיצד הן משלימות זו את זו. "
+                "לפיכך N2 אינו מציג סיפור פעולה מורכב או טענה סיבתית.")
+            return text, evidence
+        components = compare["content"]["components"]
+        positions = [f"{x['axis']}: {x['focus']}" for x in components]
+        contrasts = [x["distinction"] for x in components]
+        if len(components) >= 3:
+            opening = ("שלוש ראיות נבחרות מצביעות על דגשים שונים: "
+                       + "; ".join(positions) + ". ")
+        else:
+            opening = ("במסלול הזה שתי הראיות מדגישות דברים שונים: "
+                       + "; ".join(positions) + ". ")
+        text = (
+            opening
+            + "ההבדל ביניהן נמצא במשמעות של כל כלל: "
+            + "; ".join(contrasts) + ". "
+            + f"R1 מאפשר להציג אותן בסדר התפקודי {_he_list(path)}, "
+            + "אך הסדר אינו ראיה לכך שתכונה אחת גורמת לאחרת. "
+            + "הקריאה המשותפת היא השוואה של תחומי הדגש שהמקורות כבר מתארים, "
+            + "לא גילוי קשר פסיכולוגי חדש.")
+        if not reading["proof_search_complete"]:
+            text += " חיפוש החלופות למסלול הוגבל."
+        return text, evidence
 
-    def tension(self, claims: list[dict]) -> str:
+    def tension(self, claims: list[dict]) -> tuple[str, str]:
         item = claims[0]["content"]
-        return (
-            f"בעניין {item['axis']}, הראיות המקוריות מציגות שני כיוונים "
-            "סמליים מנוגדים. ייתכן שאף אחד מהם אינו מתאר את בעל המפה, "
-            "והמידע אינו מאפשר להכריע ביניהם או לייחס כל כיוון "
-            "לנסיבות חיים מסוימות. לכן הסתירה נשארת פתוחה."
-        )
+        def describe(witnesses):
+            return "\n".join(
+                f"• {x['evidence']} — כלל {x['rule_id']} "
+                f"({STATUS_HE.get(x['review_status'], x['review_status'])}); "
+                f"מקור: {x['source_url'] or 'לא צוין'}; "
+                f"נוסח הכלל: {x['text']}"
+                for x in witnesses)
+        evidence = (
+            "ראיות לכיוון החיובי:\n" + describe(item["positive_witnesses"])
+            + "\nראיות לכיוון המנוגד:\n"
+            + describe(item["negative_witnesses"]))
+        text = (
+            f"לציר {item['axis']} נבחרו ב־R1 ראיות לשני כיוונים מנוגדים. "
+            "הכללים והמקורות של שני הצדדים מוצגים בנפרד. "
+            "המידע אינו מאפשר להכריע ביניהם, לייחס כל כיוון "
+            "לנסיבות חיים מסוימות או לייחס לבעל המפה התנהגות בפועל.")
+        return text, evidence
 
 
 def compose_narrative_n2(semantics: dict, *,
                          realizer: DeterministicHebrewRealizer | None = None) -> dict:
-    """Translate a semantic plan into attributed paragraphs, without inference."""
-    if (not isinstance(semantics, dict) or
-            semantics.get("semantic_version") != N2_SEMANTIC_VERSION or
-            not isinstance(semantics.get("claims"), list) or
-            not isinstance(semantics.get("plan"), dict)):
+    if (not isinstance(semantics, dict)
+            or semantics.get("semantic_version") != N2_SEMANTIC_VERSION
+            or not isinstance(semantics.get("claims"), list)
+            or not isinstance(semantics.get("plan"), dict)):
         raise ValueError("נדרש מודל משמעות N2 תקין")
     realizer = realizer or DeterministicHebrewRealizer()
     claims = {c["id"]: c for c in semantics["claims"]}
     plan = semantics["plan"]
-    sections = []
     primary, secondary, processes, tensions = [], [], [], []
-    for i, ids in enumerate(plan["primary"]):
-        group = [claims[c] for c in ids]
-        primary.append(_merge("primary", "axis",
-                              group, realizer.axis(group, i, secondary=False)))
-    for i, ids in enumerate(plan["secondary"]):
-        group = [claims[c] for c in ids]
-        secondary.append(_merge("secondary", "axis",
-                                group, realizer.axis(group, i, secondary=True)))
-    for i, ids in enumerate(plan["processes"]):
-        group = [claims[c] for c in ids]
-        processes.append(_merge("processes", "process",
-                                group, realizer.process(group, i)))
+    for name, target in (("primary", primary), ("secondary", secondary)):
+        for index, ids in enumerate(plan[name]):
+            group = [claims[i] for i in ids]
+            semantic, evidence = realizer.axis(group, index, secondary=name == "secondary")
+            target.append(_merge(name, "axis", group, semantic, evidence))
+    for index, ids in enumerate(plan["processes"]):
+        group = [claims[i] for i in ids]
+        semantic, evidence = realizer.process(group, index)
+        processes.append(_merge("processes", "process", group, semantic, evidence))
     for ids in plan["tensions"]:
-        group = [claims[c] for c in ids]
-        paragraph = _merge("tensions", "unresolved-tension",
-                           group, realizer.tension(group))
-        paragraph["evidence_by_polarity"] = group[0]["evidence_by_polarity"]
-        tensions.append(paragraph)
+        group = [claims[i] for i in ids]
+        semantic, evidence = realizer.tension(group)
+        p = _merge("tensions", "unresolved-tension", group, semantic, evidence)
+        p["evidence_by_polarity"] = group[0]["evidence_by_polarity"]
+        tensions.append(p)
+    sections = []
     if primary:
-        sections.append(_section("primary", "נטיות בולטות בקריאה הסמלית", primary))
+        sections.append(_section("primary", "משמעויות התלויות בכללי המקור", primary))
     if secondary:
-        sections.append(_section("secondary", "נטיות נוספות", secondary))
+        sections.append(_section("secondary", "דגשים נוספים והבדלים בין ראיות", secondary))
     if processes:
-        sections.append(_section("processes", "כיצד נטיות עשויות להשתלב", processes))
+        sections.append(_section("processes", "צירוף דגשים במסלול קיים של R1", processes))
     if tensions:
-        sections.append(_section("tensions", "היכן הראיות אינן מכריעות", tensions))
+        sections.append(_section("tensions", "סתירות שלא הוכרעו", tensions))
     if not (primary or secondary or processes or tensions):
         sections.append(_section("limited", "גבולות המידע", [{
             "kind": "no-supported-claims",
             "text": "אין די בצמתי R1 בעלי ראיות מתאימות כדי לתאר דפוס אישיותי. "
                     "המערכת אינה משלימה את החסר בתיאור כללי.",
-            "claim_ids": [], "classifications": [],
-            "node_ids": [], "rule_ids": [], "source_refs": [],
-            "source_review_statuses": [], "evidence_keys": [],
+            "semantic_text": "אין די בראיות מתאימות לתיאור דפוס.",
+            "evidence_text": "", "section": "limited", "claim_ids": [],
+            "classifications": [], "node_ids": [], "rule_ids": [],
+            "source_refs": [], "source_review_statuses": [], "evidence_keys": [],
             "evidence_roots": [], "meaning_ids": [],
             "audit_statuses": ["insufficient-evidence"],
             "provisional_time": semantics["time_mode"] != "known",
-            "section": "limited",
         }]))
-    statuses = sorted({c for p in primary + secondary + processes + tensions
-                       for c in p["source_review_statuses"]})
+    statuses = sorted({status for p in primary + secondary + processes + tensions
+                       for status in p["source_review_statuses"]})
     disclosure = (
-        "מדובר בפרשנות אסטרולוגית סמלית ובתרחישי התנהגות אפשריים, "
-        "לא במדידה מדעית או באבחון אישיות. דוגמאות החיים הן הרחבות "
-        "עריכתיות שטרם אומתו, והן אינן מוסיפות כללים או ראיות למפה. "
-        "קשרים בין צירים הם השערות של R1 בלבד.")
+        "זו קריאה אסטרולוגית סמלית, לא בדיקת אישיות מדעית או תיאור ביוגרפי. "
+        "הרחבות ההתנהגות במאגר N2 הן דוגמאות עריכתיות שלא אומתו, "
+        "והן אינן כללים אסטרולוגיים חדשים. מסלולי R1 הם השערות תפקודיות "
+        "בלבד; אין להסיק מהם סיבתיות או קשרים אישיותיים מאושרים.")
     if "unverified" in statuses:
-        disclosure += " בין הכללים המוצגים יש כללים שטרם אומתו."
+        disclosure += " יש כללים שלא אומתו."
     if "reviewed" in statuses:
-        disclosure += " חלק מן הכללים נבדקו, אך לא אושרו."
+        disclosure += " חלק מהכללים נבדקו אך לא אושרו."
     if "approved" in statuses:
-        disclosure += " יש כללים בודדים שמסומנים מאושרים; אין בכך אישור להרחבות."
+        disclosure += " כללים שמסומנים מאושרים אינם מאשרים את הרחבות N2."
     if "conflicting" in statuses:
-        disclosure += " בחלק מן המקורות נותרו אי־הסכמות."
+        disclosure += " חלק מהמקורות שנויים במחלוקת."
     mode = semantics["time_mode"]
     if mode == "unknown":
         disclosure += (" שעת הלידה אינה ידועה; דגימת אמצע היום אינה "
@@ -189,8 +242,9 @@ def compose_narrative_n2(semantics: dict, *,
     elif mode == "estimated":
         disclosure += (" שעת הלידה משוערת; לא נלקחו מן הדגימה "
                        "טענות על בתים או היבטים מדויקים.")
-    sections.append(_section("limits", "כיצד לקרוא את התיאור", [{
-        "kind": "disclosure", "text": disclosure, "section": "limits",
+    sections.append(_section("limits", "מגבלות הקריאה", [{
+        "kind": "disclosure", "text": disclosure,
+        "semantic_text": "", "evidence_text": "", "section": "limits",
         "claim_ids": [], "classifications": ["editorial-disclosure"],
         "node_ids": [], "rule_ids": [], "source_refs": [],
         "source_review_statuses": statuses, "evidence_keys": [],
@@ -216,3 +270,10 @@ def format_narrative_n2(report: dict) -> str:
         parts.append(section["title"])
         parts.extend(p["text"] for p in section["paragraphs"])
     return "\n\n".join(parts)
+
+
+def semantic_only_n2(report: dict) -> list[str]:
+    """Comparable claims without original rule quotes, URLs or disclosures."""
+    return [p.get("semantic_text", "") for section in report["sections"]
+            for p in section["paragraphs"]
+            if p["kind"] in ("axis", "process", "unresolved-tension")]
