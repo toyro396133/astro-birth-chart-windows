@@ -35,11 +35,14 @@ def test_new_catalog_is_bounded_and_traceable():
     added = [r for id_, r in after.items() if id_ not in before]
     remaining = [r for id_, r in rules.items() if id_ not in after]
     assert len(rules) == 96 and len(before) == 26
-    assert cat["catalog_version"] == "0.3.0"
-    assert len(added) == 60 and len(after) == 86 and len(remaining) == 10
-    assert all(r["polarity"] == -1 or r["type"] == "composite"
+    assert cat["catalog_version"] == "0.3.1"
+    assert len(added) == 51 and len(after) == 77 and len(remaining) == 19
+    assert all(r["polarity"] == -1 or r["type"] == "composite" or
+               r["id"] in {x["rule_id"] for x in cat["symbolic_explanations"]} or
+               r["id"] in {x["rule_id"] for x in cat["withheld_editorial_readings"]}
                for r in remaining)
-    assert {(r["id"], r["type"]) for r in remaining} == {
+    assert {(r["id"], r["type"]) for r in remaining if r["polarity"] == -1
+            or r["type"] == "composite"} == {
         ("sun-moon-square", "aspect"), ("sun-moon-opposition", "aspect"),
         ("mercury-saturn-square", "aspect"), ("saturn-house-1", "house"),
         ("mercury-mars-square", "aspect"), ("mars-saturn-square", "aspect"),
@@ -65,6 +68,8 @@ def test_new_catalog_is_bounded_and_traceable():
         assert p["original_source_url"] == rule["source_detail"]["url"]
         assert p["original_source_scope"] == rule["source_detail"]["scope"]
         assert "not" in p["origin"] or "unverified" in p["interpretive_basis"]
+        assert p["specific_external_source_verified"] is False
+        assert p["external_evidence_status"] == "not-established"
     for rid in before:
         assert after[rid] == before[rid], rid
 
