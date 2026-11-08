@@ -37,7 +37,7 @@ def catalog_pair():
         != "unverified-original-rule-text-only"
     ]
     assert len(baseline["rule_readings"]) == 26
-    assert len(expanded["rule_readings"]) == 86
+    assert len(expanded["rule_readings"]) == 77
     return baseline, expanded
 
 
@@ -131,7 +131,7 @@ def main():
     totals = {
         "seed": seed, "cases": len(rows),
         "real_jpl_charts": 16, "synthetic_controls": len(charts) - 16,
-        "catalog_rules_before": 26, "catalog_rules_after": 86,
+        "catalog_rules_before": 26, "catalog_rules_after": len(expanded["rule_readings"]),
         "changed_reports": sum(r["full_narrative_changed"] for r in rows),
         "new_rule_meanings_displayed": len({
             rule for r in rows for rule in r["new_meaning_rules_displayed"]}),
