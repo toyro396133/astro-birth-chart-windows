@@ -46,8 +46,8 @@ class UpdateCheckThread(QThread):
         try:
             installed = install_directory()
             mode = "setup" if is_installed_setup(installed) else "portable"
-            latest = latest_release(SETUP_ASSET if mode == "setup" else ASSET,
-                                    base_version=__version__ if mode == "portable" else None)
+            latest = (latest_release(SETUP_ASSET) if mode == "setup"
+                      else latest_release(ASSET, base_version=__version__))
             self.result.emit(
                 (latest, mode)
                 if latest and is_newer(latest.version, __version__) else None)
