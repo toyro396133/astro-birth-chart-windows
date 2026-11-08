@@ -801,7 +801,9 @@ def evaluate_bound_predicate(ast: dict, definition: dict, evaluation: dict,
 
 def source_conditions_state(definition: dict, evaluation: dict, adapted: dict) -> str:
     """Unknown or false source conditions never license an effect."""
+    complete = any(p["proof_result"] == "proven" and p["search_complete"] is True
+                   for p in evaluation["route_proofs"])
     states = [evaluate_bound_predicate(anchor["matching_conditions"], definition,
-                                      evaluation, adapted, complete=False)
+                                      evaluation, adapted, complete=complete)
               for anchor in definition["source_anchors"]]
     return "FALSE" if "FALSE" in states else "UNKNOWN" if "UNKNOWN" in states else "TRUE"
