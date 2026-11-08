@@ -9,7 +9,7 @@ from astrochart.n3_contracts import (
     N3ValidationError, canonical_bytes, digest, seal, validate_schema,
     make_manifest, verify_manifest, verify_registry, verify_definition, verify_catalog,
     make_snapshot_id, verify_snapshot, validate_predicate, evaluate_predicate,
-    plan_id, verify_plan, verify_route_proofs, ENABLED)
+    plan_id, evaluation_id, verify_plan, verify_route_proofs, ENABLED)
 from astrochart.n3_evidence import adapt_hits, match_composite, alternative_set_id
 from astrochart.n3_n2 import verify_n2_catalog, classify_rule
 
@@ -98,12 +98,14 @@ def route(name,ok):
         "trace_hash":digest(name)}
 
 def a_incomplete_b_proven():
+    # Build a genuinely complete schema-compliant Evaluation from original facts.
+    from test_n3_p1_integrity import composite_evaluation
     m,t,s=manifest(),term_registry(),source_registry()
     d=definition(m,t,s)
-    proofs=[route("r1_path",False),route("original_composite",True)]
-    ev={"snapshot_id":digest("snapshot"),"evaluation_id":digest("evaluation"),
-        "definition_id":d["definition_id"],"route_proofs":proofs,
-        "source_license_check":{"status":"fail"},"novelty_check":{"status":"unknown"},"trace_digest":digest("eval")}
+    ev,adapter=composite_evaluation()
+    ev["definition_hash"]=d["definition_hash"]
+    ev["route_proofs"][0]=route("r1_path",False)
+    ev["evaluation_id"]=evaluation_id(ev)
     plan={"kind":"N3Plan","schema_version":"N3-contract-2",
         "snapshot_id":ev["snapshot_id"],"definition_id":d["definition_id"],
         "evaluation_id":ev["evaluation_id"],"decision":"COMPARISON_ONLY",
@@ -112,12 +114,12 @@ def a_incomplete_b_proven():
             {"code":"NO_RELATION_SOURCE","route":"original_composite","blocking":True,"evidence_refs":[]}],
         "retained_atomic_rule_ids":["moon-sign-2","sun-sign-1"],
         "comparison_state":"available","relation_claim_state":"blocked","relation_claim_ids":[],
-        "route_proofs":proofs,"trace":{"source_snapshot_hash":s["registry_hash"],
-        "adapter_trace_hash":digest("adapter"),"evaluation_trace_hash":digest("eval"),
+        "route_proofs":ev["route_proofs"],"trace":{"source_snapshot_hash":s["registry_hash"],
+        "adapter_trace_hash":adapter["trace_digest"],"evaluation_trace_hash":ev["trace_digest"],
         "selected_decisive_route":"original_composite",
-        "atomic_evidence_refs":["placement:שמש:טלה","placement:ירח:שור"]}}
+        "atomic_evidence_refs":ev["route_proofs"][1]["source_fact_refs"]}}
     plan["plan_id"]=plan_id(plan)
-    return plan,ev,d,s
+    return plan,ev,d,s,adapter
 
 def test_schema_rejects_missing_extra_and_bad_hash():
     from jsonschema import Draft202012Validator
@@ -230,9 +232,9 @@ def test_raw_hit_tamper_and_alternative_duplication():
         alternative_set_id(**args,witness_group_ids=[digest("a"),digest("a")])
 
 def test_r1_truncated_b_complete_source_under_review_and_invalid_plan():
-    plan,ev,d,s=a_incomplete_b_proven()
+    plan,ev,d,s,adapter=a_incomplete_b_proven()
     validate_schema("N3Plan",plan)
-    verify_plan(plan,ev,d,s)
+    verify_plan(plan,ev,d,s,adapted=adapter,n2_catalog=N2)
     for mutate in (
         lambda p:p["trace"].update(source_snapshot_hash=digest("forged source")),
         lambda p:p["trace"].update(evaluation_trace_hash=digest("forged evaluation")),
@@ -245,7 +247,7 @@ def test_r1_truncated_b_complete_source_under_review_and_invalid_plan():
         bad=copy.deepcopy(plan)
         mutate(bad)
         bad["plan_id"]=plan_id(bad) if len({x["route"] for x in bad["route_proofs"]})==2 else digest("duplicate")
-        with pytest.raises(N3ValidationError):verify_plan(bad,ev,d,s)
+        with pytest.raises(N3ValidationError):verify_plan(bad,ev,d,s,adapted=adapter,n2_catalog=N2)
 
 def test_dynamic_n2_categories_dont_promote_symbolic():
     result=verify_n2_catalog(N2,RULES,locked_digest=digest(N2))
