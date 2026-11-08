@@ -455,6 +455,9 @@ class MainWindow(QMainWindow):
         rows = sorted({index.row() for index in selected})
         if not rows and self.table.currentRow() >= 0:
             rows = [self.table.currentRow()]
+        # A single-row table is unambiguous even when Qt has no active selection.
+        if not rows and self.table.rowCount() == 1:
+            rows = [0]
         if not rows:
             return
         text = "\n".join("\t".join(
