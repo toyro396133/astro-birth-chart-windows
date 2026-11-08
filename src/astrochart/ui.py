@@ -13,6 +13,8 @@ from .domain import SIGNS, degree_in_sign
 from .engine import Calculator
 from .hebrew_dates import (months_of_year, days_of_month, from_gregorian,
                            resolve_hebrew_date, sun_altitude, validate_phase_sun)
+from .mixed_dates import hebrew_months_in_gregorian_year, mixed_candidates
+from .changelog import render_history
 from .locations import CITIES
 from .location_catalog import (
     catalog_labels, resolve_location, load_favorites, save_favorite, MANUAL_LABEL,
@@ -160,9 +162,12 @@ class MainWindow(QMainWindow):
             ("ייצא כטקסט...", lambda: self._export_chart("txt")),
             ("ייצא גלגל PNG...", lambda: self._export_chart("png")),
             ("ייצא דוח PDF...", lambda: self._export_chart("pdf")),
+            ("ייצא PDF — מפה בלבד...", lambda: self._export_chart("pdf_wheel")),
         ):
             action = self.file_menu.addAction(text)
             action.triggered.connect(fn)
+        history_action = self.file_menu.addAction("יומן שינויים לפי חבילות...")
+        history_action.triggered.connect(self._show_changelog)
         self.file_menu.addSeparator()
         preferences_action = self.file_menu.addAction("הגדרות תצוגה...")
         preferences_action.triggered.connect(self._open_display_preferences)
@@ -214,6 +219,12 @@ class MainWindow(QMainWindow):
         panel_row.addWidget(self.install_button)
         main.addWidget(self.update_panel)
         self.update_panel.hide()
+        self.update_details = QTextEdit()
+        self.update_details.setReadOnly(True)
+        self.update_details.setMaximumHeight(150)
+        self.update_details.setObjectName("updateChanges")
+        main.addWidget(self.update_details)
+        self.update_details.hide()
 
         # Clean, progressive-disclosure input card. Common fields stay visible;
         # coordinates and IANA zone remain one click away for power users.
@@ -229,6 +240,7 @@ class MainWindow(QMainWindow):
         self.date_mode = QComboBox()
         self.date_mode.addItem("לועזי", "gregorian")
         self.date_mode.addItem("עברי", "hebrew")
+        self.date_mode.addItem("מעורב: שנה לועזית + יום וחודש עבריים", "mixed")
         self.date_mode.setMaximumWidth(215)
         form.addWidget(field_label("סוג תאריך"), 0, 0)
         form.addWidget(self.date_mode, 0, 1)
@@ -246,9 +258,13 @@ class MainWindow(QMainWindow):
         self.date_stack.addWidget(self.day)
 
         hebrew_input = QWidget()
-        hrow = QHBoxLayout(hebrew_input)
+        hroot = QVBoxLayout(hebrew_input)
+        hroot.setContentsMargins(0, 0, 0, 0)
+        hroot.setSpacing(2)
+        hrow = QHBoxLayout()
         hrow.setContentsMargins(0, 0, 0, 0)
         hrow.setSpacing(6)
+        hroot.addLayout(hrow)
         self.hebrew_year = QSpinBox()
         self.hebrew_year.setRange(5500, 6100)
         self.hebrew_year.setFixedWidth(112)
@@ -264,6 +280,18 @@ class MainWindow(QMainWindow):
         hrow.addWidget(self.hebrew_day)
         hrow.addWidget(self.hebrew_month, 1)
         hrow.addWidget(self.hebrew_year)
+        self.mixed_year = QSpinBox()
+        self.mixed_year.setRange(1850, 2149)
+        self.mixed_year.setValue(date.today().year)
+        self.mixed_year.setFixedWidth(112)
+        self.mixed_year.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.mixed_year.setToolTip("השנה לפי הלוח הלועזי")
+        hrow.addWidget(self.mixed_year)
+        self.mixed_year.hide()
+        self.mixed_choice = QComboBox()
+        self.mixed_choice.setToolTip("בחר את התאריך המדויק אם קיימות כמה התאמות בשנה הלועזית")
+        self.mixed_choice.hide()
+        hroot.addWidget(self.mixed_choice)
         self.date_stack.addWidget(hebrew_input)
         form.addWidget(self.date_stack, 0, 3)
 
@@ -373,6 +401,8 @@ class MainWindow(QMainWindow):
         self._fill_hebrew_months(gm)
         self.hebrew_day.setValue(gd)
         self.hebrew_year.valueChanged.connect(self._year_changed)
+        self.mixed_year.valueChanged.connect(self._mixed_year_changed)
+        self.mixed_choice.currentIndexChanged.connect(self._update_conversion)
         self.hebrew_month.currentIndexChanged.connect(self._month_changed)
         self.hebrew_day.valueChanged.connect(self._update_conversion)
         self.phase.currentIndexChanged.connect(self._phase_changed)
@@ -647,6 +677,9 @@ class MainWindow(QMainWindow):
             self._prepared_update = None
         self.install_button.setEnabled(False)
 
+    def _show_changelog(self):
+        QMessageBox.information(self, "יומן שינויים — לפי חבילות", render_history())
+
     def _start_update_check(self):
         if self._updating:
             return
@@ -654,6 +687,7 @@ class MainWindow(QMainWindow):
         self._latest_update = None
         self._update_mode = None
         self.update_panel.hide()
+        self.update_details.hide()
         self.update_status.setText("בודק גרסאות...")
         self.update_button.setEnabled(False)
         self._updating = True
@@ -675,6 +709,9 @@ class MainWindow(QMainWindow):
         self.latest_update_label.setText(
             f"גרסה אחרונה: v{release.version} · גודל הורדה: {megabytes:.1f}MB")
         self.update_panel.show()
+        self.update_details.setPlainText(
+            release.notes.strip() or "לא פורסם פירוט שינויים עבור גרסה זו.")
+        self.update_details.show()
         self.download_button.setEnabled(True)
         self.update_status.setText(f"עדכון v{release.version} זמין — טרם הורד")
 
@@ -767,7 +804,11 @@ class MainWindow(QMainWindow):
         old = preferred if preferred is not None else self.hebrew_month.currentData()
         self.hebrew_month.blockSignals(True)
         self.hebrew_month.clear()
-        for number, name in months_of_year(self.hebrew_year.value()):
+        if self.date_mode.currentData() == "mixed":
+            months = hebrew_months_in_gregorian_year(self.mixed_year.value())
+        else:
+            months = months_of_year(self.hebrew_year.value())
+        for number, name in months:
             self.hebrew_month.addItem(name, number)
         idx = self.hebrew_month.findData(old)
         self.hebrew_month.setCurrentIndex(idx if idx >= 0 else 0)
@@ -775,14 +816,53 @@ class MainWindow(QMainWindow):
         self._month_changed()
 
     def _year_changed(self, value):
-        self._fill_hebrew_months()
+        if self.date_mode.currentData() != "mixed":
+            self._fill_hebrew_months()
+
+    def _mixed_year_changed(self, value):
+        if self.date_mode.currentData() == "mixed":
+            self._fill_hebrew_months()
 
     def _month_changed(self, *args):
         month = self.hebrew_month.currentData()
         if month is not None:
-            maximum = days_of_month(self.hebrew_year.value(), month)
+            if self.date_mode.currentData() == "mixed":
+                year = self.mixed_year.value()
+                begin = from_gregorian(date(year, 1, 1))[0]
+                end = from_gregorian(date(year, 12, 31))[0]
+                lengths = [days_of_month(hebrew_year, month)
+                           for hebrew_year in range(begin - 1, end + 2)
+                           if month in {number for number, _ in months_of_year(hebrew_year)}]
+                maximum = max(lengths) if lengths else 29
+            else:
+                maximum = days_of_month(self.hebrew_year.value(), month)
             self.hebrew_day.setMaximum(maximum)
         self._update_conversion()
+
+    def _refresh_mixed_choices(self):
+        if self.date_mode.currentData() != "mixed":
+            return
+        month = self.hebrew_month.currentData()
+        selected = self.mixed_choice.currentData()
+        options = mixed_candidates(
+            self.mixed_year.value(), month, self.hebrew_day.value(),
+            self.phase.currentData(), time(self.hour.time().hour(), self.hour.time().minute())
+        ) if month is not None else []
+        self.mixed_choice.blockSignals(True)
+        self.mixed_choice.clear()
+        if len(options) > 1:
+            self.mixed_choice.addItem("בחר התאמה — קיימים כמה תאריכים", None)
+        for option in options:
+            self.mixed_choice.addItem(option.label, option.key)
+        idx = self.mixed_choice.findData(selected) if selected is not None else -1
+        if idx >= 0:
+            self.mixed_choice.setCurrentIndex(idx)
+        elif len(options) > 1:
+            self.mixed_choice.setCurrentIndex(0)
+        elif options:
+            self.mixed_choice.setCurrentIndex(0)
+        self.mixed_choice.blockSignals(False)
+
 
     def _unknown_changed(self, checked):
         self.hour.setEnabled(not checked)
@@ -790,18 +870,21 @@ class MainWindow(QMainWindow):
         self._update_conversion()
 
     def _date_mode_changed(self, *args):
-        hebrew = self.date_mode.currentData() == "hebrew"
-        self.date_stack.setCurrentIndex(1 if hebrew else 0)
-        self.phase.setVisible(hebrew)
-        self.phase_label.setVisible(hebrew)
-        # A Hebrew day/night selection needs at least an estimated clock time.
-        # For wholly unknown hour, use the Gregorian-date mode instead.
-        if hebrew:
+        calendar_mode = self.date_mode.currentData() in ("hebrew", "mixed")
+        mixed = self.date_mode.currentData() == "mixed"
+        self.date_stack.setCurrentIndex(1 if calendar_mode else 0)
+        self.phase.setVisible(calendar_mode)
+        self.phase_label.setVisible(calendar_mode)
+        self.hebrew_year.setVisible(not mixed)
+        self.mixed_year.setVisible(mixed)
+        self.mixed_choice.setVisible(mixed)
+        if calendar_mode:
             self.unknown.setChecked(False)
-        self.unknown.setEnabled(not hebrew)
+        self.unknown.setEnabled(not calendar_mode)
         self.unknown.setToolTip(
-            "בתאריך עברי נדרשת שעה משוערת כדי לזהות את היום האזרחי" if hebrew else "")
-        self.approx_hour.setChecked(hebrew)
+            "בתאריך עברי או מעורב נדרשת שעה בקירוב" if calendar_mode else "")
+        self.approx_hour.setChecked(calendar_mode)
+        self._fill_hebrew_months()
         self._update_conversion()
 
     def _phase_changed(self, *args):
@@ -815,10 +898,24 @@ class MainWindow(QMainWindow):
     def _resolved_input(self):
         clock = self.hour.time()
         local_time = time(clock.hour(), clock.minute())
-        if self.date_mode.currentData() == "hebrew":
+        mode = self.date_mode.currentData()
+        if mode == "hebrew":
             return resolve_hebrew_date(
                 self.hebrew_year.value(), self.hebrew_month.currentData(),
                 self.hebrew_day.value(), self.phase.currentData(), local_time)
+        if mode == "mixed":
+            candidates = mixed_candidates(
+                self.mixed_year.value(), self.hebrew_month.currentData(),
+                self.hebrew_day.value(), self.phase.currentData(), local_time)
+            if not candidates:
+                raise ValueError("לא נמצאה התאמה בין השנה הלועזית לתאריך העברי")
+            selected = self.mixed_choice.currentData()
+            if selected is None:
+                raise ValueError("נמצאו כמה תאריכים — יש לבחור התאמה")
+            for candidate in candidates:
+                if candidate.key == selected:
+                    return candidate.resolved
+            raise ValueError("התאריך שנבחר אינו תואם לקלט הנוכחי")
         greg = self.day.date()
         from .hebrew_dates import ResolvedDate
         return ResolvedDate(date(greg.year(), greg.month(), greg.day()),
@@ -827,9 +924,11 @@ class MainWindow(QMainWindow):
     def _update_conversion(self, *args):
         if not hasattr(self, "conversion_label"):
             return
-        if self.date_mode.currentData() != "hebrew":
+        if self.date_mode.currentData() not in ("hebrew", "mixed"):
             self.conversion_label.setText("")
             return
+        if self.date_mode.currentData() == "mixed":
+            self._refresh_mixed_choices()
         try:
             resolved = self._resolved_input()
             self.conversion_label.setText(
@@ -880,7 +979,7 @@ class MainWindow(QMainWindow):
                     self.city.currentText(),
                     {**self._favorites, **self._session_locations}) is None:
                 raise ValueError("בחר מיקום מוכר או השתמש בהזנה ידנית")
-            if self.date_mode.currentData() == "hebrew" and self.unknown.isChecked():
+            if self.date_mode.currentData() in ("hebrew", "mixed") and self.unknown.isChecked():
                 raise ValueError("לתאריך עברי בחר יום/לילה ושעה בקירוב")
             resolved = self._resolved_input()
             if self.calc is None:
@@ -890,7 +989,7 @@ class MainWindow(QMainWindow):
             zone = self.tz.text().strip()
             latitude, longitude = self.lat.value(), self.lon.value()
             phase_warning = None
-            if self.date_mode.currentData() == "hebrew":
+            if self.date_mode.currentData() in ("hebrew", "mixed"):
                 altitude = sun_altitude(
                     self.calc, day, hour, zone, latitude, longitude)
                 phase_warning = validate_phase_sun(resolved.phase, altitude)
@@ -909,7 +1008,7 @@ class MainWindow(QMainWindow):
                     "שעת הלידה משוערת. המעלות, האופק, רום השמיים, "
                     "הבתים וההיבטים חושבו לפי שעה זו בלבד; "
                     "ייתכנו שינויים כאשר השעה האמיתית שונה.")
-            if self.date_mode.currentData() == "hebrew":
+            if self.date_mode.currentData() in ("hebrew", "mixed"):
                 chart.warnings.insert(0, "המרת תאריך עברי: " + resolved.label)
             record = make_record(self._capture_input(), __version__)
             self._show_chart(chart)
@@ -1012,12 +1111,23 @@ class MainWindow(QMainWindow):
         resolved = self._resolved_input()
         raw_day = self.day.date()
         clock = resolved.local_time
+        mixed = self.date_mode.currentData() == "mixed"
+        selected_year = self.hebrew_year.value()
+        if mixed:
+            candidate = next((option for option in mixed_candidates(
+                self.mixed_year.value(), self.hebrew_month.currentData(),
+                self.hebrew_day.value(), self.phase.currentData(), clock)
+                if option.key == resolved.civil_day.isoformat()), None)
+            if candidate is None:
+                raise ValueError("לא ניתן לשמור תאריך מעורב לא מוכרע")
+            selected_year = candidate.hebrew_year
         return {
             "date_mode": self.date_mode.currentData(),
             "civil_date": resolved.civil_day.isoformat(),
             "clock": None if self.unknown.isChecked() else clock.strftime("%H:%M"),
-            "gregorian_date": date(raw_day.year(), raw_day.month(), raw_day.day()).isoformat(),
-            "hebrew_year": self.hebrew_year.value(),
+            "gregorian_date": (date(self.mixed_year.value(), 1, 1).isoformat()
+                               if mixed else date(raw_day.year(), raw_day.month(), raw_day.day()).isoformat()),
+            "hebrew_year": selected_year,
             "hebrew_month": int(self.hebrew_month.currentData()),
             "hebrew_day": self.hebrew_day.value(),
             "phase": self.phase.currentData(),
@@ -1058,6 +1168,7 @@ class MainWindow(QMainWindow):
         # Load only validated primitive values; all result fields are recomputed.
         self.date_mode.setCurrentIndex(self.date_mode.findData("gregorian"))
         self.day.setDate(QDate.fromString(values["gregorian_date"], "yyyy-MM-dd"))
+        self.mixed_year.setValue(date.fromisoformat(values["gregorian_date"]).year)
         self.hebrew_year.setValue(values["hebrew_year"])
         month_index = self.hebrew_month.findData(values["hebrew_month"])
         if month_index < 0:
@@ -1081,6 +1192,12 @@ class MainWindow(QMainWindow):
         self.date_mode.setCurrentIndex(self.date_mode.findData(values["date_mode"]))
         if values["clock"] is not None:
             self.hour.setTime(QTime.fromString(values["clock"], "HH:mm"))
+        if values["date_mode"] == "mixed":
+            self._refresh_mixed_choices()
+            index = self.mixed_choice.findData(values["civil_date"])
+            if index < 0:
+                raise ValueError("התאריך המעורב השמור אינו זמין")
+            self.mixed_choice.setCurrentIndex(index)
         self.unknown.setChecked(values["unknown_time"])
         self.approx_hour.setChecked(values["estimated_time"])
 
@@ -1112,9 +1229,9 @@ class MainWindow(QMainWindow):
         try:
             chart, record = self._require_current_chart()
             suffix = {"json": ".json", "txt": ".txt",
-                      "png": ".png", "pdf": ".pdf"}[kind]
+                      "png": ".png", "pdf": ".pdf", "pdf_wheel": ".pdf"}[kind]
             filters = {"json": "JSON (*.json)", "txt": "Text (*.txt)",
-                       "png": "PNG (*.png)", "pdf": "PDF (*.pdf)"}
+                        "png": "PNG (*.png)", "pdf": "PDF (*.pdf)", "pdf_wheel": "PDF (*.pdf)"}
             selected, _ = QFileDialog.getSaveFileName(
                 self, "ייצא מפה", "", filters[kind])
             if not selected:
@@ -1132,7 +1249,8 @@ class MainWindow(QMainWindow):
             elif kind == "png":
                 export_wheel_png(self.wheel, destination)
             else:
-                export_chart_pdf(self.wheel, chart, destination)
+                export_chart_pdf(self.wheel, chart, destination,
+                                 include_report=(kind != "pdf_wheel"))
             self.chart_caption.setText("הייצוא הושלם במחשב")
         except Exception as exc:
             QMessageBox.warning(self, "ייצוא מפה", str(exc))
