@@ -88,5 +88,7 @@ jobs:
           if (gh release view $tag 2>$null) { throw "Release $tag already exists; refusing overwrite" }
           $extra = @()
           if ("${{ github.ref_type }}" -eq "tag") { $extra += "--verify-tag" }
-          gh release create $tag AstroBirthChart-Windows-x64.zip dist/installer/AstroBirthChart-Setup.exe --target "${{ github.sha }}" --title "AstroBirthChart $tag" --generate-notes @extra
+          python scripts/render_release_notes.py --version $version --output release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw "Release notes generation failed" }
+          gh release create $tag AstroBirthChart-Windows-x64.zip dist/installer/AstroBirthChart-Setup.exe --target "${{ github.sha }}" --title "AstroBirthChart $tag" --notes-file release-notes.md @extra
           if ($LASTEXITCODE -ne 0) { throw "Release publishing failed" }
