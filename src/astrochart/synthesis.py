@@ -359,7 +359,7 @@ def synthesize(chart, report: dict) -> dict:
                     "domain": successor["domain"],
                     "relation": "functional-composition",
                     "parents": [prior["id"], successor["id"]],
-                    "strength": round(min(prior["strength"], successor["strength"]), 3),
+                    "strength": round(min(w["weight"] for w in witnesses), 3),
                     "strength_kind": "weakest-editorial-witness-not-probability",
                     "independent_facts": witnesses,
                     "dependent_facts": [], "counter_facts": [],
@@ -367,8 +367,7 @@ def synthesize(chart, report: dict) -> dict:
                     "alternative_facts_by_axis": alternatives,
                     "proof_search": {"states": visited, "limit": MAX_PROOF_STATES,
                                      "complete": not proof_limited},
-                    "evidence_roots": sorted(set(prior["evidence_roots"])
-                                             | set(successor["evidence_roots"])),
+                    "evidence_roots": sorted({root for w in witnesses for root in w["roots"]}),
                     "rule_ids": rule_ids, "related_rule_ids": rule_ids,
                     "source_refs": sources, "source_review_statuses": statuses,
                     "audit_status": "hypothesis",
