@@ -366,7 +366,7 @@ def is_installed_setup(install_dir):
     return (directory / INSTALLED_MARKER).is_file()
 
 
-def launch_setup_install(downloaded_setup, installed, version, expected_digest):
+def launch_setup_install(downloaded_setup, installed, version, expected_digest, fallback_release=None):
     """Install with Inno Setup *without* invalidating Windows uninstall records.
 
     A separate helper waits for the application to exit, rechecks the already
@@ -388,7 +388,20 @@ def launch_setup_install(downloaded_setup, installed, version, expected_digest):
         raise UpdateError("רכיב העדכון העצמאי חסר")
     location = Path(tempfile.mkdtemp(prefix="AstroChartUpdater-")) / HELPER
     shutil.copy2(worker, location)
-    subprocess.Popen([
+    command = [
         str(location), "--apply-setup", str(installed), str(downloaded_setup),
         str(os.getpid()), version, expected_digest
-    ], cwd=location.parent, close_fds=True)
+    ]
+    if fallback_release is not None:
+        expected_url = (f"https://github.com/{REPO}/releases/download/"
+                        f"v{version}/{SETUP_ASSET}")
+        if (downloaded_setup.name == SETUP_ASSET or
+                fallback_release.version != version or
+                fallback_release.url != expected_url or
+                not HASH.fullmatch("sha256:" + fallback_release.digest) or
+                type(fallback_release.size) is not int or
+                not 0 < fallback_release.size <= MAX_ZIP):
+            raise UpdateError("נתוני חבילת הגיבוי אינם תקינים")
+        command.extend([fallback_release.url, fallback_release.digest,
+                        str(fallback_release.size)])
+    subprocess.Popen(command, cwd=location.parent, close_fds=True)
