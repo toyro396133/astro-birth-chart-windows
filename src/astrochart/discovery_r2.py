@@ -126,6 +126,7 @@ def _parse(entry: dict) -> dict:
             blocked.add(axis)
         if node.get("selection_search_limited"):
             blocked.add(axis)
+            blocked.add("incomplete-R1-axis-selection")
         options = []
         seen_keys: dict[str, tuple[str, ...]] = {}
         facts = node.get("available_facts")
@@ -492,13 +493,16 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
     accepted: dict[tuple[str, ...], dict] = {}
     frequent: set[tuple[str, ...]] = set()
     predefined, recurrent_only, affected = [], [], []
+    validation_affected = []
+    pending_unexamined = 0
     pending = [tuple(p) for p in combinations(axes, 2)]
     evaluated, truncated = 0, False
     while pending:
         survivors = set()
-        for members in sorted(pending):
+        for index, members in enumerate(sorted(pending)):
             if evaluated >= MAX_CANDIDATES:
                 truncated = True
+                pending_unexamined = len(pending) - index
                 break
             evaluated += 1
             measure = _measure(members, train, cache)
@@ -543,6 +547,17 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
             source_statuses = sorted({
                 st for p in measure["supports"]
                 for st in p["source_review_statuses"]})
+            heldout = (_validation(members, val, vcache, training_signatures,
+                                   min_precision, len(val_excluded))
+                       if validation_cases is not None else {
+                           "status": "not-run",
+                           "generalization_demonstrated": False})
+            if heldout.get("incomplete_proof_case_ids"):
+                validation_affected.append({
+                    "members": list(members),
+                    "case_ids": heldout["incomplete_proof_case_ids"],
+                    "reason": "R2-holdout-witness-search-capped",
+                })
             accepted[members] = {
                 "id": candidate_id, "status": "hypothesis",
                 "relation_type": (
@@ -574,12 +589,7 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
                         == metrics["independent_support_count"]),
                     "any_source_approved_automatically": False,
                 },
-                "validation": (
-                    _validation(members, val, vcache, training_signatures,
-                                min_precision, len(val_excluded))
-                    if validation_cases is not None else {
-                        "status": "not-run",
-                        "generalization_demonstrated": False}),
+                "validation": heldout,
                 "approved_for_r1": False,
             }
         if truncated or not survivors:
@@ -606,7 +616,7 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
     hypotheses = sorted(accepted.values(), key=lambda h: (
         -len(h["members"]), -h["metrics"]["independent_support_count"], h["id"]))
     candidate_complete = not truncated
-    witness_complete = not affected
+    witness_complete = not affected and not validation_affected
     r1_input_complete = not any(
         any("R1" in str(b) or "cap" in str(b) or "proof" in str(b)
             for b in e["blocked_axes"]) for e in excluded + val_excluded)
@@ -648,7 +658,8 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
             "candidate_enumeration_complete": candidate_complete,
             "witness_proof_search_complete": witness_complete,
             "r1_input_search_complete": r1_input_complete,
-            "resource_affected_candidates": affected,
+            "resource_affected_candidates": affected + validation_affected,
+            "candidate_enumeration_unexamined_pending": pending_unexamined,
             "r1_resource_excluded_case_ids": [
                 e["case_id"] for e in excluded + val_excluded
                 if any("R1" in b or "cap" in b or "proof" in b
