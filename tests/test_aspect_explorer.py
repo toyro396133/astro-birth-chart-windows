@@ -41,6 +41,8 @@ def test_ui_selection_highlights_exact_one_aspect():
     wheel.set_chart(chart)
     dialog = AspectExplorerDialog(chart)
     dialog.aspectSelected.connect(wheel.set_selected_aspect_pair)
+    dialog.show()
+    app.processEvents()
     try:
         assert dialog.table.rowCount() == 3
         assert dialog.body_filter.count() == 4
