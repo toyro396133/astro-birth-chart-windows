@@ -97,7 +97,8 @@ class DeterministicHebrewRealizer:
             return text, evidence
         phrases = [f"{e['focus']}" for e in examples]
         detail = "; ".join(
-            f"לפי כלל {e['selected_rule_id']}: {e['distinction']}" for e in examples)
+            f"ראיה {i+1} מדגישה: {e['distinction']}"
+            for i, e in enumerate(examples))
         text = (
             f"ציר {axis} נתמך בכמה ראיות עצמאיות שאינן אומרות בדיוק אותו הדבר: "
             + _he_list(phrases) + ". "
