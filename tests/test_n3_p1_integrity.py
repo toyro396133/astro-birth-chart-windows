@@ -28,7 +28,7 @@ def composite_evaluation():
     adapter=adapt_hits(chart,raw,PACK,RULES)
     comp=match_composite("sun-aries-moon-taurus",adapter,RULES)
     matching=[h for h in adapter["hits"] if h["rule_hit_id"] in comp["component_rule_hit_ids"]]
-    matching.sort(key=lambda x:x["rule_id"])
+    matching.sort(key=lambda x: (0 if x["rule_id"]=="sun-sign-1" else 1))
     bindings=[]
     snapshot=digest("synthetic snapshot")
     for role,h in zip(("A","B"),matching):
@@ -38,10 +38,10 @@ def composite_evaluation():
             "witness_group_id":h["witness_group_id"],
             "alternative_set_id":alternative_set_id(
                 snapshot_id=snapshot,route="original_composite",
-                definition_id="test.definition",role=role,
+                definition_id="fixture-relation",role=role,
                 witness_group_ids=[h["witness_group_id"]]),
-            "dependency_roots":h["dependency_roots"],"source_refs":[],
-            "rule_review_status":"unverified","meaning_ref":None,
+            "dependency_roots":h["dependency_roots"],"source_refs":h["source_refs"],
+            "rule_review_status":h["review_status"],"meaning_ref":None,
             "content_category":classify_rule(h["rule_id"],N2),
             "origin":"direct_composite_component",
         })
@@ -61,7 +61,7 @@ def composite_evaluation():
         "source_fact_refs":sorted({fact for h in matching for fact in h["fact_keys"]}),
         "failure_reasons":[],"trace_hash":digest("B")}
     ev={"kind":"RelationEvaluation","schema_version":"N3-contract-2",
-        "definition_id":"test.definition","definition_hash":digest("definition"),
+        "definition_id":"fixture-relation","definition_hash":digest("definition"),
         "snapshot_id":snapshot,"chart_fingerprint":adapter["chart_fingerprint"],
         "run_id":"synthetic-run","candidate_id":digest("candidate"),
         "discovery_routes":["original_composite"],
@@ -129,10 +129,10 @@ def test_actual_r1_selected_witnesses_map_exactly_to_original_hits():
     node=next(n for n in r1["nodes"] if n["type"]=="synthesis"
               and n["path"]==["יוזמה","התמדה","אחריות"])
     adapter=adapt_hits(chart,report,PACK,RULES)
-    mapped=map_r1_witnesses(node,adapter)
+    mapped=map_r1_witnesses(node,adapter,chart=chart,report=report)
     assert mapped["search_complete"] is True
     assert set(mapped["selected"])==set(node["selected_witnesses_by_axis"])
     forged=copy.deepcopy(node)
     forged["selected_witnesses_by_axis"]["יוזמה"]["roots"]=["body:invented"]
     with pytest.raises(N3ValidationError):
-        map_r1_witnesses(forged,adapter)
+        map_r1_witnesses(forged,adapter,chart=chart,report=report)
