@@ -38,7 +38,7 @@ def test_catalog_is_editorial_and_rules_remain_unmodified():
                and item["provenance"]["review_status"] == "unverified"
                for item in catalog["entries"])
     assert len(load_rulepack().rules) == 96
-    assert catalog["catalog_version"] in ("0.2.0", "0.3.0")
+    assert catalog["catalog_version"] in ("0.2.0", "0.3.0", "0.3.1")
     assert 26 <= len(catalog["rule_readings"]) <= 96
 
 
