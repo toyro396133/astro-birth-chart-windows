@@ -187,3 +187,41 @@ def test_recheck_discards_old_prepared_update(window, tmp_path):
     assert window.update_panel.isHidden()
     assert not sample.exists()
     assert "אין עדכון" in window.update_status.text()
+
+def test_stale_results_are_removed_after_input_edit(window):
+    from astrochart.domain import BodyPosition, Chart
+    chart = Chart([BodyPosition("שמש", 12, False)], [], 20, 100, False, [])
+    window._show_chart(chart)
+    assert window.wheel.chart is chart
+    assert window.interpret_button.isEnabled()
+    assert window.table.rowCount() == 1
+    assert window.table.editTriggers() == ui.QAbstractItemView.EditTrigger.NoEditTriggers
+    window.hour.setTime(window.hour.time().addSecs(60))
+    assert window.wheel.chart is None
+    assert window.table.rowCount() == 0
+    assert not window.interpret_button.isEnabled()
+    assert "נדרש חישוב מחדש" in window.chart_caption.text()
+
+
+def test_failed_recalculation_cannot_retain_previous_chart(window, monkeypatch):
+    from astrochart.domain import BodyPosition, Chart
+    chart = Chart([BodyPosition("שמש", 12, False)], [], 20, 100, False, [])
+    window._show_chart(chart)
+    class BrokenCalculator:
+        def calculate(self, *args, **kwargs):
+            raise ValueError("בדיקת תקלה")
+    window.calc = BrokenCalculator()
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args: None)
+    window._calculate()
+    assert window.wheel.chart is None
+    assert not window.interpret_button.isEnabled()
+
+
+def test_copy_selected_row_as_text(window):
+    from astrochart.domain import BodyPosition, Chart
+    chart = Chart([BodyPosition("שמש", 12, False)], [], None, None, True, [])
+    window._show_chart(chart)
+    window.table.selectRow(0)
+    window._copy_selected_table_rows()
+    copied = QApplication.clipboard().text()
+    assert "שמש" in copied and "טלה" in copied
