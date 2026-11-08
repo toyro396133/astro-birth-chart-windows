@@ -503,3 +503,114 @@ def verify_claim(claim: dict, evaluation: dict, definition: dict, sources: dict,
             evaluation["novelty_check"]["status"] == "pass" and
             source_eligible(definition, sources), "unlicensed source or novelty")
     _assert(claim["audience"] != "user" and not allow_user, "P1 user output always forbidden")
+
+
+# Explicit DAG check: a signature may never transitively depend on itself.
+HASH_DEPENDENCIES = {
+    "rulepack_digest": (), "n2_catalog_digest": (), "ontology_digest": (),
+    "interface_versions": (), "term_registry_hash": (), "source_registry_hash": (),
+    "compatible_upstream_hash": ("rulepack_digest", "n2_catalog_digest",
+                                 "ontology_digest", "interface_versions"),
+    "definition_hash": ("compatible_upstream_hash", "term_registry_hash",
+                        "source_registry_hash"),
+    "catalog_digest": ("definition_hash", "term_registry_hash", "source_registry_hash"),
+    "snapshot_id": ("compatible_upstream_hash", "catalog_digest"),
+    "evaluation_id": ("snapshot_id", "definition_hash"),
+    "claim_id": ("evaluation_id",),
+    "plan_id": ("evaluation_id", "claim_id"),
+}
+
+
+def verify_hash_dag(extra_dependencies: dict[str, tuple[str, ...]] | None = None) -> tuple[str, ...]:
+    graph = {k: tuple(v) for k, v in HASH_DEPENDENCIES.items()}
+    if extra_dependencies:
+        for node, dependencies in extra_dependencies.items():
+            _assert(node in graph, "unknown hash DAG node")
+            graph[node] += tuple(dependencies)
+    visiting, visited, order = set(), set(), []
+
+    def visit(node):
+        _assert(node in graph, "unknown hash DAG dependency")
+        _assert(node not in visiting, "CYCLIC_SIGNATURE_GRAPH: " + node)
+        if node in visited:
+            return
+        visiting.add(node)
+        for dependency in graph[node]:
+            visit(dependency)
+        visiting.remove(node)
+        visited.add(node)
+        order.append(node)
+
+    for node in graph:
+        visit(node)
+    return tuple(order)
+
+
+def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
+                             n2_catalog: dict | None = None) -> None:
+    """Never admit invented witnesses, implicit root independence or route leakage.
+
+    R1 may be incomplete while direct composite Route B is proven. Only selected
+    witnesses from *that route* are checked for independence. Shared authoring
+    groups are not sky facts; raw matching remains the identity authority.
+    """
+    from .n3_evidence import alternative_set_id
+    from .n3_n2 import classify_rule
+
+    original = {h["rule_hit_id"]: h for h in adapted["hits"]}
+    _assert(len(original) == len(adapted["hits"]), "duplicate adapted evidence")
+    bindings = evaluation["bindings"]
+    all_entries = bindings + evaluation["alternatives"]
+    _assert(len({(b["role"], b["rule_hit_id"], b["origin"]) for b in all_entries})
+            == len(all_entries), "duplicate evidence binding")
+    groups: dict[tuple[str, str], set[str]] = {}
+    for binding in all_entries:
+        validate_schema("EvidenceBinding", binding)
+        hit = original.get(binding["rule_hit_id"])
+        _assert(hit is not None and not hit["modifier_only"], "invented or modifier RuleHit")
+        for name in ("rule_id", "evidence_key", "fact_keys",
+                     "dependency_roots", "witness_group_id"):
+            _assert(binding[name] == hit[name], "PROVENANCE_MISMATCH: binding " + name)
+        if n2_catalog is not None:
+            _assert(binding["content_category"] == classify_rule(hit["rule_id"], n2_catalog),
+                    "N2 content category mismatch")
+        route = ("r1_path" if binding["origin"] == "r1_witness"
+                 else "original_composite")
+        groups.setdefault((route, binding["role"]), set()).add(hit["witness_group_id"])
+    for binding in all_entries:
+        route = "r1_path" if binding["origin"] == "r1_witness" else "original_composite"
+        expected = alternative_set_id(snapshot_id=evaluation["snapshot_id"], route=route,
+                        definition_id=evaluation["definition_id"], role=binding["role"],
+                        witness_group_ids=sorted(groups[(route, binding["role"])]))
+        _assert(binding["alternative_set_id"] == expected, "invented alternative set ID")
+    selected_ids = {b["rule_hit_id"] for b in evaluation["selected_witnesses"]}
+    by_id = {b["rule_hit_id"]: b for b in bindings}
+    _assert(selected_ids.issubset(by_id), "selected witness outside bindings")
+    proofs = verify_route_proofs(evaluation["route_proofs"])
+    for route_name, proof in proofs.items():
+        if proof["proof_result"] != "proven":
+            continue
+        chosen = [by_id.get(s) for s in proof["selected_binding_ids"]]
+        _assert(all(chosen), "proof contains non-existent binding")
+        assert all(x is not None for x in chosen)
+        origin = "r1_witness" if route_name == "r1_path" else "direct_composite_component"
+        _assert(all(b["origin"] == origin for b in chosen), "cross-route witness leakage")
+        roles = [b["role"] for b in chosen]
+        _assert(len(roles) == len(set(roles)), "duplicate role as independent proof")
+        roots: set[str] = set()
+        fact_refs: set[str] = set()
+        for b in chosen:
+            _assert(not roots.intersection(b["dependency_roots"]),
+                    "DEPENDENT_ROOTS: overlapping proof observations")
+            roots.update(b["dependency_roots"])
+            fact_refs.update(b["fact_keys"])
+        _assert(set(proof["source_fact_refs"]) == fact_refs,
+                "invented, omitted or duplicate sky facts")
+        if route_name == "original_composite":
+            match = evaluation["original_composite_match"]
+            _assert(match is not None and match["composite_is_independent_evidence"] is False,
+                    "composite has no independent third fact")
+            _assert(sorted(match["component_rule_hit_ids"]) ==
+                    sorted(proof["selected_binding_ids"]), "composite component IDs differ")
+            _assert(sorted(match["component_fact_keys"]) == sorted(fact_refs),
+                    "composite facts differ from source RulePack")
