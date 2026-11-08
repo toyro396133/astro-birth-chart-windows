@@ -148,7 +148,7 @@ def _explain_process(node: dict, steps: list[tuple[str, str]], index: int) -> st
     return (
         lead
         + f"לכל אחת מ־{len(steps)} החוליות נבחרה ראיה נפרדת מבחינת "
-          "תלות הנתונים. "
+          "תלות הנתונים."
         + evidence_text
         + " הראיות תומכות בצירים לפי כללי המאגר; הקשר ביניהם "
           "הוא השערת מודל, לא עובדה שנצפתה."
@@ -159,23 +159,37 @@ def _explain_process(node: dict, steps: list[tuple[str, str]], index: int) -> st
     )
 
 
+def _witness_example(groups: list[dict]) -> str:
+    """One visible original R1 witness per polarity; full proof stays in metadata."""
+    witness = groups[0]
+    detail = next((item.strip().rstrip(" .") for item in witness.get("details", [])
+                   if isinstance(item, str) and item.strip()), None)
+    rules = ", ".join(witness.get("rule_ids", []))
+    return f"{detail} (כללים: {rules})" if detail else f"כללים: {rules}"
+
+
 def _tension_paragraph(tension: dict, by_axis: dict[str, dict]) -> dict:
     """Exact R1 positive/negative proof, with no invented conflict context."""
     axis = tension["axis"]
     node = by_axis.get(axis)
     if node is None:
         raise ValueError("סתירת R1 ללא צומת ציר מקורי: " + axis)
-    positive = _collect_provenance(node.get("independent_facts", []))
-    negative = _collect_provenance(node.get("counter_facts", []))
+    pos_groups = node.get("independent_facts", [])
+    neg_groups = node.get("counter_facts", [])
+    positive = _collect_provenance(pos_groups)
+    negative = _collect_provenance(neg_groups)
     if (positive["rule_ids"] != sorted(set(tension.get("positive_rule_ids", [])))
             or negative["rule_ids"] != sorted(set(tension.get("negative_rule_ids", [])))
             or not positive["rule_ids"] or not negative["rule_ids"]):
         raise ValueError("סתירת R1 אינה תואמת את קבוצות הראיות: " + axis)
     return _paragraph(
         "tension",
-        f"לגבי {axis}, R1 מציג ראיות התומכות בציר וגם ראיות בכיוון "
-        "ההפוך. שתי הקבוצות נשמרות בנפרד; אין בדוח נתון המזהה מתי "
-        "כל כיוון עשוי לחול, ולכן הסתירה נותרת בלתי מוכרעת.",
+        f"בציר {axis} נותרה מחלוקת בין שתי קבוצות ראיות. "
+        f"ראיות בעד: {_witness_example(pos_groups)}. "
+        f"ראיות נגד: {_witness_example(neg_groups)}. "
+        "הדוגמאות מובאות מתוך הראיות המקוריות, ולא מסבירות מתי כל "
+        "כיוון עשוי להתבטא. R1 אינו מזהה נסיבות המכריעות ביניהם; "
+        "הסתירה נותרת בלתי מוכרעת.",
         node=node,
         rule_ids=positive["rule_ids"] + negative["rule_ids"],
         source_refs=positive["source_refs"] + negative["source_refs"],
@@ -333,7 +347,7 @@ def compose_narrative(synthesis: dict) -> dict:
             text = (f"ציר עצמאי נוסף הוא {axis}: תיאורו התפקודי ב־R1 "
                     f"הוא {function}, בתחום {domain}.")
         elif index == 2:
-            text = (f"בתחום {domain} מופיע גם {axis}, "
+            text = (f"בתחום {domain} מופיע גם הציר {axis}, "
                     f"שתפקידו במיפוי הוא {function}.")
         else:
             text = (f"נוסף לכך, {axis} מתואר כפעולת {function} "
