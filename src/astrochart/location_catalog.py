@@ -78,7 +78,7 @@ def validate_favorite(name, latitude, longitude, zone):
     for value, left, right in ((latitude, -90, 90), (longitude, -180, 180)):
         if type(value) not in (float, int) or not math.isfinite(value):
             raise ValueError("קואורדינטות לא תקינות")
-        if not left <= value <= right:
+        if not (left < value < right) if left == -90 else not (left <= value <= right):
             raise ValueError("קואורדינטות מחוץ לטווח")
     if not isinstance(zone, str) or not zone or len(zone) > 100:
         raise ValueError("חובה לבחור אזור זמן IANA")
