@@ -174,6 +174,26 @@ CHART + ORIGINAL RULEPACK(96) + EXACT RULEHITS
         "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}}
       }
     },
+    "CompositeMatch": {
+      "type": "object", "additionalProperties": false,
+      "required": ["composite_rule_id","exact_when_hash","component_rule_hit_ids",
+        "component_fact_keys","component_dependency_roots","related_rule_ids",
+        "rule_review_status","composite_is_independent_evidence"],
+      "properties": {
+        "composite_rule_id": {"$ref": "#/$defs/Id"},
+        "exact_when_hash": {"$ref": "#/$defs/Hash"},
+        "component_rule_hit_ids": {"type": "array", "minItems": 2,
+          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
+        "component_fact_keys": {"type": "array", "minItems": 2,
+          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
+        "component_dependency_roots": {"type": "array", "minItems": 1,
+          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
+        "related_rule_ids": {"type": "array", "minItems": 2,
+          "uniqueItems": true, "items": {"$ref": "#/$defs/Id"}},
+        "rule_review_status": {"enum": ["unverified","reviewed","approved","conflicting","rejected"]},
+        "composite_is_independent_evidence": {"const": false}
+      }
+    },
     "RelationDefinition": {
       "type": "object", "additionalProperties": false,
       "required": ["kind","schema_version","definition_id","definition_revision",
@@ -241,7 +261,7 @@ CHART + ORIGINAL RULEPACK(96) + EXACT RULEHITS
         "bindings": {"type": "array", "items": {"$ref": "#/$defs/EvidenceBinding"}},
         "alternatives": {"type": "array", "items": {"$ref": "#/$defs/EvidenceBinding"}},
         "selected_witnesses": {"type": "array", "items": {"$ref": "#/$defs/EvidenceBinding"}},
-        "original_composite_match": {"type": ["object","null"]},
+        "original_composite_match": {"oneOf": [{"$ref": "#/$defs/CompositeMatch"}, {"type": "null"}]},
         "dependency_proof": {"$ref": "#/$defs/Check"},
         "time_proof": {"$ref": "#/$defs/Check"},
         "conflict_proof": {"$ref": "#/$defs/Check"},
@@ -292,7 +312,7 @@ CHART + ORIGINAL RULEPACK(96) + EXACT RULEHITS
 }
 ~~~
 
-**Cross-object validators מחייבים (fail closed):** (1) כל referenced id/hash קיים ב־snapshot חתום; (2) definition_hash אינו כולל את שדה עצמו ומחושב מ־canonical payload, ולא ניתן לשנותו בלי revision; (3) relation_review, מקור, תמיכת effect, reviewer וה־scope תואמים; (4) source_anchor מסוג none/framework_only אינו יכול לתמוך ב־licensed_effect; (5) לכל role נבחרה ראיה שלמה ואותה ראיה משתקפת ב־matched hits, alternative sets, lineage ו־comparison; (6) original_composite_match מאומת מול when.all ולא רק מול RuleHit; (7) check unknown או search.complete=false אינם שקולים ל־fail הוכח; (8) audience=user אסור לפני P4, הגדרת approved_for_symbolic_wording וגם החלטת מוצר; (9) claimed effect שווה ל־effect מותר לאחר binding, בלי מילים פרשניות חדשות; (10) הצהרת review ללא reviewer_id/time/revision תקינים נפסלת; (11) array של participants: roles ייחודיים, A/B מוגדרים, לכל effect roles קיימים; (12) type object ב־original_composite_match חייב לכלול composite_rule_id, exact_when_hash, component_rule_hit_ids, component_fact_keys, status ו־composite_is_independent_evidence=false, אחרת null. ביצועי P1 יהיו אחראים להחלפת object הגנרי הזה ב־$defs קשיח לפי חוזה זה.
+**Cross-object validators מחייבים (fail closed):** (1) כל referenced id/hash קיים ב־snapshot חתום; (2) definition_hash אינו כולל את שדה עצמו ומחושב מ־canonical payload, ולא ניתן לשנותו בלי revision; (3) relation_review, מקור, תמיכת effect, reviewer וה־scope תואמים; (4) source_anchor מסוג none/framework_only אינו יכול לתמוך ב־licensed_effect; (5) לכל role נבחרה ראיה שלמה ואותה ראיה משתקפת ב־matched hits, alternative sets, lineage ו־comparison; (6) original_composite_match מאומת מול when.all ולא רק מול RuleHit; (7) check unknown או search.complete=false אינם שקולים ל־fail הוכח; (8) audience=user אסור לפני P4, הגדרת approved_for_symbolic_wording וגם החלטת מוצר; (9) claimed effect שווה ל־effect מותר לאחר binding, בלי מילים פרשניות חדשות; (10) הצהרת review ללא reviewer_id/time/revision תקינים נפסלת; (11) array של participants: roles ייחודיים, A/B מוגדרים, לכל effect roles קיימים; (12) original_composite_match כפוף ל־CompositeMatch הקשיח (כולל exact_when_hash, related_rule_ids, כל עובדות המקור ו־composite_is_independent_evidence=false), או null; התאמת ה־hash ל־when.all היא בדיקת לוגיקה מחייבת.
 
 ## 3. שפת טענות, אופרטורים ובדיקת תוספת סמנטית — ARCH-04
 
