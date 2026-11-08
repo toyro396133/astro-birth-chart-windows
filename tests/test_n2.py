@@ -96,7 +96,9 @@ def test_changed_material_rule_changes_personality_content_not_just_name():
 def test_irrelevant_same_sign_degree_does_not_change_prose():
     _, _, s1, n1 = run(chart(11.2, full=False))
     _, _, s2, n2 = run(chart(13.4, full=False))
-    assert s1 == s2 and n1 == n2
+    assert s1["plan"] == s2["plan"]
+    # Raw measured degrees stay auditable; unchanged symbolic meaning keeps prose stable.
+    assert format_narrative_n2(n1) == format_narrative_n2(n2)
 
 
 def test_uncertainty_modes_do_not_invent_aspects_or_houses():
