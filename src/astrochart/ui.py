@@ -767,7 +767,11 @@ class MainWindow(QMainWindow):
             return
         try:
             if mode in ("setup", "setup-delta"):
-                launch_setup_install(prepared, install_directory(), version, digest)
+                if mode == "setup-delta":
+                    launch_setup_install(prepared, install_directory(), version, digest,
+                                         fallback_release=self._latest_update)
+                else:
+                    launch_setup_install(prepared, install_directory(), version, digest)
             else:
                 launch_install(prepared, install_directory(), version)
             # The worker owns the prepared files once it is launched.
