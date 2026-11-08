@@ -212,7 +212,9 @@ def _require_term(term_id: str, term_type: str, registry: dict, approved: bool =
 
 def validate_predicate(ast: dict, roles: set[str], rule_ids: set[str] | None = None,
                        terms: dict | None = None, max_nodes: int = 192, max_depth: int = 24,
-                       require_coverage: bool = False) -> None:
+                       require_coverage: bool = False,
+                       allowed_by_role: dict[str, set[str]] | None = None,
+                       facts_by_role: dict[str, set[str]] | None = None) -> None:
     nodes = [0]
     role_hits: set[str] = set()
     positive_facts: set[str] = set()
@@ -227,19 +229,35 @@ def validate_predicate(ast: dict, roles: set[str], rule_ids: set[str] | None = N
                 visit(child, depth + 1, positive=positive,
                       outside_any=outside_any and op == "all")
         elif op == "not":
-            _assert(node["arg"]["op"] not in ("rule_hit_exact", "placement_exact",
-                     "aspect_exact", "house_exact", "polarity_exact", "time_stable"),
-                    "not cannot negate positive role proof")
+            def guard_only(subtree: dict) -> bool:
+                operation = subtree["op"]
+                if operation in ("all", "any"):
+                    return all(guard_only(child) for child in subtree["args"])
+                # Prevent not(all/any(...positive fact...)) and double negation.
+                return operation in ("no_blocking_tension", "atom_term_equals")
+            _assert(guard_only(node["arg"]), "not may only negate a guard, not role evidence")
             visit(node["arg"], depth + 1, positive=False, outside_any=False)
         else:
             leaf_roles = node["roles"] if op == "no_blocking_tension" else [node["role"]]
             _assert(set(leaf_roles).issubset(roles), "AST unknown role")
             if op == "rule_hit_exact":
                 _assert(rule_ids is None or node["rule_id"] in rule_ids, "AST unknown rule")
+                _assert(allowed_by_role is None or
+                        node["rule_id"] in allowed_by_role[node["role"]],
+                        "AST rule not allowed for role")
                 if positive and outside_any:
                     role_hits.add(node["role"])
-            if op in ("placement_exact", "aspect_exact", "house_exact") and positive and outside_any:
-                positive_facts.add(node["role"])
+            if op in ("placement_exact", "aspect_exact", "house_exact"):
+                if op == "placement_exact":
+                    fact = "placement:" + node["body"] + ":" + node["sign"]
+                elif op == "aspect_exact":
+                    fact = "aspect:" + ":".join(sorted((node["body_a"], node["body_b"]))) + ":" + node["aspect_kind"]
+                else:
+                    fact = "house:" + node["body"] + ":" + str(node["house"])
+                _assert(facts_by_role is None or fact in facts_by_role[node["role"]],
+                        "AST fact incompatible with allowed role RulePack.when")
+                if positive and outside_any:
+                    positive_facts.add(node["role"])
             if op == "aspect_exact":
                 _assert(node["body_a"] < node["body_b"], "noncanonical aspect pair")
             if op == "atom_term_equals":
@@ -275,7 +293,8 @@ def evaluate_predicate(ast: dict, resolver: Callable[[dict], str],
 
 
 def verify_definition(definition: dict, manifest: dict, terms: dict,
-                      sources: dict, rule_ids: set[str]) -> None:
+                      sources: dict, rule_ids: set[str], *,
+                      raw_rulepack: dict | None = None) -> None:
     validate_schema("RelationDefinition", definition)
     _assert(definition["definition_hash"] == digest(_without(definition, "definition_hash")),
             "SNAPSHOT_MISMATCH: definition hash")
@@ -285,17 +304,30 @@ def verify_definition(definition: dict, manifest: dict, terms: dict,
     _ordered_unique(definition["participant_specs"], "role")
     roles = {x["role"] for x in definition["participant_specs"]}
     _assert("A" in roles and "B" in roles, "roles A and B required")
+    allowed = {s["role"]: set(s["allowed_rule_ids"]) for s in definition["participant_specs"]}
+    facts_by_role = None
+    if raw_rulepack is not None:
+        from .n3_evidence import _fact_keys
+        rules = {r["id"]: r for r in raw_rulepack["rules"] if r.get("enabled")}
+        _assert(set.union(set(), *allowed.values()).issubset(rules),
+                "allowed role rules not active in verified RulePack")
+        facts_by_role = {role: {fact for rid in ids for fact in _fact_keys(rules[rid])}
+                         for role, ids in allowed.items()}
     for spec in definition["participant_specs"]:
         _assert(set(spec["allowed_rule_ids"]).issubset(rule_ids), "unknown permitted rule")
-        validate_predicate(spec["atom_constraints"], roles, rule_ids, terms)
-    validate_predicate(definition["predicate_ast"], roles, rule_ids, terms, require_coverage=True)
+        validate_predicate(spec["atom_constraints"], roles, rule_ids, terms,
+                           allowed_by_role=allowed, facts_by_role=facts_by_role)
+    validate_predicate(definition["predicate_ast"], roles, rule_ids, terms,
+                       require_coverage=True, allowed_by_role=allowed,
+                       facts_by_role=facts_by_role)
     anchor_map = {a["anchor_id"]: a for a in sources["anchors"]}
     _ordered_unique(definition["source_anchors"], "anchor_id")
     for a in definition["source_anchors"]:
         _assert(a["anchor_id"] in anchor_map and a == anchor_map[a["anchor_id"]],
                 "source anchor not present or differs from signed registry")
         _require_term(a["scope_id"], "scope", terms)
-        validate_predicate(a["matching_conditions"], roles, rule_ids, terms)
+        validate_predicate(a["matching_conditions"], roles, rule_ids, terms,
+                           allowed_by_role=allowed, facts_by_role=facts_by_role)
     _unique(definition["licensed_effects"], "effect_id")
     for effect in definition["licensed_effects"]:
         _assert(effect["predicate"] == OPERATORS[definition["operator"]], "OPERATOR_EFFECT_MISMATCH")
@@ -320,7 +352,7 @@ def verify_definition(definition: dict, manifest: dict, terms: dict,
 
 
 def verify_catalog(catalog: dict, manifest: dict, terms: dict, sources: dict,
-                   rule_ids: set[str]) -> None:
+                   rule_ids: set[str], *, raw_rulepack: dict | None = None) -> None:
     validate_schema("RelationCatalog", catalog)
     verify_registry(terms)
     verify_registry(sources)
@@ -330,7 +362,8 @@ def verify_catalog(catalog: dict, manifest: dict, terms: dict, sources: dict,
     _assert(catalog["source_registry_hash"] == sources["registry_hash"], "catalog sources mismatch")
     _ordered_unique(catalog["definitions"], "definition_id")
     for definition in catalog["definitions"]:
-        verify_definition(definition, manifest, terms, sources, rule_ids)
+        verify_definition(definition, manifest, terms, sources, rule_ids,
+                          raw_rulepack=raw_rulepack)
     _assert(catalog["catalog_digest"] == digest(_without(catalog, "catalog_digest")),
             "SNAPSHOT_MISMATCH: catalog digest")
 
@@ -682,3 +715,64 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
                     sorted(proof["selected_binding_ids"]), "composite component IDs differ")
             _assert(sorted(match["component_fact_keys"]) == sorted(fact_refs),
                     "composite facts differ from source RulePack")
+
+
+def evaluate_bound_predicate(ast: dict, definition: dict, evaluation: dict,
+                             adapted: dict, *, complete: bool = False) -> str:
+    """Interpret only authenticated RulePack facts bound to their approved role.
+
+    Missing observations/term mappings are UNKNOWN, never automatically FALSE.
+    Every source guard and relation predicate must independently resolve TRUE
+    before a licensed meaning can be contemplated; no semantic equivalence AI.
+    """
+    allowed = {s["role"]: set(s["allowed_rule_ids"])
+               for s in definition["participant_specs"]}
+    chosen = evaluation["selected_witnesses"]
+    by_role: dict[str, list[dict]] = {}
+    original = {h["rule_hit_id"]: h for h in adapted["hits"]}
+    for binding in chosen:
+        _assert(binding["rule_id"] in allowed.get(binding["role"], set()),
+                "ROLE_RULE_MISMATCH: selected witness not allowed")
+        h = original.get(binding["rule_hit_id"])
+        _assert(h is not None and h["rule_id"] == binding["rule_id"],
+                "PROVENANCE_MISMATCH: predicate witness absent")
+        by_role.setdefault(binding["role"], []).append(h)
+
+    def resolve(node: dict) -> str:
+        op = node["op"]
+        if op == "no_blocking_tension":
+            return "UNKNOWN"  # Requires independently verified material-tension closure.
+        role = node["role"]
+        matches = by_role.get(role, [])
+        if not matches:
+            return "UNKNOWN"
+        if op == "atom_term_equals":
+            return "UNKNOWN"  # No human-reviewed semantic term binding in P1.
+        if op == "rule_hit_exact":
+            return "TRUE" if any(h["rule_id"] == node["rule_id"] for h in matches) else "FALSE"
+        if op == "placement_exact":
+            target = "placement:" + node["body"] + ":" + node["sign"]
+        elif op == "aspect_exact":
+            target = "aspect:" + ":".join(sorted([node["body_a"], node["body_b"]])) + ":" + node["aspect_kind"]
+        elif op == "house_exact":
+            target = "house:" + node["body"] + ":" + str(node["house"])
+        else:
+            target = None
+        if target is not None:
+            return "TRUE" if any(target in h["fact_keys"] for h in matches) else "FALSE"
+        if op == "polarity_exact":
+            return "TRUE" if any(h["polarity"] == node["value"] for h in matches) else "FALSE"
+        if op == "time_stable":
+            # Only re-matched and stable facts are emitted by interpret_chart.
+            return "TRUE" if matches and all(h["fact_keys"] for h in matches) else "UNKNOWN"
+        raise N3ValidationError("unsupported predicate resolver operation " + op)
+
+    return evaluate_predicate(ast, resolve, complete=complete)
+
+
+def source_conditions_state(definition: dict, evaluation: dict, adapted: dict) -> str:
+    """Unknown or false source conditions never license an effect."""
+    states = [evaluate_bound_predicate(anchor["matching_conditions"], definition,
+                                      evaluation, adapted, complete=False)
+              for anchor in definition["source_anchors"]]
+    return "FALSE" if "FALSE" in states else "UNKNOWN" if "UNKNOWN" in states else "TRUE"
