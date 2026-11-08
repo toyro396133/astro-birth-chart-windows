@@ -151,6 +151,8 @@ def verify_manifest(manifest: dict, *, rulepack: dict, n2_catalog: dict,
     _assert(expected == manifest, "SNAPSHOT_MISMATCH: upstream content or signature changed")
     _assert(manifest["compatible_upstream_hash"] == digest(_without(manifest, "compatible_upstream_hash")),
             "SNAPSHOT_MISMATCH: upstream rehash failed")
+    from .n3_n2 import verify_n2_catalog
+    verify_n2_catalog(n2_catalog, rulepack)
 
 
 def verify_registry(registry: dict) -> None:
@@ -286,6 +288,8 @@ def verify_definition(definition: dict, manifest: dict, terms: dict,
     for a in definition["source_anchors"]:
         _assert(a["anchor_id"] in anchor_map and a == anchor_map[a["anchor_id"]],
                 "source anchor not present or differs from signed registry")
+        _require_term(a["scope_id"], "scope", terms)
+        validate_predicate(a["matching_conditions"], roles, rule_ids, terms)
     _unique(definition["licensed_effects"], "effect_id")
     for effect in definition["licensed_effects"]:
         _assert(effect["predicate"] == OPERATORS[definition["operator"]], "OPERATOR_EFFECT_MISMATCH")
@@ -303,6 +307,7 @@ def verify_definition(definition: dict, manifest: dict, terms: dict,
             _assert(aid in anchor_map, "effect references absent anchor")
             anchor = anchor_map[aid]
             _assert(effect["effect_id"] in anchor["supported_effect_ids"], "effect not in source scope")
+            _assert(anchor["scope_id"] == effect["scope_id"], "SOURCE_SCOPE_EXCEEDED")
     _assert(definition["relation_review"]["status"] != "approved_for_symbolic_wording" or
             bool(definition["relation_review"]["reviewer_id"] and definition["relation_review"]["reviewed_at"]),
             "relation approval must have human reviewer")
@@ -372,8 +377,9 @@ def verify_route_proofs(proofs: list[dict]) -> dict[str, dict]:
                 "duplicate proof binding")
         if p["candidate_state"] == "not_candidate":
             _assert(p["search_state"] == "not_applicable" and p["search_complete"] is None
-                    and p["proof_result"] == "not_candidate" and p["visited"] == 0,
-                    "not_candidate mismatch")
+                    and p["proof_result"] == "not_candidate" and p["visited"] == 0
+                    and not p["selected_binding_ids"] and not p["source_fact_refs"]
+                    and not p["failure_reasons"], "not_candidate mismatch")
         elif p["candidate_state"] == "candidate":
             _assert(p["search_complete"] is (p["search_state"] == "complete"),
                     "search state/completeness mismatch")
@@ -412,7 +418,11 @@ def verify_evaluation(evaluation: dict, definition: dict, snapshot_id: str,
         raise N3ValidationError("PROVENANCE_MISMATCH: original adapter trace required")
 
 
-def source_eligible(definition: dict, sources: dict) -> bool:
+def source_eligible(definition: dict, sources: dict, *,
+                    trusted_source_registry_hash: str | None = None) -> bool:
+    """Review status in caller-controlled JSON is not itself authorization."""
+    if trusted_source_registry_hash is None or sources.get("registry_hash") != trusted_source_registry_hash:
+        return False
     by_id = {x["anchor_id"]: x for x in sources["anchors"]}
     return (definition["relation_review"]["status"] == "approved_for_symbolic_wording"
             and all(a["review_status"] == "approved"
@@ -426,7 +436,8 @@ def source_eligible(definition: dict, sources: dict) -> bool:
 
 
 def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
-                *, claims: list[dict] = (), allow_user: bool = False) -> None:
+                *, claims: list[dict] = (), allow_user: bool = False,
+                trusted_source_registry_hash: str | None = None) -> None:
     validate_schema("N3Plan", plan)
     proofs = verify_route_proofs(plan["route_proofs"])
     _assert(plan["route_proofs"] == evaluation["route_proofs"], "route proof differs from evaluation")
@@ -434,6 +445,15 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
             plan["evaluation_id"] == evaluation["evaluation_id"] and
             plan["definition_id"] == definition["definition_id"], "plan reference mismatch")
     _assert(plan["plan_id"] == plan_id(plan), "BAD_ID: plan signature")
+    _assert(plan["trace"]["source_snapshot_hash"] == sources["registry_hash"],
+            "PROVENANCE_MISMATCH: source trace hash")
+    if "trace_digest" in evaluation:
+        _assert(plan["trace"]["evaluation_trace_hash"] == evaluation["trace_digest"],
+                "PROVENANCE_MISMATCH: evaluation trace hash")
+    if "bindings" in evaluation:
+        matched_atoms = {b["rule_id"] for b in evaluation["bindings"]}
+        _assert(set(plan["retained_atomic_rule_ids"]).issubset(matched_atoms),
+                "invented retained atomic rule ID")
     _assert(plan["reasons"] == sorted(plan["reasons"], key=lambda x: (
         ROUTES.index(x["route"]) if x["route"] in ROUTES else 2, not x["blocking"], x["code"])),
         "reason order inconsistent")
@@ -447,6 +467,20 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
         _assert(proofs[route]["candidate_state"] == "candidate", "decisive route not candidate")
         _assert(all(r["route"] in (route, "global") for r in blocking),
                 "nondecisive route must not block")
+    if blocking:
+        decisive = [r for r in blocking if r["route"] in (route, "global")]
+        _assert(decisive, "missing decisive blocking reason")
+        ranked = ("INVALID_SCHEMA", "SNAPSHOT_MISMATCH", "PROVENANCE_MISMATCH",
+                  "BAD_ID", "CONFLICTING_SOURCES", "REJECTED_SOURCE",
+                  "UNCERTAIN_TIME", "INCOMPLETE_SEARCH", "PROOF_UNKNOWN",
+                  "UNMATCHED_CONDITIONS", "MATERIAL_TENSION", "DEPENDENT_ROOTS",
+                  "MISSING_READING", "MISSING_ATOM_MAPPING", "NO_RELATION_SOURCE",
+                  "FRAMEWORK_ONLY", "EDITORIAL_ONLY", "UNVERIFIED_RELATION",
+                  "SOURCE_SCOPE_EXCEEDED", "OPERATOR_EFFECT_MISMATCH",
+                  "UNLICENSED_DELTA", "PARAPHRASE_ONLY", "RESOURCE_CAP", "CANDIDATE_NOT_FOUND")
+        expected_primary = min(decisive, key=lambda r: ranked.index(r["code"]))["code"]
+        _assert(plan["primary_reason"] == expected_primary,
+                "primary_reason violates reason priority")
     if plan["primary_reason"] == "NONE":
         _assert(not blocking, "NONE with blocking reasons")
     else:
@@ -456,7 +490,8 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
     _assert(len(plan["retained_atomic_rule_ids"]) ==
             len(set(plan["retained_atomic_rule_ids"])), "duplicate atomic rule")
     if decision == "RELATION_LICENSED":
-        _assert(source_eligible(definition, sources), "NO_RELATION_SOURCE")
+        _assert(source_eligible(definition, sources,
+                trusted_source_registry_hash=trusted_source_registry_hash), "NO_RELATION_SOURCE")
         _assert(not blocking and plan["primary_reason"] == "NONE", "licensed with blocked reason")
         _assert(route != "none" and proofs[route]["proof_result"] == "proven"
                 and proofs[route]["search_complete"] is True, "licensed without complete proof")
@@ -491,17 +526,24 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
 
 
 def verify_claim(claim: dict, evaluation: dict, definition: dict, sources: dict,
-                 *, plan: dict, allow_user: bool = False) -> None:
+                 *, plan: dict, allow_user: bool = False,
+                 trusted_source_registry_hash: str | None = None) -> None:
     validate_schema("NarrativeClaim", claim)
     _assert(claim["claim_id"] == claim_id(claim), "BAD_ID: claim")
     _assert(claim["evaluation_id"] == evaluation["evaluation_id"], "claim evaluation mismatch")
-    _assert(claim["licensed_effect_id"] in
-            {x["effect_id"] for x in definition["licensed_effects"]}, "unknown effect")
+    effects = {x["effect_id"]: x for x in definition["licensed_effects"]}
+    _assert(claim["licensed_effect_id"] in effects, "unknown effect")
+    chosen = effects[claim["licensed_effect_id"]]
+    _assert(claim["derived_predicate"] == chosen, "invented or modified licensed effect")
+    _assert(set(claim["source_anchor_refs"]) == set(chosen["source_anchor_ids"]),
+            "claim source provenance differs from signed effect")
     _assert(plan["decision"] == "RELATION_LICENSED" and
             claim["claim_id"] in plan["relation_claim_ids"], "claim missing licensed plan")
     _assert(evaluation["source_license_check"]["status"] == "pass" and
             evaluation["novelty_check"]["status"] == "pass" and
-            source_eligible(definition, sources), "unlicensed source or novelty")
+            source_eligible(definition, sources,
+                trusted_source_registry_hash=trusted_source_registry_hash),
+            "unlicensed source or novelty")
     _assert(claim["audience"] != "user" and not allow_user, "P1 user output always forbidden")
 
 
@@ -591,6 +633,9 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
         if proof["proof_result"] != "proven":
             continue
         chosen = [by_id.get(s) for s in proof["selected_binding_ids"]]
+        expected_alternatives = {b["alternative_set_id"] for b in chosen if b is not None}
+        _assert(set(proof["alternative_set_ids"]) == expected_alternatives,
+                "proof alternative set IDs invented or incomplete")
         _assert(all(chosen), "proof contains non-existent binding")
         assert all(x is not None for x in chosen)
         origin = "r1_witness" if route_name == "r1_path" else "direct_composite_component"
