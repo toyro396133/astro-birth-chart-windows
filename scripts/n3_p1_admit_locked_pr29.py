@@ -5,10 +5,33 @@ writes into production. Only digests and non-personal admission results are outp
 """
 import argparse
 import json
+import subprocess
 from pathlib import Path
-from astrochart.n3_contracts import digest, make_manifest, n2_content_digests
+from astrochart.n3_contracts import digest, make_manifest, n2_content_digests, N3ValidationError, _assert
 from astrochart.n3_n2 import verify_n2_catalog
 from astrochart.synthesis import FUNCTIONS, TRANSITIONS, SYNTHESIS_VERSION
+
+# Pinned by source review/CI, not supplied by the fixture or command arguments.
+# A new PR29 HEAD must be separately reviewed and this constant deliberately changed.
+REVIEWED_PR29_HEAD = "d03e4c8127007b70f69e28da7708097c46f901b4"
+CATALOG_PATH_IN_COMMIT = "src/astrochart/meaning_catalog_n2.json"
+
+
+def verified_committed_catalog(raw_file: bytes, git_head: str) -> dict:
+    _assert(git_head == REVIEWED_PR29_HEAD, "UNTRUSTED_N2_HEAD: not independently pinned")
+    repo = Path(__file__).resolve().parents[1]
+    try:
+        committed = subprocess.run(
+            ["git", "show", git_head + ":" + CATALOG_PATH_IN_COMMIT],
+            cwd=repo, capture_output=True, timeout=15, check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise N3ValidationError("UNVERIFIED_GIT_HEAD: local Git commit unavailable") from exc
+    _assert(committed == raw_file, "N2_PROVENANCE_MISMATCH: fixture does not match pinned git blob")
+    try:
+        return json.loads(committed.decode("utf-8"))
+    except (ValueError, UnicodeError) as exc:
+        raise N3ValidationError("invalid pinned catalog bytes") from exc
 
 
 def main():
@@ -17,18 +40,17 @@ def main():
     parser.add_argument("--locked-git-head", required=True)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
-    assert len(args.locked_git_head) == 40 and all(
-        c in "0123456789abcdef" for c in args.locked_git_head)
+    _assert(args.locked_git_head == REVIEWED_PR29_HEAD, "UNTRUSTED_N2_HEAD")
     rules_path = Path(__file__).resolve().parents[1] / "src/astrochart/interpretation_rules.json"
     rules = json.loads(rules_path.read_text(encoding="utf-8"))
-    catalog = json.loads(args.fixture.read_text(encoding="utf-8"))
+    catalog = verified_committed_catalog(args.fixture.read_bytes(), args.locked_git_head)
     validated = verify_n2_catalog(catalog, rules)
     ontology = {"functions": FUNCTIONS, "transitions": TRANSITIONS,
                 "version": SYNTHESIS_VERSION}
     manifest = make_manifest(rules, catalog, ontology, r1_version=SYNTHESIS_VERSION,
                              n2_version=catalog["catalog_version"])
     cats, policies = n2_content_digests(catalog)
-    report = {"upstream_ref_type": "locked_fixture",
+    report = {"upstream_ref_type": "git_blob_verified_locked_fixture",
               "upstream_git_head": args.locked_git_head,
               "n2_catalog_version": catalog["catalog_version"],
               "n2_catalog_sha256": digest(catalog),
