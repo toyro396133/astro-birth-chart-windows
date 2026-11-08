@@ -153,6 +153,23 @@ def evaluate(root: Path, samples: dict) -> dict:
     print("N2_HOLDOUT_PASS", metrics["total_cases"],
           "real JPL", metrics["real_jpl_charts"],
           "signature-distinct pairs", metrics["signature_distinct_pairs"])
+    print("N2_HOLDOUT_METRICS", json.dumps({
+        "total_cases": metrics["total_cases"],
+        "jpl_real": metrics["real_jpl_charts"],
+        "pair_count": metrics["pair_count"],
+        "signature_distinct_pairs": metrics["signature_distinct_pairs"],
+        "signature_equal_pairs": metrics["signature_equal_pairs"],
+        "semantic_exact_repeat_instances": metrics[
+            "semantic_only_exact_repeated_paragraph_instances"],
+        "semantic_unique_paragraphs": metrics["semantic_only_distinct_paragraphs"],
+        "human_review": metrics["human_linguistic_review"],
+    }, ensure_ascii=False))
+    for name in ("pair-persistence-mercury", "pair-persistence-mars",
+                 "pair-responsibility-saturn", "pair-responsibility-house",
+                 "pair-persistence-both"):
+        parts = semantic_only_n2(reports[name]["narrative_n2"])
+        print("N2_HOLDOUT_EXCERPT", name, "\\n".join(parts).encode(
+            "unicode_escape").decode("ascii"))
     return metrics
 
 
