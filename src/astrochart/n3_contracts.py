@@ -651,15 +651,16 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
             "PROVENANCE_MISMATCH: semantic witnesses not in decisive proof")
     _assert(len(evaluation["selected_witnesses"]) == len(expected_ids),
             "PROVENANCE_MISMATCH: duplicated selected witness")
-    if relation_state is None:
-        relation_state = evaluate_bound_predicate(
-            definition["predicate_ast"], definition, evaluation, adapted,
-            complete=True, selected_binding_ids=expected_ids)
-    if source_state is None:
-        source_state = source_conditions_state(
-            definition, evaluation, adapted, selected_binding_ids=expected_ids)
-    _assert(relation_state in TRUTH and source_state in TRUTH,
-            "invalid derived semantic status")
+    observed_relation = evaluate_bound_predicate(
+        definition["predicate_ast"], definition, evaluation, adapted,
+        complete=True, selected_binding_ids=expected_ids)
+    observed_source = source_conditions_state(
+        definition, evaluation, adapted, selected_binding_ids=expected_ids)
+    _assert(relation_state is None or relation_state == observed_relation,
+            "REASON_MISMATCH: supplied relation state differs from authenticated facts")
+    _assert(source_state is None or source_state == observed_source,
+            "REASON_MISMATCH: supplied source state differs from authenticated facts")
+    relation_state, source_state = observed_relation, observed_source
     _verify_decision_reasons(
         plan, evaluation, definition, sources, adapted, proofs,
         relation_state=relation_state, source_state=source_state,
