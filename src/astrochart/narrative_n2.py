@@ -60,6 +60,20 @@ def _section(name: str, title: str, paragraphs: list[dict]) -> dict:
     return {"id": name, "title": title, "paragraphs": paragraphs}
 
 
+def _abstention_reason(plan: dict) -> tuple[str, str]:
+    """Distinguish absent knowledge, indistinct readings and an unlicensed link."""
+    missing = plan["coverage"]["missing_members"]
+    if missing:
+        names = _he_list([m["axis"] for m in missing])
+        return ("missing-catalog-coverage",
+                f"לרכיבים {names} חסר פירוש ייעודי לכלל שנבחר במאגר")
+    if not plan["comparison_is_supported"]:
+        return ("no-meaningful-distinction",
+                "המשמעויות הקיימות אינן מציגות הבחנה פרשנית מהותית")
+    return ("no-supported-combined-assertion",
+            "יש הבחנות בין רכיבים, אך אין ראיה מספקת לטענה חדשה על השילוב")
+
+
 class DeterministicHebrewRealizer:
     """Presentation adapter only: no free-form link mining or guessed context."""
 
@@ -69,6 +83,11 @@ class DeterministicHebrewRealizer:
         anchors = [c for c in claims if c["kind"] == "rule-anchor"]
         example_claims = [c for c in claims if c["kind"] == "axis-example"]
         examples = [c["content"] for c in example_claims]
+        # Full catalog membership is computed before the presentation cap.
+        catalog_total = meaning.get("catalog_coverage_count", len(examples))
+        displayed_total = len(examples)
+        missing_in_catalog = max(0, meaning["independent_evidence_count"] - catalog_total)
+        omitted_for_length = max(0, catalog_total - displayed_total)
         axis = meaning["axis"]
         count = meaning["independent_evidence_count"]
         evidence = "ראיות הכללים שנבחרו ב־R1:\n" + "\n".join(
@@ -95,7 +114,12 @@ class DeterministicHebrewRealizer:
                     + e["limit"] + ".")
             if count > 1:
                 text += (f" ל־R1 נבחרו {count} קבוצות ראיה עצמאיות לציר הזה; "
-                         "רק זו שתוארה כאן כוללת הרחבה התנהגותית מבוקרת במאגר.")
+                         f"ל־{catalog_total} מהן קיים פירוש תלוי־כלל במאגר, "
+                         "ורק פירוש אחד מוצג בפסקה.")
+                if omitted_for_length:
+                    text += f" {omitted_for_length} פירושים נוספים לא הוצגו בשל מגבלת אורך."
+                if missing_in_catalog:
+                    text += f" ל־{missing_in_catalog} קבוצות אין עדיין פירוש תלוי־כלל."
             return text, evidence
         # Label meaning with the ORIGINAL selected R1 witness-group ordinal,
         # not its ordinal among curated examples (which may skip witnesses).
@@ -113,7 +137,9 @@ class DeterministicHebrewRealizer:
             f"{e['situation']}, בעל המפה {e['behavior']}" for e in shown)
         text = (
             f"ציר {axis} נתמך בכמה ראיות עצמאיות: מתוך {count} קבוצות, "
-            f"ל־{len(examples)} יש פירוש עריכתי תלוי־כלל: "
+            f"ל־{catalog_total} יש פירוש עריכתי תלוי־כלל. "
+            + (f"מתוכן מוצגות כאן {displayed_total} הרחבות בלבד בשל מגבלת אורך: "
+               if omitted_for_length else "המשמעויות המוצגות הן: ")
             + "; ".join(phrases) + ". "
             + "ההבחנות בין המשמעויות הן: " + detail + ". "
             + f"לשם המחשה בלבד מובאות {len(shown)} דוגמאות התנהגות נפרדות: "
@@ -121,12 +147,12 @@ class DeterministicHebrewRealizer:
             + "הדוגמאות אינן ממצות את כלל הראיות או מוכיחות "
               "שהתיאורים מתקיימים יחד."
         )
-        if count > len(examples):
-            remaining = count - len(examples)
-            if remaining == 1:
+        if missing_in_catalog:
+            if missing_in_catalog == 1:
                 text += " לקבוצת ראיה אחת נוספת אין פירוש התנהגותי ייחודי במאגר."
             else:
-                text += f" ל־{remaining} קבוצות ראיה נוספות אין פירוש התנהגותי ייחודי במאגר."
+                text += (f" ל־{missing_in_catalog} קבוצות ראיה נוספות "
+                         "אין פירוש התנהגותי ייחודי במאגר.")
         return text, evidence
 
     def process(self, claims: list[dict], index: int) -> tuple[str, str]:
@@ -253,27 +279,34 @@ def compose_narrative_n2(semantics: dict, *,
         p = _merge("processes", "process", group, semantic, evidence)
         p["process_content_plan"] = content_plan
         processes.append(p)
-    abstained_paths = [{
-        "path": cp["path"], "coverage": cp["coverage"],
-        "node_ids": sorted({n for c in group for n in c["node_ids"]}),
-        "claim_ids": [c["id"] for c in group],
-        "rule_ids": sorted({r for c in group for r in c["rule_ids"]}),
-        "reason": "insufficient-distinct-rule-meanings",
-    } for group, cp in abstained]
+    abstained_paths = []
+    for group, cp in abstained:
+        reason, explanation = _abstention_reason(cp)
+        abstained_paths.append({
+            "path": cp["path"], "coverage": cp["coverage"],
+            "node_ids": sorted({n for c in group for n in c["node_ids"]}),
+            "claim_ids": [c["id"] for c in group],
+            "rule_ids": sorted({r for c in group for r in c["rule_ids"]}),
+            "reason": reason, "reason_explanation": explanation,
+        })
     if abstained:
         all_claims = [c for group, _ in abstained for c in group]
         names = [" → ".join(cp["path"]) for _, cp in abstained]
         if len(abstained) == 1:
             summary = (f"אותר מסלול נוסף ב־R1 ({names[0]}), "
-                       "אך אין עדיין די במשמעויות מובחנות ומתועדות "
-                       "כדי להסביר אותו. לא הוסק ממנו קשר התנהגותי. "
+                       f"אך לא נוצרה השוואה פרשנית: "
+                       f"{abstained_paths[0]['reason_explanation']}. "
+                       "לא הוסק ממנו קשר התנהגותי. "
                        "פירוט הרכיבים והראיות שנבחרו נשמר ב־JSON.")
         else:
-            summary = (
-                f"אותרו {len(abstained)} מסלולים נוספים ב־R1 "
-                f"({_he_list(names)}), אך אין עדיין די במשמעויות מובחנות "
-                "ומתועדות כדי להסביר אותם. לא הוסקו מהם קשרים התנהגותיים. "
-                "פירוט הרכיבים והראיות שנבחרו נשמר ב־JSON.")
+            reasons = "; ".join(
+                f"{name} — {abstained_paths[i]['reason_explanation']}"
+                for i, name in enumerate(names))
+            summary = (f"אותרו {len(abstained)} מסלולים נוספים ב־R1 "
+                       f"({_he_list(names)}), אך לא נוצרה עבורם השוואה "
+                       f"פרשנית. הסיבות לפי מסלול: {reasons}. "
+                       "לא הוסקו מהם קשרים התנהגותיים. "
+                       "פירוט הרכיבים והראיות שנבחרו נשמר ב־JSON.")
         evidence = "\n".join(
             f"• {' → '.join(cp['path'])}: "
             + "; ".join(
