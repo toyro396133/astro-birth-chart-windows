@@ -76,6 +76,14 @@ def main():
     dialog.copy_json_button.click()
     copied = json.loads(QApplication.clipboard().text())
     assert copied["generation_constraints"]["quote_rule_ids_for_claims"]
+    # Integration gate: R1 is present alongside the interactive W1-W6 UI.
+    assert "synthesis" in copied, "R1 synthesis was lost during UI integration"
+    assert copied["synthesis"]["engine_version"]
+    assert dialog.synthesis_report["source_rule_pack"] == dialog.report["pack_version"]
+    assert dialog.synthesis_view.isReadOnly()
+    assert "סינתזה" in dialog.tabs.tabText(0)
+    dialog.copy_synthesis_button.click()
+    assert QApplication.clipboard().text() == dialog.synthesis_readable
     dialog.close()
     # Real interactive chart: table -> wheel, then wheel -> table.
     assert window.copy_button.isEnabled()
@@ -132,6 +140,10 @@ def main():
     unknown_dialog = RuleInterpretationDialog(unknown, window)
     assert unknown_dialog.report["time_uncertain"]
     assert unknown_dialog.structured_payload["chart_facts"]["aspects"] == []
+    assert unknown_dialog.synthesis_report["time_mode"] == "unknown"
+    assert "synthesis" in unknown_dialog.structured_payload
+    assert all(node["provisional_time"]
+               for node in unknown_dialog.synthesis_report["nodes"])
     unknown_dialog.close()
     snapshot(window, "unknown-time.png")
     unknown_summary = {
