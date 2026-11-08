@@ -601,7 +601,10 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
                 *, claims: list[dict] = (), allow_user: bool = False,
                 trusted_source_registry_hash: str | None = None,
                 adapted: dict | None = None, n2_catalog: dict | None = None,
-                verified_r1_incomplete: bool = False,
+                chart=None, report: dict | None = None,
+                raw_rulepack: dict | None = None,
+                r1_node: dict | None = None,
+                r1_limited_path: tuple[str, ...] | None = None,
                 relation_state: str | None = None,
                 source_state: str | None = None) -> None:
     # Schema-first even for lower-level validation: no raw KeyError on missing fields.
@@ -616,6 +619,19 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
     validate_schema("N3Plan", plan)
     proofs = verify_route_proofs(plan["route_proofs"])
     _assert(plan["route_proofs"] == evaluation["route_proofs"], "route proof differs from evaluation")
+    # R1 completion is a computation, not a caller-supplied verified=True flag.
+    if chart is not None or report is not None or raw_rulepack is not None:
+        _assert(chart is not None and report is not None and raw_rulepack is not None,
+                "UNVERIFIED_R1: original chart/report/pack must be supplied together")
+        from .n3_admission import verify_r1_route
+        verified_r1_incomplete = verify_r1_route(
+            chart, report, definition, raw_rulepack, adapted, proofs["r1_path"],
+            r1_node=r1_node, limited_path=r1_limited_path)
+    else:
+        _assert(proofs["r1_path"]["candidate_state"] != "candidate" and
+                r1_node is None and r1_limited_path is None,
+                "UNVERIFIED_R1: Plan requires original R1 replay for candidate")
+        verified_r1_incomplete = False
     _assert(plan["snapshot_id"] == evaluation["snapshot_id"] and
             plan["evaluation_id"] == evaluation["evaluation_id"] and
             plan["definition_id"] == definition["definition_id"], "plan reference mismatch")
