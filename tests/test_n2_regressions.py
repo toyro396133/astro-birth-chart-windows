@@ -202,3 +202,14 @@ def test_grouped_rule_statuses_are_not_misattributed_to_selected_rule():
              if p["kind"] == "axis")
     assert "כלל mercury-sign-2 (טרם אומת)" in p["evidence_text"]
     assert "https://example.org/other-rule" not in p["evidence_text"]
+
+
+def test_uncurated_rule_axis_is_omitted_not_recycled_as_generic_scenario():
+    evidence, r1, sem, report = render(chart(
+        ("שמש", 251.7, None), ("מרקורי", 46.3, None)))
+    assert "עצמאות" in sem["unexpanded_axis_names"]
+    assert not [c for c in sem["claims"] if c["axis"] == "עצמאות"]
+    assert "התמדה" in sem["displayed_axis_names"]
+    visible = format_narrative_n2(report)
+    assert "אין עדיין יחידת משמעות ייעודית ברמת הכלל" in visible
+    assert "בדיקה חוזרת" in visible
