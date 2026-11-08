@@ -1,10 +1,10 @@
 from datetime import date, time
 import json
 from pathlib import Path
-from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
+from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal, QSettings
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QAbstractItemView, QApplication, QCheckBox, QComboBox, QCompleter, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QCompleter, QDateEdit, QDialog, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
@@ -28,6 +28,10 @@ from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
 from .chart_export import export_wheel_png, export_chart_pdf
+from .display_preferences import (
+    DisplayPreferences, read_preferences, save_preferences,
+    FONT_PERCENTS, ROW_HEIGHTS, SYMBOL_SIZES,
+)
 
 
 
@@ -94,6 +98,7 @@ class MainWindow(QMainWindow):
         self._active_chart = None
         self._active_record = None
         self._current_file = None
+        self._display_settings = QSettings("AstroBirthChart", "AstroBirthChart")
         self._favorites = load_favorites()
         self._session_locations = {}
         self._updating = False
@@ -104,6 +109,7 @@ class MainWindow(QMainWindow):
         self._prepared_update = None
         self._install_after_download = False
         self._build()
+        self._apply_display_preferences(read_preferences(self._display_settings))
         QTimer.singleShot(1000, self._automatic_update_check)
 
     def _build(self):
@@ -155,6 +161,9 @@ class MainWindow(QMainWindow):
         ):
             action = self.file_menu.addAction(text)
             action.triggered.connect(fn)
+        self.file_menu.addSeparator()
+        preferences_action = self.file_menu.addAction("הגדרות תצוגה...")
+        preferences_action.triggered.connect(self._open_display_preferences)
         self.file_button.setMenu(self.file_menu)
         heading.addWidget(self.file_button)
         version = QLabel("v" + __version__)
@@ -487,6 +496,61 @@ class MainWindow(QMainWindow):
             self.phase.currentIndexChanged,
         ):
             signal.connect(self._invalidate_chart)
+
+    def _apply_display_preferences(self, preferences):
+        """Adjust layout only; the computed astronomical chart remains unchanged."""
+        apply_theme(self, preferences.font_percent)
+        self.table.verticalHeader().setDefaultSectionSize(preferences.row_height)
+        self.wheel.set_symbol_point_size(preferences.symbol_size)
+
+    def _open_display_preferences(self):
+        current = read_preferences(self._display_settings)
+        dialog = QDialog(self)
+        dialog.setWindowTitle("הגדרות תצוגה")
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        dialog.setMinimumWidth(320)
+        layout = QVBoxLayout(dialog)
+        description = QLabel("הגדרות אלו נשמרות במחשב זה ואינן משנות את החישוב.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        def combo(caption, options, selected):
+            layout.addWidget(QLabel(caption))
+            widget = QComboBox()
+            for text, value in options:
+                widget.addItem(text, value)
+            widget.setCurrentIndex(widget.findData(selected))
+            layout.addWidget(widget)
+            return widget
+
+        font = combo("גודל הגופנים", [
+            ("קטן (90%)", 90), ("רגיל (100%)", 100),
+            ("גדול (110%)", 110), ("גדול מאוד (120%)", 120),
+        ], current.font_percent)
+        rows = combo("צפיפות טבלת התוצאות", [
+            ("צפופה", 22), ("רגילה", 26), ("מרווחת", 30),
+        ], current.row_height)
+        symbols = combo("גודל סמלי הגלגל", [
+            ("קטנים", 14), ("רגילים", 16), ("גדולים", 18),
+        ], current.symbol_size)
+        buttons = QHBoxLayout()
+        save = QPushButton("שמור")
+        cancel = QPushButton("ביטול")
+        save.clicked.connect(dialog.accept)
+        cancel.clicked.connect(dialog.reject)
+        buttons.addStretch()
+        buttons.addWidget(save)
+        buttons.addWidget(cancel)
+        layout.addLayout(buttons)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        updated = DisplayPreferences(
+            font.currentData(), rows.currentData(), symbols.currentData())
+        try:
+            save_preferences(self._display_settings, updated)
+            self._apply_display_preferences(updated)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "הגדרות תצוגה", str(exc))
 
     def _invalidate_chart(self, *args):
         """A form change invalidates all chart data, interpretation and exports."""

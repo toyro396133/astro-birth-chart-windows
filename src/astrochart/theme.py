@@ -326,6 +326,18 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 """
 
 
-def apply_theme(window):
-    """Apply on the main window only; native dialogs keep platform defaults."""
-    window.setStyleSheet(APP_STYLE)
+def apply_theme(window, font_percent=100):
+    """Main-window-only Qt stylesheet. Keep native dialogs at platform defaults."""
+    if font_percent not in (90, 100, 110, 120):
+        raise ValueError("גודל גופן אינו נתמך")
+    style = APP_STYLE
+    if font_percent != 100:
+        import re
+        # Scale existing typography together without changing contrast or colors.
+        style = re.sub(
+            r"(font-size:\s*)(\d+)(px;)",
+            lambda match: (match.group(1)
+                           + str(max(9, round(int(match.group(2)) * font_percent / 100)))
+                           + match.group(3)),
+            APP_STYLE)
+    window.setStyleSheet(style)
