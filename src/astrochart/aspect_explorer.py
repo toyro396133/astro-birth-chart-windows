@@ -102,7 +102,9 @@ class AspectExplorerDialog(QDialog):
         self.table.blockSignals(False)
 
     def _select_aspect(self):
-        row = self.table.currentRow()
+        # A selected row does not always become the Qt current index.
+        selection = self.table.selectionModel().selectedRows()
+        row = selection[0].row() if selection else self.table.currentRow()
         if not 0 <= row < len(self._visible_aspects):
             return
         aspect = self._visible_aspects[row]
