@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 
 from .narrative import _supported_process
+from .semantic_plan_n2 import build_process_content_plan
 
 N2_SEMANTIC_VERSION = "0.2.0"
 CATALOG_FILE = "meaning_catalog_n2.json"
@@ -203,6 +204,8 @@ def _witness_summary(hit: dict, reading: dict | None, rule_types: dict) -> dict:
         "focus": reading["focus"] if reading else None,
         "distinction": reading["distinction"] if reading else None,
         "limitation": reading["limit"] if reading else None,
+        "setting": reading["setting"] if reading else None,
+        "behavior": reading["behavior"] if reading else None,
     }
 
 
@@ -284,26 +287,34 @@ def _process_claims(node: dict, axis_nodes: dict, readings: dict,
                       "witness_group": group})
         if reading:
             meanings.append(reading["id"])
+    content_plan = build_process_content_plan(
+        list(path), slots, node["domain"], node.get("relation"),
+        node.get("proof_search", {}).get("complete", True))
     base = _claim(node, "process-reading", "synthesis_hypothesis", {
         "path": list(path), "domain": node["domain"], "slots": slots,
         "model_relation": node.get("relation"),
         "proof_search_complete": node.get("proof_search", {}).get("complete", True),
+        "content_plan": content_plan,
     }, meaning_ids=meanings, audit_status="hypothesis")
-    # Describe specificity ONLY when two selected independent, *different*
-    # rule meanings exist. Otherwise abstain from an invented interaction.
-    readable = [s for s in slots if s["witness"]["meaning_id"]]
-    if len(readable) < 2 or len({s["witness"]["focus"] for s in readable}) < 2:
+    # No "whole-path" claim may silently drop the first, middle or last
+    # member. Comparison always carries full path coverage and missing slots.
+    if not content_plan["comparison_is_supported"]:
         return [base]
+    components = [{
+        "axis": m["axis"], "position": m["position"],
+        "focus": m["documented_meaning"]["focus"],
+        "setting": m["documented_meaning"]["setting"],
+        "behavior": m["documented_meaning"]["behavior"],
+        "distinction": m["documented_meaning"]["distinction"],
+        "limit": m["documented_meaning"]["limit"],
+        "rule_id": m["selected_rule_id"],
+    } for m in content_plan["members"] if m["meaning_covered"]]
     comparison = _claim(node, "process-example", "possible_behavior_example", {
         "path": list(path), "domain": node["domain"],
         "reading_type": "attributed-comparison-not-new-edge",
-        "components": [{
-            "axis": s["axis"], "focus": s["witness"]["focus"],
-            "distinction": s["witness"]["distinction"],
-            "rule_id": s["witness"]["rule_id"],
-        } for s in readable],
-        "limitation": "Comparison of existing source-supported emphases; "
-                      "does not establish a causal or psychological relation.",
+        "components": components, "content_plan": content_plan,
+        "limitation": "Comparison only; no causal, joint-behavior or "
+                      "psychological link is established.",
     }, meaning_ids=meanings, audit_status="hypothesis")
     return [base, comparison]
 

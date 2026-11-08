@@ -97,27 +97,32 @@ class DeterministicHebrewRealizer:
                          "רק זו שתוארה כאן כוללת הרחבה התנהגותית מבוקרת במאגר.")
             return text, evidence
         phrases = [
-            f"הראיה {i+1} מתארת {e['focus']}"
-            for i, e in enumerate(examples)]
+            f"{e['focus']} (ראיה {i+1})" for i, e in enumerate(examples)]
         detail = "; ".join(e["distinction"] for e in examples)
+        shown = examples[:2]
+        situations = "; ".join(
+            f"{e['situation']}, בעל המפה {e['behavior']}" for e in shown)
         text = (
-            f"ציר {axis} נתמך בכמה ראיות עצמאיות, אך לכל אחת מוקד אחר: "
+            f"מתוך {count} קבוצות ראיה עצמאיות לציר {axis}, "
+            f"ל־{len(examples)} יש פירוש עריכתי תלוי־כלל: "
             + "; ".join(phrases) + ". "
-            + "ההבחנה החשובה היא זו: " + detail + ". "
-            + f"{examples[0]['situation']}, בעל המפה "
-              f"{examples[0]['behavior']}; "
-            + f"בהקשר נפרד, {examples[1]['situation']}, "
-              f"בעל המפה {examples[1]['behavior']}. "
-            + "אלה דוגמאות נפרדות התלויות בכללי המקור; אין בכך ראיה "
-              "ששני הדפוסים מתרחשים יחד או שאחד גורם לשני.")
+            + "ההבחנות בין המשמעויות הן: " + detail + ". "
+            + f"לשם המחשה בלבד מובאות {len(shown)} דוגמאות התנהגות נפרדות: "
+            + situations + ". "
+            + "הדוגמאות אינן ממצות את כלל הראיות או מוכיחות "
+              "שהתיאורים מתקיימים יחד."
+        )
         if count > len(examples):
-            text += " לחלק מן הראיות אין עדיין פירוש התנהגותי ייחודי במאגר."
+            text += (f" ל־{count - len(examples)} קבוצות ראיה נוספות "
+                     "אין פירוש התנהגותי ייחודי במאגר.")
         return text, evidence
+
+    def process(        return text, evidence
 
     def process(self, claims: list[dict], index: int) -> tuple[str, str]:
         reading = next(c for c in claims if c["kind"] == "process-reading")["content"]
-        path = reading["path"]
-        slots = reading["slots"]
+        plan = reading["content_plan"]
+        path, slots = plan["path"], reading["slots"]
         compare = next((c for c in claims if c["kind"] == "process-example"), None)
         evidence = "ראיות המסלול שנבחרו ב־R1:\n" + "\n".join(
             f"• {slot['axis']}: {slot['witness']['evidence']} "
@@ -125,30 +130,52 @@ class DeterministicHebrewRealizer:
             f"{STATUS_HE.get(slot['witness']['review_status'], slot['witness']['review_status'])}; "
             f"מקור: {slot['witness']['source_url'] or 'לא צוין'})"
             for slot in slots)
+        coverage = plan["coverage"]
         if compare is None:
-            text = (
-                f"R1 מציע מסלול תפקודי בין הצירים {_he_list(path)}. "
-                "אף שיש ראיות נפרדות לכל ציר, אין די במשמעויות "
-                "המתועדות שנבחרו כדי להסביר כיצד הן משלימות זו את זו. "
-                "לפיכך N2 אינו מציג סיפור פעולה מורכב או טענה סיבתית.")
-            return text, evidence
+            return (f"מסלול R1 {_he_list(path)} הושאר ללא השוואה פרשנית: "
+                    "אין די במשמעויות מובחנות ומתועדות לכללים שנבחרו. "
+                    "המסלול מתועד ב־JSON אך אין הצדקה להשלים את פעריו.", evidence)
         components = compare["content"]["components"]
+        missing = coverage["missing_members"]
         positions = [f"{x['axis']}: {x['focus']}" for x in components]
-        contrasts = [x["distinction"] for x in components]
-        if len(components) >= 3:
-            opening = ("שלוש ראיות נבחרות מצביעות על דגשים שונים: "
-                       + "; ".join(positions) + ". ")
+        if missing:
+            opening = (
+                f"מסלול R1 המלא הוא {' → '.join(path)}. "
+                f"זוהי השוואה חלקית בלבד: {len(components)} מתוך "
+                f"{len(path)} רכיבי המסלול מכוסים בפירוש עריכתי "
+                f"({_he_list([x['axis'] for x in components])}); "
+                f"לרכיבים {_he_list([x['axis'] for x in missing])} "
+                "אין עדיין משמעות תלויה בכלל שנבחר. ")
         else:
-            opening = ("במסלול הזה שתי הראיות מדגישות דברים שונים: "
-                       + "; ".join(positions) + ". ")
-        text = (
-            opening
-            + "ההבדל ביניהן נמצא במשמעות של כל כלל: "
-            + "; ".join(contrasts) + ". "
-            + f"R1 מאפשר להציג אותן בסדר התפקודי {_he_list(path)}, "
-            + "אך הסדר אינו ראיה לכך שתכונה אחת גורמת לאחרת. "
-            + "הקריאה המשותפת היא השוואה של תחומי הדגש שהמקורות כבר מתארים, "
-            + "לא גילוי קשר פסיכולוגי חדש.")
+            opening = (
+                f"במסלול R1 {' → '.join(path)} כל {len(path)} הרכיבים "
+                "מכוסים בפירוש עריכתי, אך עצם הרצף הוא השערה. ")
+        evidence_count = "שלוש ראיות" if len(components) == 3 else (
+            "שתי הראיות" if len(components) == 2 else "ראיות נבחרות")
+        text = opening + evidence_count + " מצביעות על מוקדים שונים: "
+        text += "; ".join(positions) + ". "
+        text += ("ההבדל ביניהן אינו רק בשם הציר אלא גם בזירת ההמחשה: "
+                 + "; ".join(f"{c['axis']} — {c['setting']}" for c in components)
+                 + ". ")
+        # Role-sensitive composition uses actual contextual readings, not
+        # fabricated co-occurrence. No new behavioral proposition is asserted.
+        if not missing:
+            text += (
+                "בקריאה משולבת וזהירה אפשר להחזיק את השאלות בנפרד, "
+                "לפי סדר המסלול: "
+                + "; ".join(
+                    f"ב{c['axis']} מה ניתן לתאר באמצעות {c['focus']}"
+                    for c in components)
+                + ". אין זה סיפור על מעשים שהתרחשו ברצף. ")
+        else:
+            text += ("ההשוואה מתייחסת רק לרכיבים המכוסים, "
+                     "ולא מסבירה את המסלול המלא. ")
+        text += ("גם גבולות ההסקה שונים: "
+                 + "; ".join(f"{c['axis']} — {c['limit']}" for c in components)
+                 + ". ")
+        text += ("המשמעויות המתועדות מאפשרות להבחין בדגשים; "
+                 "הן אינן מוכיחות שהדגשים פועלים יחד, מחזקים זה את זה "
+                 "או שאחד גורם לאחר.")
         if not reading["proof_search_complete"]:
             text += " חיפוש החלופות למסלול הוגבל."
         return text, evidence
@@ -190,10 +217,44 @@ def compose_narrative_n2(semantics: dict, *,
             group = [claims[i] for i in ids]
             semantic, evidence = realizer.axis(group, index, secondary=name == "secondary")
             target.append(_merge(name, "axis", group, semantic, evidence))
+    abstained = []
     for index, ids in enumerate(plan["processes"]):
         group = [claims[i] for i in ids]
+        content = next(c for c in group if c["kind"] == "process-reading")["content"]
+        content_plan = content["content_plan"]
+        has_comparison = any(c["kind"] == "process-example" for c in group)
+        if not has_comparison:
+            abstained.append((group, content_plan))
+            continue
         semantic, evidence = realizer.process(group, index)
-        processes.append(_merge("processes", "process", group, semantic, evidence))
+        p = _merge("processes", "process", group, semantic, evidence)
+        p["process_content_plan"] = content_plan
+        processes.append(p)
+    abstained_paths = [{
+        "path": cp["path"], "coverage": cp["coverage"],
+        "node_ids": sorted({n for c in group for n in c["node_ids"]}),
+        "claim_ids": [c["id"] for c in group],
+        "rule_ids": sorted({r for c in group for r in c["rule_ids"]}),
+        "reason": "insufficient-distinct-rule-meanings",
+    } for group, cp in abstained]
+    if abstained:
+        all_claims = [c for group, _ in abstained for c in group]
+        names = [" → ".join(cp["path"]) for _, cp in abstained]
+        summary = (
+            f"אותרו {len(abstained)} מסלולים נוספים ב־R1 "
+            f"({_he_list(names)}), אך אין עדיין די במשמעויות מובחנות "
+            "ומתועדות כדי להסביר אותם. לא הוסקו מהם קשרים התנהגותיים. "
+            "פירוט כל רכיב חסר וכל ראיה שנבחרה נשמר ב־JSON.")
+        evidence = "\n".join(
+            f"• {' → '.join(cp['path'])}: "
+            + "; ".join(
+                f"{m['axis']} — כלל {m['selected_rule_id']}"
+                + (" (ללא פירוש עריכתי)" if not m["meaning_covered"] else "")
+                for m in cp["members"])
+            for _, cp in abstained)
+        p = _merge("processes", "process-abstention", all_claims, summary, evidence)
+        p["abstained_paths"] = abstained_paths
+        processes.append(p)
     for ids in plan["tensions"]:
         group = [claims[i] for i in ids]
         semantic, evidence = realizer.tension(group)
@@ -267,6 +328,7 @@ def compose_narrative_n2(semantics: dict, *,
         "source_rule_pack": semantics["source_rule_pack"],
         "time_mode": mode, "mode": "local-deterministic-attributed-hebrew",
         "sections": sections, "warnings": list(semantics["warnings"]),
+        "abstained_processes": abstained_paths,
     }
 
 
@@ -284,4 +346,4 @@ def semantic_only_n2(report: dict) -> list[str]:
     """Comparable claims without original rule quotes, URLs or disclosures."""
     return [p.get("semantic_text", "") for section in report["sections"]
             for p in section["paragraphs"]
-            if p["kind"] in ("axis", "process", "unresolved-tension")]
+            if p["kind"] in ("axis", "process", "process-abstention", "unresolved-tension")]
