@@ -2,8 +2,9 @@ from datetime import date, time
 import json
 from pathlib import Path
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
@@ -398,13 +399,19 @@ class MainWindow(QMainWindow):
         self.copy_button.setEnabled(False)
         self.copy_button.clicked.connect(self._copy_report)
         table_heading.addWidget(self.copy_button)
+        self.copy_row_button = QPushButton("העתק שורה")
+        self.copy_row_button.setObjectName("copyRowButton")
+        self.copy_row_button.clicked.connect(self._copy_selected_table_rows)
+        table_heading.addWidget(self.copy_row_button)
         details_layout.addLayout(table_heading)
 
         self.table = QTableWidget(0, 5)
         self.table.setObjectName("bodyTable")
         self.table.setHorizontalHeaderLabels(
             ["גוף", "מזל", "מעלה במזל", "בית", "תנועה"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setDefaultSectionSize(98)
         self.table.horizontalHeader().setFixedHeight(27)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(22)
@@ -415,6 +422,9 @@ class MainWindow(QMainWindow):
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.currentCellChanged.connect(self._on_table_selection)
+        self.table.setSortingEnabled(True)
+        QShortcut(QKeySequence.StandardKey.Copy, self.table).activated.connect(
+            self._copy_selected_table_rows)
         self.table.setToolTip("בחירת שורה מסמנת את הגוף בגלגל")
         details_layout.addWidget(self.table, 1)
 
@@ -451,6 +461,45 @@ class MainWindow(QMainWindow):
         main.addWidget(split, 1)
 
         apply_theme(self)
+
+        for signal in (
+            self.day.dateChanged, self.hour.timeChanged, self.unknown.toggled,
+            self.approx_hour.toggled, self.city.currentIndexChanged,
+            self.lat.valueChanged, self.lon.valueChanged, self.tz.textChanged,
+            self.date_mode.currentIndexChanged, self.hebrew_year.valueChanged,
+            self.hebrew_month.currentIndexChanged, self.hebrew_day.valueChanged,
+            self.phase.currentIndexChanged,
+        ):
+            signal.connect(self._invalidate_chart)
+
+    def _invalidate_chart(self, *args):
+        """A form change invalidates all chart data, interpretation and exports."""
+        if self._active_chart is None and self._interpretation_chart is None:
+            return
+        self._active_chart = None
+        self._interpretation_chart = None
+        self._active_record = None
+        self.copy_button.setEnabled(False)
+        self.interpret_button.setEnabled(False)
+        self.wheel.set_chart(None)
+        self.table.setRowCount(0)
+        self.aspects.clear()
+        self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
+        self.chart_caption.setText("הנתונים השתנו — נדרש חישוב מחדש")
+        self.warnings.setText("התוצאה הקודמת הוסרה כי אינה מתאימה לנתוני הקלט")
+
+    def _copy_selected_table_rows(self):
+        selection = self.table.selectionModel()
+        rows = sorted({index.row() for index in selection.selectedRows()})
+        if not rows and self.table.currentRow() >= 0:
+            rows = [self.table.currentRow()]
+        if not rows and self.table.rowCount() == 1:
+            rows = [0]
+        if not rows:
+            return
+        QApplication.clipboard().setText("\n".join("\t".join(
+            self.table.item(row, column).text() if self.table.item(row, column) else ""
+            for column in range(self.table.columnCount())) for row in rows))
 
     def _toggle_advanced(self, checked=None):
         expanded = (not self.advanced.isHidden()) if checked is None else bool(checked)
@@ -698,6 +747,7 @@ class MainWindow(QMainWindow):
             self._toggle_advanced(True)
 
     def _calculate(self):
+        self._invalidate_chart()
         self._active_record = None
         try:
             if self.date_mode.currentData() == "hebrew" and self.unknown.isChecked():
@@ -719,14 +769,21 @@ class MainWindow(QMainWindow):
             if phase_warning:
                 chart.warnings.append(phase_warning)
             if self.approx_hour.isChecked() and not self.unknown.isChecked():
+                chart.time_certainty = "estimated"
+                for body in chart.bodies:
+                    body.degree_certainty = "estimated"
+                    body.sign_certainty = "estimated"
+                for aspect in chart.aspects:
+                    aspect.certainty = "estimated"
                 chart.warnings.append(
                     "שעת הלידה משוערת. המעלות, האופק, רום השמיים, "
                     "הבתים וההיבטים חושבו לפי שעה זו בלבד; "
                     "ייתכנו שינויים כאשר השעה האמיתית שונה.")
             if self.date_mode.currentData() == "hebrew":
                 chart.warnings.insert(0, "המרת תאריך עברי: " + resolved.label)
+            record = make_record(self._capture_input(), __version__)
             self._show_chart(chart)
-            self._active_record = make_record(self._capture_input(), __version__)
+            self._active_record = record
         except Exception as exc:
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
@@ -738,15 +795,20 @@ class MainWindow(QMainWindow):
         self.interpret_button.setEnabled(True)
         self.chart_caption.setText(
             f"{len(chart.bodies)} גופים · " +
-            ("שעה לא ידועה" if chart.approximate else "מפה מחושבת"))
+            {"known": "מפה מחושבת", "estimated": "שעה משוערת",
+             "unknown": "שעה לא ידועה"}[chart.time_certainty])
         self.table.blockSignals(True)
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(chart.bodies))
         for row, b in enumerate(chart.bodies):
-            signs = " / ".join(SIGNS[i] for i in b.signs_possible) if chart.approximate else b.sign
+            signs = (" / ".join(SIGNS[i] for i in b.signs_possible)
+                     if chart.approximate and b.signs_possible else b.sign)
             motion = "לא ודאי" if b.motion_uncertain else ("נסיגה" if b.retrograde else "ישירה")
             values = [
                 b.name, signs,
-                f"{degree_in_sign(b.longitude):.3f}°" + (" (דגימה)" if chart.approximate else ""),
+                f"{degree_in_sign(b.longitude):.3f}°" + (
+                    " (דגימה)" if chart.time_certainty == "unknown"
+                    else " (משוער)" if b.degree_certainty == "estimated" else ""),
                 "—" if b.house is None else str(b.house), motion
             ]
             tooltip = f"{b.name} · {signs} · {degree_in_sign(b.longitude):.3f}°"
@@ -757,8 +819,11 @@ class MainWindow(QMainWindow):
         self.table.clearSelection()
         self.table.setCurrentCell(-1, -1)
         self.table.blockSignals(False)
+        self.table.setSortingEnabled(True)
         self.aspects.setPlainText("\n".join(
             f"{a.first} – {a.second}: {a.kind}, מרחק {a.separation:.2f}°, סטייה {a.orb:.2f}°"
+            + (" (דגימה בלבד; לא היבט לידה)" if chart.time_certainty == "unknown"
+               else " (לפי שעה משוערת)" if a.certainty == "estimated" else "")
             for a in chart.aspects))
         angles = "" if chart.ascendant is None else (
             f"\nאופק: {chart.ascendant:.3f}° | MC: {chart.mc:.3f}°"
