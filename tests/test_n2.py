@@ -51,7 +51,9 @@ def test_n2_is_attributed_and_more_concrete_than_n1():
     assert "פרשנות אישית" in text
     assert "מול משימה חדשה" in text or "מצטברות מטלות" in text
     assert "חוזקה" not in old or "פעולת" in old
-    assert "כאשר" in text and "הקושי" in text or "קושי" in text
+    assert "בעל המפה" in text and "מצד אחד" in text
+    assert any(c["kind"] == "axis-meaning" and c["content"]["strength"]
+               and c["content"]["challenge"] for c in semantic["claims"])
     assert "אבחון אישיות" in text
     assert semantic["relationship_discovery_enabled"] is False
     assert semantic["catalog_review_status"] == "unverified"
