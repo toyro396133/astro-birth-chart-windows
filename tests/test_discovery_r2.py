@@ -164,7 +164,9 @@ def test_heldout_counterexamples_reported_not_hidden():
     result = discover(training(), heldout)
     h = by_members(result)[(A, B, C)]
     val = h["validation"]
-    assert val["status"] == "counterexamples-observed"
+    assert val["status"] == "fails-prespecified-symbolic-holdout-gate"
+    assert val["generalization_demonstrated"] is False
+    assert val["metrics"]["symbolic_ratio_denominator"] == 2
     assert val["metrics"]["independent_support_count"] == 1
     assert val["metrics"]["partial_counterexample_count"] == 1
     assert val["counterexamples"][0]["case_id"] == "val-partial"
@@ -326,6 +328,144 @@ def test_reproducible_experiment_uses_real_r1_and_holdout_counterfactual():
     assert result["r2"]["summary"]["train_eligible_cases"] == 12
     assert result["r2"]["summary"]["validation_eligible_cases"] == 3
     assert not result["r1_baseline"]["has_cross_domain_initiative_sensitivity_thinking_path"]
-    assert result["target_cross_domain_pattern"]["found"]
-    assert result["target_cross_domain_pattern"]["metrics"]["independent_support_count"] >= 3
-    assert result["target_cross_domain_pattern"]["heldout"]["status"] == "counterexamples-observed"
+    # The original trial repeated one physical evidence signature six times.
+    # R2 must NOT present this as independent learning/generalization.
+    assert not result["target_cross_domain_pattern"]["found"]
+    assert result["r2"]["summary"]["recurrent_insufficient_diversity_count"] >= 1
+    assert result["r2"]["summary"]["level_2_semantic_relations_demonstrated"] is False
+
+
+def test_a_many_editorial_copies_cannot_mint_independent_evidence():
+    original = case("copy-template", (A, B))
+    copies = [original]
+    for i in range(25):
+        changed = deepcopy(original)
+        changed["id"] = f"copy-edited-{i}"
+        changed["synthesis"]["editorial_title"] = f"headline-{i}"
+        changed["synthesis"]["nodes"][0]["label"] = f"caption-{i}"
+        copies.append(changed)
+    corpus = copies + [case(f"negative-{i}", (D, E)) for i in range(5)]
+    out = discover(corpus)
+    assert out["summary"]["train_eligible_cases"] == 6
+    assert len(out["duplicate_cases"]) == 25
+    assert not any({A, B} <= set(h["members"]) for h in out["hypotheses"])
+
+
+def test_a_distinct_declared_records_kept_but_not_mistaken_for_diversity():
+    first = case("same-pattern", (A, B))
+    corpus = []
+    for i in range(6):
+        e = deepcopy(first)
+        e["id"] = f"record-{i}"
+        e["source_id"] = "source-one"
+        e["independent_record_id"] = f"subject-{i}"
+        corpus.append(e)
+    corpus += [case(f"controlx-{i}", (D, E)) for i in range(6)]
+    out = discover(corpus)
+    assert out["summary"]["train_eligible_cases"] == 12
+    p = next(x for x in out["recurring_but_not_diverse_patterns"]
+             if set(x["members"]) == {A, B})
+    assert p["metrics"]["supporting_report_count"] == 6
+    assert p["metrics"]["distinct_evidence_signature_count"] == 1
+    assert p["metrics"]["distinct_data_template_count"] == 1
+    assert p["metrics"]["declared_data_source_count"] == 1
+    assert not p["metrics"]["source_independence_verified"]
+    assert not any(set(h["members"]) == {A, B} for h in out["hypotheses"])
+
+
+def test_b_authored_but_unobserved_directed_path_is_not_novel():
+    from astrochart.discovery_r2 import _ontology
+    assert len(_ontology()["directed_paths"]) == 26
+    corpus = [case(f"functional-{i}", (A, "גמישות")) for i in range(5)]
+    corpus += [case(f"ctrl-{i}", (D, E)) for i in range(5)]
+    out = discover(corpus)
+    m = next(x for x in out["predefined_r1_patterns"]
+             if set(x["members"]) == {A, "גמישות"})
+    assert m["classification"] == "authored-r1-path-not-observed"
+    assert not any(set(h["members"]) == {A, "גמישות"} for h in out["hypotheses"])
+    assert out["summary"]["possible_r1_directed_compositions"] == 26
+
+
+def test_c_validation_reused_target_proof_is_not_new_generalization():
+    train = training()
+    holdout = deepcopy(train[0])
+    holdout["id"] = "reused-pair-but-full-chart-different"
+    holdout["synthesis"]["nodes"].append(
+        case("extra", (D,))["synthesis"]["nodes"][0])
+    output = discover(train, [holdout])
+    h = by_members(output)[(A, B)]
+    assert h["validation"]["status"] == "generalization-unproven-no-novel-positive-signatures"
+    assert h["validation"]["metrics"]["reused_training_signature_count"] == 1
+    assert h["validation"]["metrics"]["distinct_evidence_signature_count"] == 0
+
+
+def test_d_source_review_vocabulary_and_missing_provenance():
+    case_bad = case("badstatus", (A, B))
+    case_bad["synthesis"]["nodes"][0]["available_facts"][0][
+        "review_statuses"] = ["verified"]  # not a permitted R1 value
+    with pytest.raises(ValueError, match="status"):
+        discover([case_bad])
+    corpus = training()
+    for sample in corpus[:5]:
+        for node in sample["synthesis"]["nodes"]:
+            for fact in node.get("available_facts", []):
+                fact["source_refs"] = []
+                fact["review_statuses"] = ["unverified"]
+    out = discover(corpus)
+    h = by_members(out)[(A, B)]
+    assert h["provenance_quality"]["all_supporting_reports_unverified_or_missing"]
+    assert h["provenance_quality"]["missing_sources_or_statuses"] == 5
+    assert not h["provenance_quality"]["any_source_approved_automatically"]
+
+
+def test_e_canonical_identity_changes_only_on_source_pack_or_ontology():
+    original = training()
+    first = by_members(discover(original))[(A, B)]["id"]
+    edited = deepcopy(original)
+    for row in edited:
+        row["synthesis"]["editorial_title"] = "changed without new evidence"
+    assert by_members(discover(edited))[(A, B)]["id"] == first
+    updated = deepcopy(original)
+    for row in updated:
+        row["synthesis"]["source_rule_pack"] = "0.2.1"
+    changed = by_members(discover(updated))[(A, B)]["id"]
+    assert changed != first
+
+
+def test_f_uncertain_r1_search_and_cutoff_are_reported_separately(monkeypatch):
+    import astrochart.discovery_r2 as engine
+    corpus = training()
+    monkeypatch.setattr(engine, "MAX_PROOF_STATES", 1)
+    limited = discover(corpus)
+    assert limited["summary"]["candidate_enumeration_complete"]
+    assert not limited["summary"]["witness_proof_search_complete"]
+    assert not limited["summary"]["search_complete"]
+    assert limited["search"]["resource_affected_candidates"]
+    assert all(x["case_ids"] for x in limited["search"]["resource_affected_candidates"])
+
+    monkeypatch.setattr(engine, "MAX_PROOF_STATES", 20000)
+    report = training()
+    report[0]["synthesis"]["summary"]["proof_search_limited_paths"] = [[A, B]]
+    output = discover(report)
+    assert not output["summary"]["r1_input_search_complete"]
+    assert "positive-0" in output["search"]["r1_resource_excluded_case_ids"]
+
+
+def test_g_metrics_include_full_part_absent_dependent_and_exclusion():
+    group = [case(f"yes-{i}", (A, B)) for i in range(5)]
+    group += [case("partial", (A,)), case("absent", (D,))]
+    group += [case("dependent", (A, B), shared_roots=True)]
+    group += [case("uncertainty", (A, B), uncertain=True)]
+    out = discover(group)
+    h = by_members(out)[(A, B)]
+    m = h["metrics"]
+    assert m["independent_support_count"] == 5
+    assert m["partial_counterexample_count"] == 1
+    assert m["absent_case_count"] == 1
+    assert m["dependent_cooccurrence_count"] == 1
+    assert m["incomplete_proof_count"] == 0
+    assert m["excluded_case_count"] == 1
+    assert m["symbolic_ratio_numerator"] == 5
+    assert m["symbolic_ratio_denominator"] == 6
+    assert m["symbolic_ratio_wilson_95_case_based"] is not None
+    assert "coactivation_precision" not in m
