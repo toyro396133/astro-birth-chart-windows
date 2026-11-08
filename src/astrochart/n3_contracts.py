@@ -477,10 +477,109 @@ def source_eligible(definition: dict, sources: dict, *,
                     for aid in [a["anchor_id"]]))
 
 
+
+def _verify_decision_reasons(plan: dict, evaluation: dict, definition: dict,
+                             sources: dict, adapted: dict, proofs: dict,
+                             *, relation_state: str, source_state: str,
+                             verified_r1_incomplete: bool) -> None:
+    """Derive reasons from verified facts, not from self-signed assertions.
+
+    A re-sealed reason is still rejected when its independently recomputed
+    predicate is false. In P1 unsupported reason codes are fail-closed, rather
+    than trusted merely because a JSON enum and SHA256 permit them.
+    """
+    route = plan["trace"]["selected_decisive_route"]
+    by_id = {h["rule_hit_id"]: h for h in adapted["hits"]}
+    chosen = (proofs[route]["selected_binding_ids"] if route != "none" else [])
+    chosen_hits = [by_id[rid] for rid in chosen]
+    selected_axes = {h["axis"] for h in chosen_hits}
+    from .synthesis import synthesize
+    # Source signals were already re-matched from the original chart by adapter.
+    native_report = {"signals": adapted["original_signals"],
+                     "time_mode": adapted["time_mode"]}
+    original_tensions = synthesize(None, native_report)["tensions"]
+    real_tension = any(t["status"] == "unresolved" and t["axis"] in selected_axes
+                       and t["positive_rule_ids"] and t["negative_rule_ids"]
+                       for t in original_tensions)
+    conflict_failed = evaluation["conflict_proof"]["status"] in ("fail", "unknown")
+    time_failed = evaluation["time_proof"]["status"] in ("fail", "unknown")
+    dependency_failed = evaluation["dependency_proof"]["status"] in ("fail", "unknown")
+    uncertain_relevant = (adapted["time_mode"] != "known" and
+                          any(h["raw_fields"]["provisional"] for h in chosen_hits))
+    independent = definition["evidence_policy"]["independent_roots_required"]
+    # Only *authenticated* candidate bindings (not caller text) count as
+    # observed overlap. Never treat shared roots as two independent proofs.
+    dependent_routes = set()
+    if independent and dependency_failed:
+        for route_name in ROUTES:
+            origin = ("r1_witness" if route_name == "r1_path"
+                      else "direct_composite_component")
+            entries = [b for b in evaluation["bindings"] if b["origin"] == origin]
+            for i, first in enumerate(entries):
+                for second in entries[i + 1:]:
+                    if (first["role"] != second["role"] and
+                            set(first["dependency_roots"]) & set(second["dependency_roots"])):
+                        dependent_routes.add(route_name)
+    source_missing = not source_eligible(definition, sources)
+    status = evaluation["source_license_check"]["status"]
+    _assert(not (source_missing or source_state != "TRUE") or status != "pass",
+            "REASON_MISMATCH: source check claims pass without a source")
+    observed = {
+        "NO_RELATION_SOURCE": lambda rr: (
+            source_missing and rr in (route, "global") and route != "none"),
+        "INCOMPLETE_SEARCH": lambda rr: (
+            rr == "r1_path" and verified_r1_incomplete
+            and proofs["r1_path"]["candidate_state"] == "candidate"
+            and proofs["r1_path"]["search_complete"] is False
+            and proofs["r1_path"]["proof_result"] == "unknown"),
+        "MATERIAL_TENSION": lambda rr: (
+            rr == route and real_tension and conflict_failed),
+        "UNCERTAIN_TIME": lambda rr: (
+            rr == route and uncertain_relevant and time_failed),
+        "DEPENDENT_ROOTS": lambda rr: rr in dependent_routes,
+        "UNMATCHED_CONDITIONS": lambda rr: (
+            rr == route and route != "none" and
+            (source_state != "TRUE" or relation_state != "TRUE")),
+        "UNVERIFIED_RELATION": lambda rr: (
+            rr == route and route != "none" and
+            definition["relation_review"]["status"] != "approved_for_symbolic_wording"),
+        "CANDIDATE_NOT_FOUND": lambda rr: (
+            rr == "global" and route == "none" and
+            all(p["candidate_state"] == "not_candidate" for p in proofs.values())
+            and not verified_r1_incomplete),
+        "PROOF_UNKNOWN": lambda rr: (
+            rr == "r1_path" and verified_r1_incomplete),
+        "RESOURCE_CAP": lambda rr: (
+            rr == "r1_path" and verified_r1_incomplete),
+    }
+    for reason in plan["reasons"]:
+        code, rr = reason["code"], reason["route"]
+        _assert(code in observed and observed[code](rr),
+                "REASON_MISMATCH: unsupported or unproved " + code)
+        expected_blocking = (rr == route or rr == "global")
+        _assert(reason["blocking"] is expected_blocking,
+                "REASON_MISMATCH: blocking attribution for " + code)
+        _assert(not reason["evidence_refs"] or
+                set(reason["evidence_refs"]).issubset(by_id),
+                "REASON_MISMATCH: invented reason evidence")
+    if plan["decision"] == "COMPARISON_ONLY" and source_missing:
+        _assert(any(r["code"] == "NO_RELATION_SOURCE" and r["blocking"]
+                    and r["route"] == route for r in plan["reasons"]),
+                "REASON_MISMATCH: comparison missing independently derived source gate")
+    if verified_r1_incomplete and route != "r1_path":
+        _assert(any(r["code"] == "INCOMPLETE_SEARCH" and
+                    r["route"] == "r1_path" and not r["blocking"]
+                    for r in plan["reasons"]),
+                "REASON_MISMATCH: capped nondecisive R1 search omitted")
+
+
 def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
                 *, claims: list[dict] = (), allow_user: bool = False,
                 trusted_source_registry_hash: str | None = None,
-                adapted: dict | None = None, n2_catalog: dict | None = None) -> None:
+                adapted: dict | None = None, n2_catalog: dict | None = None,
+                verified_r1_incomplete: bool = False,
+                relation_state: str | None = None,
+                source_state: str | None = None) -> None:
     # Schema-first even for lower-level validation: no raw KeyError on missing fields.
     validate_schema("N3Plan", plan)
     validate_schema("RelationEvaluation", evaluation)
@@ -521,6 +620,26 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
     decision = plan["decision"]
     reasons = plan["reasons"]
     blocking = [r for r in reasons if r["blocking"]]
+    # Never evaluate meaning using an authenticated but *unselected* witness.
+    expected_ids = (set(proofs[route]["selected_binding_ids"])
+                    if route != "none" else set())
+    _assert({b["rule_hit_id"] for b in evaluation["selected_witnesses"]} == expected_ids,
+            "PROVENANCE_MISMATCH: semantic witnesses not in decisive proof")
+    _assert(len(evaluation["selected_witnesses"]) == len(expected_ids),
+            "PROVENANCE_MISMATCH: duplicated selected witness")
+    if relation_state is None:
+        relation_state = evaluate_bound_predicate(
+            definition["predicate_ast"], definition, evaluation, adapted,
+            complete=True, selected_binding_ids=expected_ids)
+    if source_state is None:
+        source_state = source_conditions_state(
+            definition, evaluation, adapted, selected_binding_ids=expected_ids)
+    _assert(relation_state in TRUTH and source_state in TRUTH,
+            "invalid derived semantic status")
+    _verify_decision_reasons(
+        plan, evaluation, definition, sources, adapted, proofs,
+        relation_state=relation_state, source_state=source_state,
+        verified_r1_incomplete=verified_r1_incomplete)
     if route != "none":
         _assert(proofs[route]["candidate_state"] == "candidate", "decisive route not candidate")
         _assert(all(r["route"] in (route, "global") for r in blocking),
@@ -749,7 +868,8 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
 
 
 def evaluate_bound_predicate(ast: dict, definition: dict, evaluation: dict,
-                             adapted: dict, *, complete: bool = False) -> str:
+                             adapted: dict, *, complete: bool = False,
+                             selected_binding_ids: set[str] | None = None) -> str:
     """Interpret only authenticated RulePack facts bound to their approved role.
 
     Missing observations/term mappings are UNKNOWN, never automatically FALSE.
@@ -758,7 +878,16 @@ def evaluate_bound_predicate(ast: dict, definition: dict, evaluation: dict,
     """
     allowed = {s["role"]: set(s["allowed_rule_ids"])
                for s in definition["participant_specs"]}
+    if selected_binding_ids is None:
+        proven = [p for p in evaluation["route_proofs"] if p["proof_result"] == "proven"]
+        _assert(len(proven) <= 1,
+                "PROVENANCE_MISMATCH: decisive route required for multiple proofs")
+        selected_binding_ids = (set(proven[0]["selected_binding_ids"])
+                                if proven else set())
     chosen = evaluation["selected_witnesses"]
+    _assert({b["rule_hit_id"] for b in chosen} == selected_binding_ids and
+            len(chosen) == len(selected_binding_ids),
+            "PROVENANCE_MISMATCH: unselected semantic witness")
     by_role: dict[str, list[dict]] = {}
     original = {h["rule_hit_id"]: h for h in adapted["hits"]}
     for binding in chosen:
@@ -801,11 +930,13 @@ def evaluate_bound_predicate(ast: dict, definition: dict, evaluation: dict,
     return evaluate_predicate(ast, resolve, complete=complete)
 
 
-def source_conditions_state(definition: dict, evaluation: dict, adapted: dict) -> str:
+def source_conditions_state(definition: dict, evaluation: dict, adapted: dict,
+                            *, selected_binding_ids: set[str] | None = None) -> str:
     """Unknown or false source conditions never license an effect."""
     complete = any(p["proof_result"] == "proven" and p["search_complete"] is True
                    for p in evaluation["route_proofs"])
     states = [evaluate_bound_predicate(anchor["matching_conditions"], definition,
-                                      evaluation, adapted, complete=complete)
+                                      evaluation, adapted, complete=complete,
+                                      selected_binding_ids=selected_binding_ids)
               for anchor in definition["source_anchors"]]
     return "FALSE" if "FALSE" in states else "UNKNOWN" if "UNKNOWN" in states else "TRUE"
