@@ -248,7 +248,7 @@ def test_r1_truncated_b_complete_source_under_review_and_invalid_plan():
 def test_dynamic_n2_categories_dont_promote_symbolic():
     result=verify_n2_catalog(N2,RULES,locked_digest=digest(N2))
     assert result["category_counts"]["rule_readings"]==len(N2["rule_readings"])
-    rule=next(r for r in RULES["rules"] if r["id"]=="sun-sign-1")
+    rule=next(r for r in RULES["rules"] if r["id"]=="sun-moon-trine")
     cat=copy.deepcopy(N2)
     cat["symbolic_explanations"]=[{"id":"synthetic.symbolic","kind":"symbolic-explanation",
         "rule_id":rule["id"],"axis":rule["axis"],"source_rule_text":rule["text"],
