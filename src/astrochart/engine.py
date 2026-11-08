@@ -93,6 +93,9 @@ class Calculator:
                 body.signs_possible = tuple(sorted({
                     sign_index(sample[idx].longitude) for sample in samples
                 }))
+                body.degree_certainty = "estimated"
+                body.sign_certainty = ("known" if len(body.signs_possible) == 1
+                                       else "estimated")
                 body.motion_uncertain = len({
                     sample[idx].retrograde for sample in samples
                 }) > 1
@@ -101,7 +104,11 @@ class Calculator:
                 "של היום האזרחי ולא נתוני לידה מדויקים. אין אופק, MC או בתים.")
             if any(len(b.signs_possible) > 1 for b in bodies):
                 warnings.append("גוף אחד לפחות עשוי להחליף מזל במהלך היום.")
-            return Chart(bodies, calculate_aspects(bodies), None, None, True, warnings)
+            aspects = calculate_aspects(bodies)
+            for aspect in aspects:
+                aspect.certainty = "estimated"  # Midpoint-only sample, not a natal aspect.
+            return Chart(bodies, aspects, None, None, True, warnings,
+                         time_certainty="unknown")
         if clock is None:
             raise ValueError("יש להזין שעה או לסמן ששעת הלידה אינה ידועה")
         local = datetime.combine(day, clock)

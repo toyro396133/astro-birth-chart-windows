@@ -88,7 +88,7 @@ def main():
     QTest.mouseClick(window.wheel, Qt.MouseButton.LeftButton,
                      pos=QPoint(round(marker.x()), round(marker.y())))
     assert window.wheel.selected_body == "ירח"
-    assert window.table.currentRow() == 1
+    assert window.table.item(window.table.currentRow(), 0).text() == "ירח"
     window.copy_button.click()
     report_text = QApplication.clipboard().text()
     assert "שמש" in report_text and "ירח" in report_text

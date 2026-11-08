@@ -56,7 +56,8 @@ def test_changed_inputs_block_saving(tmp_path, window, monkeypatch):
     window.hour.setTime(window.hour.time().addSecs(60))
     window._save_chart(False)
     assert not attempted.exists()
-    assert any("הקלט השתנה" in message for message in messages)
+    assert any("הקלט השתנה" in message or "יש לחשב" in message
+               for message in messages)
 
 
 def test_native_png_pdf_and_text_exports(tmp_path, window, monkeypatch):

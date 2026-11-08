@@ -36,6 +36,9 @@ def test_unknown_hour_has_no_angles_or_houses(calculator):
     assert c.approximate
     assert c.ascendant is None and c.mc is None
     assert all(b.house is None for b in c.bodies)
+    assert c.time_certainty == "unknown"
+    assert all(b.degree_certainty == "estimated" for b in c.bodies)
+    assert all(a.certainty == "estimated" for a in c.aspects)
 
 
 def test_unknown_hour_moon_cusp_scenario(calculator):

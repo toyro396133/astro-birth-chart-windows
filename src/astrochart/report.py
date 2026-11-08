@@ -13,7 +13,9 @@ def format_chart_report(chart):
     lines = [
         "AstroBirthChart — נתוני מפה",
         "מיקומים והיבטים מחושבים בלבד; לא תחזית או אבחון.",
-        "שעת לידה: " + ("לא ידועה — תוצאות בקירוב" if chart.approximate
+        "שעת לידה: " + ("לא ידועה — תוצאות בקירוב" if chart.time_certainty == "unknown"
+                          else "שעה משוערת — תוצאות לפי שעת הדגימה"
+                          if chart.time_certainty == "estimated"
                           else "בהתאם לשעת החישוב"),
         "",
         "מיקומי גופים:",
@@ -39,6 +41,9 @@ def format_chart_report(chart):
         lines.extend(
             f"• {a.first} – {a.second}: {a.kind}, "
             f"מרחק {a.separation:.2f}°, סטייה {a.orb:.2f}°"
+            + (" (דגימת אמצע היום בלבד — לא היבט לידה)"
+               if chart.time_certainty == "unknown" else
+               " (לפי שעה משוערת)" if a.certainty == "estimated" else "")
             for a in chart.aspects)
     else:
         lines.append("לא נמצאו היבטים בהגדרות החישוב.")
