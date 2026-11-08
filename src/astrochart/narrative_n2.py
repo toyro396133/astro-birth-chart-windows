@@ -65,8 +65,9 @@ def _abstention_reason(plan: dict) -> tuple[str, str]:
     missing = plan["coverage"]["missing_members"]
     if missing:
         names = _he_list([m["axis"] for m in missing])
+        noun = "לרכיב" if len(missing) == 1 else "לרכיבים"
         return ("missing-catalog-coverage",
-                f"לרכיבים {names} חסר פירוש ייעודי לכלל שנבחר במאגר")
+                f"{noun} {names} חסר פירוש ייעודי לכלל שנבחר במאגר")
     if not plan["comparison_is_supported"]:
         return ("no-meaningful-distinction",
                 "המשמעויות הקיימות אינן מציגות הבחנה פרשנית מהותית")
@@ -267,31 +268,68 @@ def compose_narrative_n2(semantics: dict, *,
             semantic, evidence = realizer.axis(group, index, secondary=name == "secondary")
             target.append(_merge(name, "axis", group, semantic, evidence))
     abstained = []
+    process_decisions = []
     for index, ids in enumerate(plan["processes"]):
         group = [claims[i] for i in ids]
-        content = next(c for c in group if c["kind"] == "process-reading")["content"]
+        base = next(c for c in group if c["kind"] == "process-reading")
+        content = base["content"]
         content_plan = content["content_plan"]
         has_comparison = any(c["kind"] == "process-example" for c in group)
+        # Legacy hand-built fixtures may lack the new decision fields. Actual
+        # production claims always carry two independent decisions.
+        decisions = content.get("interpretation_decisions")
+        if decisions is None:
+            fallback_reason, _ = _abstention_reason(content_plan)
+            decisions = {
+                "schema_version": 1,
+                "comparison": {
+                    "permitted": has_comparison,
+                    "reason": ("documented-distinct-readings" if has_comparison
+                               else fallback_reason),
+                    "scope": ("partial" if content_plan["coverage"]["missing_members"]
+                              else "full") if has_comparison else "none",
+                },
+                "combined_assertion": {
+                    "permitted": False,
+                    "reason": "no-supported-combined-assertion",
+                },
+            }
+        if decisions["comparison"]["permitted"] != has_comparison:
+            raise ValueError("החלטת השוואה אינה תואמת לטענות המסלול")
+        record = {
+            "path": content_plan["path"],
+            "coverage": content_plan["coverage"],
+            "node_ids": sorted({n for c in group for n in c["node_ids"]}),
+            "claim_ids": [c["id"] for c in group],
+            "rule_ids": sorted({r for c in group for r in c["rule_ids"]}),
+            "source_refs": sorted({r for c in group for r in c["source_refs"]}),
+            "source_review_statuses": sorted({
+                r for c in group for r in c["source_review_statuses"]}),
+            "evidence_keys": sorted({r for c in group for r in c["evidence_keys"]}),
+            "evidence_roots": sorted({r for c in group for r in c["evidence_roots"]}),
+            "meaning_ids": sorted({r for c in group for r in c["meaning_ids"]}),
+            "comparison": decisions["comparison"],
+            "combined_assertion": decisions["combined_assertion"],
+        }
+        process_decisions.append(record)
         if not has_comparison:
-            abstained.append((group, content_plan))
+            abstained.append((group, content_plan, record))
             continue
         semantic, evidence = realizer.process(group, index)
         p = _merge("processes", "process", group, semantic, evidence)
         p["process_content_plan"] = content_plan
+        p["interpretation_decisions"] = record
         processes.append(p)
     abstained_paths = []
-    for group, cp in abstained:
+    for group, cp, record in abstained:
         reason, explanation = _abstention_reason(cp)
         abstained_paths.append({
-            "path": cp["path"], "coverage": cp["coverage"],
-            "node_ids": sorted({n for c in group for n in c["node_ids"]}),
-            "claim_ids": [c["id"] for c in group],
-            "rule_ids": sorted({r for c in group for r in c["rule_ids"]}),
+            **record,
             "reason": reason, "reason_explanation": explanation,
         })
     if abstained:
-        all_claims = [c for group, _ in abstained for c in group]
-        names = [" → ".join(cp["path"]) for _, cp in abstained]
+        all_claims = [c for group, _, _ in abstained for c in group]
+        names = [" → ".join(cp["path"]) for _, cp, _ in abstained]
         if len(abstained) == 1:
             summary = (f"אותר מסלול נוסף ב־R1 ({names[0]}), "
                        f"אך לא נוצרה השוואה פרשנית: "
@@ -313,7 +351,7 @@ def compose_narrative_n2(semantics: dict, *,
                 f"{m['axis']} — כלל {m['selected_rule_id']}"
                 + (" (ללא פירוש עריכתי)" if not m["meaning_covered"] else "")
                 for m in cp["members"])
-            for _, cp in abstained)
+            for _, cp, _ in abstained)
         p = _merge("processes", "process-abstention", all_claims, summary, evidence)
         p["abstained_paths"] = abstained_paths
         processes.append(p)
@@ -391,6 +429,9 @@ def compose_narrative_n2(semantics: dict, *,
         "time_mode": mode, "mode": "local-deterministic-attributed-hebrew",
         "sections": sections, "warnings": list(semantics["warnings"]),
         "abstained_processes": abstained_paths,
+        # All R1 paths, including those with a permitted comparison, keep an
+        # explicit unlicensed-combination decision and complete provenance.
+        "process_decisions": process_decisions,
     }
 
 
