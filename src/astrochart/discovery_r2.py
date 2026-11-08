@@ -150,12 +150,12 @@ def _prepare(items: list[dict], profile: tuple[str, str] | None = None
         if current != profile:
             raise ValueError("mixed R1 profiles or rule packs are not comparable")
         if case["digest"] in seen:
-            duplicates.append({"case_id": case["id"], "reason": "identical-R1-payload"})
+            duplicates.append({"case_id": case["id"], "r1_digest": case["digest"], "reason": "identical-R1-payload"})
             continue
         seen.add(case["digest"])
         if case["time_mode"] != "known" or case["blocked"]:
             excluded.append({
-                "case_id": case["id"], "reason": (
+                "case_id": case["id"], "r1_digest": case["digest"], "reason": (
                     "uncertain-birth-time" if case["time_mode"] != "known"
                     else "unresolved-tension-or-incomplete-proof"),
                 "time_mode": case["time_mode"], "blocked_axes": case["blocked"],
@@ -319,10 +319,15 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
         c["case_id"] for c in val_excluded + val_duplicates}
     if training_ids & validation_ids:
         raise ValueError("training and validation case id leakage")
-    if {c["digest"] for c in train} & {c["digest"] for c in val}:
+    train_digests = {c["digest"] for c in train} | {
+        x["r1_digest"] for x in excluded + duplicates}
+    val_digests = {c["digest"] for c in val} | {
+        x["r1_digest"] for x in val_excluded + val_duplicates}
+    if train_digests & val_digests:
         raise ValueError("identical R1 report leaked into validation")
 
-    known = {pattern for case in train + val for pattern in case["known"]}
+    # Holdout data must never affect either candidate generation or novelty.
+    known = {pattern for case in train for pattern in case["known"]}
     axes = sorted({axis for case in train for axis in case["axes"]})
     cache: dict[tuple[str, tuple[str, ...]], tuple] = {}
     vcache: dict[tuple[str, tuple[str, ...]], tuple] = {}
