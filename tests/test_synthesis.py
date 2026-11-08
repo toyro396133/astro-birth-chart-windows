@@ -12,9 +12,9 @@ def chart_for_path(*, mercury=35, unknown=False):
     # chart observations; none of the individual rules states the path.
     signs = [(0,), (int(mercury // 30),), (9,)]
     bodies = [
-        BodyPosition("שמש", 12.4, False, signs[0], house=None if unknown else 1),
-        BodyPosition("מרקורי", mercury, False, signs[1], house=None if unknown else 2),
-        BodyPosition("שבתאי", 286.0, False, signs[2], house=None if unknown else 10),
+        BodyPosition("שמש", 12.4, False, signs[0], house=None),
+        BodyPosition("מרקורי", mercury, False, signs[1], house=None),
+        BodyPosition("שבתאי", 286.0, False, signs[2], house=None),
     ]
     return Chart(bodies, [], None if unknown else 12, None, unknown, [])
 
