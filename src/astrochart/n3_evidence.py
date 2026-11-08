@@ -78,6 +78,10 @@ def adapt_hits(chart, report: dict, pack: RulePack, raw_rulepack: dict,
     """Reject forged/omitted/reordered original signals and unstable evidence."""
     _assert(report.get("pack_version") == pack.version ==
             raw_rulepack.get("pack_version"), "PROVENANCE_MISMATCH: rulepack version")
+    # Same version is insufficient: bind the runtime pack to the exact locked JSON.
+    from .interpretation import _validated_pack
+    checked = _validated_pack(raw_rulepack)
+    _assert(pack == checked, "PROVENANCE_MISMATCH: runtime RulePack differs from raw content")
     fresh = interpret_chart(chart, pack)
     _assert(report.get("signals") == fresh["signals"] and
             report.get("time_mode") == fresh["time_mode"] and
@@ -131,7 +135,9 @@ def adapt_hits(chart, report: dict, pack: RulePack, raw_rulepack: dict,
             "dependency_roots": sorted({root for key in facts for root in _roots(key)}),
             "evidence_key": raw["evidence_key"], "axis": raw["axis"],
             "polarity": raw["polarity"], "modifier_only": raw["modifier_only"],
-            "raw_digest": digest(raw),
+            "raw_digest": digest(raw), "source_refs": [raw["source_url"]] if raw["source_url"] else [],
+            "review_status": raw["review_status"], "weight": raw["weight"],
+            "evidence": raw["evidence"], "raw_fields": dict(raw),
         })
     _assert(len({x["rule_hit_id"] for x in adapted}) == len(adapted),
             "duplicate rule hit content identity")
@@ -152,6 +158,7 @@ def adapt_hits(chart, report: dict, pack: RulePack, raw_rulepack: dict,
             h["witness_group_id"] = None
     return {"chart_fingerprint": chart_id, "rulepack_digest": pack_id,
             "time_mode": report["time_mode"], "hits": adapted,
+            "original_signals": report["signals"],
             "trace_digest": digest({"chart_fingerprint": chart_id,
                                     "rulepack_digest": pack_id,
                                     "hits": adapted})}
@@ -167,31 +174,87 @@ def alternative_set_id(*, snapshot_id: str, route: str, definition_id: str,
                    "sorted_witness_group_ids": sorted(witness_group_ids)})
 
 
-def map_r1_witnesses(r1_node: dict, adapted: dict) -> dict:
-    """Require every selected R1 group to match original member provenance."""
-    candidates: dict[str, list[dict]] = {}
-    for h in adapted["hits"]:
-        if not h["modifier_only"]:
-            candidates.setdefault(h["evidence_key"], []).append(h)
-    selected = r1_node.get("selected_witnesses_by_axis")
-    _assert(isinstance(selected, dict), "R1 node lacks selected witnesses")
+def map_r1_witnesses(r1_node: dict, adapted: dict, *,
+                     chart=None, report: dict | None = None) -> dict:
+    """Recreate the complete original R1 node from authenticated chart evidence.
+
+    Do not trust selected witness metadata, alternatives, source labels or even
+    an entire self-consistent R1 node supplied by a caller. Re-run R1 locally.
+    """
+    from .synthesis import synthesize
+    _assert(chart is not None and report is not None,
+            "UNVERIFIED_R1: original chart and verified RuleHit report required")
+    _assert(report["signals"] == adapted["original_signals"],
+            "PROVENANCE_MISMATCH: changed R1 input signals")
+    _assert(chart_fingerprint(chart, report, "western-tropical-whole-sign-r1") ==
+            adapted["chart_fingerprint"], "R1 chart fingerprint mismatch")
+    recomputed = synthesize(chart, report)
+    originals = [node for node in recomputed["nodes"]
+                 if node.get("type") == "synthesis" and node.get("id") == r1_node.get("id")]
+    _assert(len(originals) == 1 and originals[0] == r1_node,
+            "PROVENANCE_MISMATCH: R1 node/alternatives/metadata tampered")
+    candidates: dict[tuple[str, str], list[dict]] = {}
+    for hit in adapted["hits"]:
+        if not hit["modifier_only"] and hit["weight"] > 0:
+            candidates.setdefault((hit["axis"], hit["evidence_key"]), []).append(hit)
+    selected = r1_node["selected_witnesses_by_axis"]
+    alternatives = r1_node["alternative_facts_by_axis"]
+    _assert(set(selected) == set(alternatives), "R1 alternative axes do not match selected axes")
     results = {}
+    all_alternatives = {}
     for axis, witness in selected.items():
-        key = witness["evidence_key"]
-        members = [h for h in candidates.get(key, []) if h["axis"] == axis]
-        _assert(members, "PROVENANCE_MISMATCH: R1 selected unknown evidence")
-        _assert(sorted(set(h["rule_id"] for h in members)) == witness["rule_ids"],
-                "PROVENANCE_MISMATCH: selected R1 members differ")
-        roots = sorted({x for h in members for x in h["dependency_roots"]})
-        _assert(roots == sorted(witness["roots"]), "PROVENANCE_MISMATCH: R1 roots")
-        results[axis] = {"rule_hit_ids": sorted(h["rule_hit_id"] for h in members),
-                         "witness_group_ids": sorted({h["witness_group_id"] for h in members}),
-                         "dependency_roots": roots}
-    proof_search = r1_node.get("proof_search", {})
-    _assert(type(proof_search.get("complete")) is bool, "R1 proof incomplete metadata")
-    return {"selected": results, "search_complete": proof_search["complete"],
-            "visited": proof_search.get("states"), "cap": proof_search.get("limit"),
-            "alternatives": r1_node.get("alternative_facts_by_axis", {})}
+        expected = candidates.get((axis, witness["evidence_key"]), [])
+        _assert(expected and all(h["polarity"] > 0 for h in expected),
+                "PROVENANCE_MISMATCH: R1 member absent/wrong polarity")
+        _assert(sorted({h["rule_id"] for h in expected}) == witness["rule_ids"],
+                "PROVENANCE_MISMATCH: R1 member IDs")
+        _assert(sorted({root for h in expected for root in h["dependency_roots"]}) ==
+                witness["roots"], "PROVENANCE_MISMATCH: R1 member roots")
+        _assert(sorted({source for h in expected for source in h["source_refs"]}) ==
+                witness["source_refs"], "PROVENANCE_MISMATCH: R1 source URLs")
+        _assert(sorted({h["review_status"] for h in expected}) ==
+                witness["review_statuses"], "PROVENANCE_MISMATCH: R1 review statuses")
+        expected_sorted = sorted(expected, key=lambda h: (-h["weight"], h["rule_id"]))
+        _assert([h["evidence"] for h in expected_sorted] == witness["details"],
+                "PROVENANCE_MISMATCH: R1 witness detail order")
+        _assert(witness["weight"] == expected_sorted[0]["weight"],
+                "PROVENANCE_MISMATCH: R1 witness weight")
+        _assert(len({h["witness_group_id"] for h in expected}) == 1,
+                "PROVENANCE_MISMATCH: incompatible R1 grouping")
+        results[axis] = {
+            "rule_hit_ids": sorted(h["rule_hit_id"] for h in expected),
+            "witness_group_ids": sorted({h["witness_group_id"] for h in expected}),
+            "dependency_roots": witness["roots"],
+        }
+        validated_alternatives = []
+        seen_keys = {witness["evidence_key"]}
+        for alt in alternatives[axis]:
+            key = alt["evidence_key"]
+            _assert(key not in seen_keys, "duplicate/selected alternative")
+            seen_keys.add(key)
+            members = candidates.get((axis, key), [])
+            _assert(members and all(h["polarity"] > 0 for h in members),
+                    "PROVENANCE_MISMATCH: R1 alternative not observed")
+            _assert(sorted({h["rule_id"] for h in members}) == alt["rule_ids"],
+                    "PROVENANCE_MISMATCH: R1 alternate member IDs")
+            _assert(sorted({x for h in members for x in h["source_refs"]}) == alt["source_refs"],
+                    "PROVENANCE_MISMATCH: R1 alternate source")
+            _assert(sorted({h["review_status"] for h in members}) ==
+                    alt["review_statuses"], "PROVENANCE_MISMATCH: R1 alternate statuses")
+            _assert(sorted({root for h in members for root in h["dependency_roots"]}) ==
+                    alt["roots"], "PROVENANCE_MISMATCH: R1 alternate roots")
+            validated_alternatives.append({
+                "evidence_key": key,
+                "rule_hit_ids": sorted(h["rule_hit_id"] for h in members),
+                "witness_group_ids": sorted({h["witness_group_id"] for h in members}),
+            })
+        all_alternatives[axis] = validated_alternatives
+    search = r1_node["proof_search"]
+    _assert(type(search["complete"]) is bool and
+            0 <= search["states"] <= search["limit"], "R1 search completeness/limits invalid")
+    return {"selected": results, "search_complete": search["complete"],
+            "visited": search["states"], "cap": search["limit"],
+            "alternatives": all_alternatives}
 
 
 def match_composite(composite_rule_id: str, adapted: dict, raw_rulepack: dict) -> dict:
