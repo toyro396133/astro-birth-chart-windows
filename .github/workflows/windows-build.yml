@@ -28,8 +28,14 @@ jobs:
         run: python scripts/n2_comparison.py
       - name: Full N2 before-versus-after paragraphs and source traces
         run: python scripts/n2_before_after.py
+      - name: N2 expanded catalog full before/after on fresh computed maps
+        run: python scripts/n2_catalog_impact.py
+      - name: N2 expanded catalog separate sealed cohort
+        run: python scripts/n2_catalog_impact.py --sealed
       - name: NEW-05 R3 full production-chain audit evidence on Windows
         run: python scripts/n2_new05_evidence.py
+      - name: C29 full failing-SHA versus repaired code on 30 entirely fresh cases
+        run: python scripts/n2_c29_quality.py
       - name: N2 independent JPL holdout and semantic-only comparison
         run: python scripts/n2_holdout.py
       - name: N2 untouched JPL final holdout

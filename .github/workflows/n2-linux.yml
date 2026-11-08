@@ -40,12 +40,18 @@ jobs:
         run: python scripts/n2_comparison.py
       - name: Full N2 before-versus-after paragraphs and source traces
         run: python scripts/n2_before_after.py
-      - name: NEW-05 R3 full production-chain audit evidence
-        run: python scripts/n2_new05_evidence.py
       - name: Independent JPL chart holdout
         run: python scripts/n2_holdout.py
       - name: Untouched JPL final holdout (new frozen seed)
         run: python scripts/n2_holdout.py --sealed
+      - name: Fresh expansion-only computed charts and full paired traces
+        run: python scripts/n2_catalog_impact.py
+      - name: Separate sealed expansion-only cohort (do not tune)
+        run: python scripts/n2_catalog_impact.py --sealed
+      - name: NEW-05 R3 full production-chain audit evidence
+        run: python scripts/n2_new05_evidence.py
+      - name: C29 full failing-SHA versus repaired code on 30 entirely fresh cases
+        run: python scripts/n2_c29_quality.py
       - name: New N2 acceptance seed (code frozen before inspection)
         run: python scripts/n2_acceptance.py
       - name: Independent final acceptance on a second previously unused seed
@@ -60,5 +66,8 @@ jobs:
             qa-output/n2-acceptance/
             qa-output/n2-final-acceptance/
             qa-output/n2-before-after/
+            qa-output/n2-catalog-impact/
+            qa-output/n2-catalog-sealed/
+            qa-output/n2-c29-recheck/
             qa-output/n2-new05-r3/
           if-no-files-found: error

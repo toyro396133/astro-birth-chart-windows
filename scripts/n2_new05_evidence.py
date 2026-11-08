@@ -72,6 +72,10 @@ def main():
     r1["summary"]["top_hypotheses"] = [node["id"] for node in selected]
     semantic_engine.MAX_PROCESSES = 3
     catalog = deepcopy(load_meaning_catalog())
+    # Keep the original NEW-05 demonstration independent of PR29's expanded
+    # catalog so its planned three distinct decisions remain reproducible.
+    catalog["rule_readings"] = [r for r in catalog["rule_readings"]
+                                if "interpretive_basis" not in r["provenance"]]
     rule = next(r for r in load_rulepack().rules if r["id"] == "venus-sign-5")
     original = next(r for r in catalog["rule_readings"]
                     if r["rule_id"] == "moon-sign-3")
