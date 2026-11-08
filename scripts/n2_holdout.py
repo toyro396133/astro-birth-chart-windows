@@ -25,6 +25,7 @@ from n2_comparison import produce
 
 
 SEED = 2026110802
+SEALED_SEED = 2026110827  # fixed before inspecting any sealed output
 
 
 def fixture(*positions, mode="known"):
@@ -54,18 +55,18 @@ def synthetic_pairs():
     }
 
 
-def actual_jpl_holdout():
+def actual_jpl_holdout(*, seed=SEED, count=12, prefix="jpl-unseen"):
     """New dates never used by the earlier N2 design examples."""
-    rnd = Random(SEED)
+    rnd = Random(seed)
     calculator = Calculator()
     charts = {}
-    for i in range(12):
+    for i in range(count):
         day = date(1992, 1, 1) + timedelta(days=rnd.randrange(0, 9500))
         hh, mm = rnd.randrange(0, 24), rnd.randrange(0, 60)
         lat = round(rnd.uniform(-39.0, 57.0), 3)
         lon = round(rnd.uniform(-110.0, 128.0), 3)
         chart = calculator.calculate(day, time(hh, mm), "Etc/UTC", lat, lon)
-        charts[f"jpl-unseen-{i+1:02d}"] = chart
+        charts[f"{prefix}-{i+1:02d}"] = chart
     return charts
 
 
@@ -81,7 +82,7 @@ def jaccard(a: set, b: set) -> float:
     return 1.0 if not a and not b else len(a & b) / max(1, len(a | b))
 
 
-def evaluate(root: Path, samples: dict) -> dict:
+def evaluate(root: Path, samples: dict, *, check_pairs=True, seed=SEED) -> dict:
     root.mkdir(parents=True, exist_ok=True)
     reports, index = {}, []
     for name, chart in samples.items():
@@ -123,20 +124,21 @@ def evaluate(root: Path, samples: dict) -> dict:
                 "text_similarity_without_quotes": round(SequenceMatcher(None, l, r).ratio(), 4),
                 "same_meaning_signature": sa == sb,
             })
-    def sign(name):
-        return meaning_signature(reports[name])
-    assert sign("pair-persistence-mercury") != sign("pair-persistence-mars")
-    assert sign("pair-responsibility-saturn") != sign("pair-responsibility-house")
-    assert len(sign("pair-persistence-both")) > len(sign("pair-persistence-mercury"))
-    assert (semantic_only_n2(reports["pair-material-shift-a"]["narrative_n2"]) ==
-            semantic_only_n2(reports["pair-irrelevant-degree"]["narrative_n2"]))
-    assert (semantic_only_n2(reports["pair-material-shift-a"]["narrative_n2"]) !=
-            semantic_only_n2(reports["pair-material-shift-b"]["narrative_n2"]))
+    if check_pairs:
+        def sign(name):
+            return meaning_signature(reports[name])
+        assert sign("pair-persistence-mercury") != sign("pair-persistence-mars")
+        assert sign("pair-responsibility-saturn") != sign("pair-responsibility-house")
+        assert len(sign("pair-persistence-both")) > len(sign("pair-persistence-mercury"))
+        assert (semantic_only_n2(reports["pair-material-shift-a"]["narrative_n2"]) ==
+                semantic_only_n2(reports["pair-irrelevant-degree"]["narrative_n2"]))
+        assert (semantic_only_n2(reports["pair-material-shift-a"]["narrative_n2"]) !=
+                semantic_only_n2(reports["pair-material-shift-b"]["narrative_n2"]))
     metrics = {
-        "seed": SEED, "total_cases": len(reports),
-        "real_jpl_charts": sum(n.startswith("jpl-unseen") for n in reports),
+        "seed": seed, "total_cases": len(reports),
+        "real_jpl_charts": sum(n.startswith("jpl-") for n in reports),
         "new_matched_axis_cases": len(reports) - sum(
-            n.startswith("jpl-unseen") for n in reports),
+            n.startswith("jpl-") for n in reports),
         "method": "compare semantic-only text and curated meaning IDs, excluding quotes, proof IDs and disclosure; not psychological validation",
         "semantic_only_exact_repeated_paragraph_instances": sum(
             n-1 for n in exact_repeats.values() if n > 1),
@@ -167,13 +169,22 @@ def evaluate(root: Path, samples: dict) -> dict:
     for name in ("pair-persistence-mercury", "pair-persistence-mars",
                  "pair-responsibility-saturn", "pair-responsibility-house",
                  "pair-persistence-both"):
-        parts = semantic_only_n2(reports[name]["narrative_n2"])
-        print("N2_HOLDOUT_EXCERPT", name, "\\n".join(parts).encode(
-            "unicode_escape").decode("ascii"))
+        if name in reports:
+            parts = semantic_only_n2(reports[name]["narrative_n2"])
+            print("N2_HOLDOUT_EXCERPT", name, "\\n".join(parts).encode(
+                "unicode_escape").decode("ascii"))
     return metrics
 
 
 def main() -> None:
+    if "--sealed" in sys.argv:
+        charts = actual_jpl_holdout(
+            seed=SEALED_SEED, count=12, prefix="jpl-final")
+        metrics = evaluate(ROOT / "qa-output" / "n2-final-holdout", charts,
+                           check_pairs=False, seed=SEALED_SEED)
+        assert metrics["total_cases"] == 12
+        print("N2_SEALED_HOLDOUT_PASS", metrics["total_cases"])
+        return
     charts = synthetic_pairs()
     charts.update(actual_jpl_holdout())
     evaluate(ROOT / "qa-output" / "n2-holdout", charts)
