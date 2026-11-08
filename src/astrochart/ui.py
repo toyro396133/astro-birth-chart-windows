@@ -504,7 +504,7 @@ class MainWindow(QMainWindow):
 
         for signal in (
             self.day.dateChanged, self.hour.timeChanged, self.unknown.toggled,
-            self.approx_hour.toggled, self.city.currentIndexChanged,
+            self.approx_hour.toggled, self.city.currentTextChanged,
             self.lat.valueChanged, self.lon.valueChanged, self.tz.textChanged,
             self.date_mode.currentIndexChanged, self.hebrew_year.valueChanged,
             self.hebrew_month.currentIndexChanged, self.hebrew_day.valueChanged,

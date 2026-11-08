@@ -52,3 +52,20 @@ def test_saved_location_uses_local_user_supplied_values(window, monkeypatch):
     assert inputs == [("מקום אישי", 31.1111, 35.2222, "Asia/Jerusalem")]
     assert window.city.currentText() == "מקום אישי"
     assert window.run.isEnabled()
+
+
+def test_typing_city_invalidates_existing_chart_and_interpretation(window):
+    """An editable location text change must discard stale map evidence."""
+    from astrochart.domain import BodyPosition, Chart
+
+    chart = Chart([BodyPosition("שמש", 12.0, False)], [], 20.0, 100.0, False, [])
+    window._show_chart(chart)
+    assert window.wheel.chart is chart
+    assert window.interpret_button.isEnabled()
+
+    # Editing the line-edit emits textChanged even when selection index is stable.
+    window.city.lineEdit().setText("Unknown typed location")
+    assert window.wheel.chart is None
+    assert not window.interpret_button.isEnabled()
+    assert not window.copy_button.isEnabled()
+    assert not window.run.isEnabled()
