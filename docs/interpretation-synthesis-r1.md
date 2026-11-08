@@ -98,3 +98,53 @@ cross-axis dependence, conflict with no invented context, cycle prevention,
 unknown hour, dignity separation, deterministic results and regression
 compatibility. The delivery PR should cite a real Actions run after it
 completes, not merely report checks as passed before execution.
+
+
+## Focused independent-audit corrections — R1-A01/A02/A03 (2026-11-08)
+
+**A01 — proof at the candidate path, not at isolated axis level.** The
+original implementation wrongly vetoed every combined path when *any*
+separately selected axis-wide witness overlapped another axis. Now each
+axis retains \`available_facts\` independently of its representative
+\`independent_facts\`. Every candidate functional path is solved using
+one original chart witness per axis, and these *chosen* witnesses must
+have disjoint physical dependency roots across **the entire path**.
+Derived \`independent_facts\`, \`evidence_roots\`, \`rule_ids\` and
+\`strength\` refer to that actual chosen proof, not the parent's unused
+observations. Each node additionally records
+\`selected_witnesses_by_axis\` and \`alternative_facts_by_axis\` so that
+alternative hypotheses can be audited without counting them twice.
+Parent node IDs still encode functional transitions; the descendant
+node's joint witness assignment is the definitive proof for that path.
+
+**A02 — bounded deterministic backtracking.** A local axis-wide
+representative is chosen to maximize the *number of independent
+observations*, then to maximize the **sum of editorial witness
+weights as a tie-breaker only**. Path selection is a separate bounded
+constraint search: first satisfy *every* axis with root-disjoint
+original evidence, next prefer the strongest weakest witness and then
+prefer the total editorial salience solely for tie-breaking. This is
+not a probability or a composite personality measurement. Identical
+inputs have stable ordering and tie-breaking via evidence keys. The
+search visits at most \`MAX_PROOF_STATES=20_000\` states per selection.
+If it reaches that bound, \`proof_search.complete=false\` or
+\`selection_search_limited=true\` is reported, plus a report warning;
+a missing path must not be represented as proof of nonexistence when
+the search was truncated. A valid witness selection found before
+truncation remains mathematically valid but may not be the optimum.
+
+**A03 — human summary containment.** The structured \`nodes\` list still
+contains every proved path and its independent evidence. The
+human-facing list \`top_feature_ids\` now contains maximal sequences:
+a shorter **contiguous** subpath (prefix, suffix, or middle) sharing
+the same function domain is suppressed from the *summary only* if a
+longer displayed sequence contains it. Partially overlapping but
+semantically different sequences are not merged. The summary records
+\`subsumed_by\` for the suppressed IDs. The count of all generated paths
+remains available in \`summary.hypothesis_count\`.
+
+The focused acceptance tests use both the original real rule-pack
+matcher on synthetic charts and deliberately constructed hit sets for
+the greedy-trap counterexample. R1-A04–A07 remain out of scope. The
+engine continues to quarantine every new functional composition as an
+engineering \`hypothesis\`, without altering the original 96 rules.
