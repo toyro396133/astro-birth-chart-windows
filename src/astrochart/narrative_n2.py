@@ -113,8 +113,9 @@ class DeterministicHebrewRealizer:
               "שהתיאורים מתקיימים יחד."
         )
         if count > len(examples):
-            text += (f" ל־{count - len(examples)} קבוצות ראיה נוספות "
-                     "אין פירוש התנהגותי ייחודי במאגר.")
+            remaining = count - len(examples)
+            noun = "קבוצת ראיה נוספת" if remaining == 1 else "קבוצות ראיה נוספות"
+            text += f" ל־{remaining} {noun} אין פירוש התנהגותי ייחודי במאגר."
         return text, evidence
 
     def process(self, claims: list[dict], index: int) -> tuple[str, str]:
@@ -173,9 +174,24 @@ class DeterministicHebrewRealizer:
                  + ". ")
         text += ("המשמעויות המתועדות מאפשרות להבחין בדגשים; "
                  "הן אינן מוכיחות שהדגשים פועלים יחד, מחזקים זה את זה "
-                 "או שאחד גורם לאחר.")
+                 "או שאחד גורם לאחר. הסדר אינו ראיה לקשר סיבתי.")
         if not reading["proof_search_complete"]:
             text += " חיפוש החלופות למסלול הוגבל."
+        # Long evidence may contain several R1 witness groups. Keep every
+        # selected witness in evidence_text and the full plan in JSON, but
+        # do not turn a single GUI paragraph into a wall of prose.
+        if len(text) + len(evidence) > 1240:
+            text = (opening + evidence_count + " מצביעות על מוקדים שונים: "
+                    + "; ".join(positions) + ". "
+                    + "ההבדל ביניהן ניכר גם בהקשר: "
+                    + "; ".join(f"{c['axis']} — {c['setting']}" for c in components)
+                    + ". ")
+            if missing:
+                text += "זהו תיאור חלקי בלבד, לא של המסלול כולו. "
+            text += ("הסדר התפקודי אינו ראיה לקשר סיבתי, לחיזוק הדדי "
+                     "או להתנהגויות שהתרחשו יחד.")
+            if not reading["proof_search_complete"]:
+                text += " חיפוש החלופות למסלול הוגבל."
         return text, evidence
 
     def tension(self, claims: list[dict]) -> tuple[str, str]:

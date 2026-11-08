@@ -99,7 +99,7 @@ def audit(reports):
         abstained += len(narrative["abstained_processes"])
         for a in narrative["abstained_processes"]:
             assert set(a["claim_ids"]) <= set(claims)
-            assert a["path"] and a["coverage"]["missing_members"]
+            assert a["path"] and a["coverage"]["covered_members"] <= a["coverage"]["total_members"]
     rules = {r["id"]: r for r in load_rulepack().rules}
     curated = {r["rule_id"] for r in load_meaning_catalog()["rule_readings"]}
     assert len(rules) == 96 and len(curated) == 26

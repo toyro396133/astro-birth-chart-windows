@@ -133,7 +133,7 @@ def test_axis_evidence_count_meaning_count_example_count_are_separate(count):
         assert "שני הדפוסים" not in text
         assert "מוקד 2" in text and "במצב 2" not in text
     if count == 4:
-        assert "ל־1 קבוצות ראיה" in text
+        assert "ל־1 קבוצת ראיה" in text
 
 
 def test_two_abstentions_collapse_but_both_paths_and_proof_remain():
