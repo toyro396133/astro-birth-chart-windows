@@ -117,8 +117,6 @@ class DeterministicHebrewRealizer:
                      "אין פירוש התנהגותי ייחודי במאגר.")
         return text, evidence
 
-    def process(        return text, evidence
-
     def process(self, claims: list[dict], index: int) -> tuple[str, str]:
         reading = next(c for c in claims if c["kind"] == "process-reading")["content"]
         plan = reading["content_plan"]
