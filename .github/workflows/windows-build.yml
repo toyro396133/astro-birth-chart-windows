@@ -104,6 +104,21 @@ jobs:
       - name: Validate actual installation, upgrade and Windows uninstall
         shell: pwsh
         run: .\scripts\test_installer.ps1
+      - name: Build smaller registered-install Setup delta
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\scripts\build_setup_delta.ps1
+      - name: Verify genuine previous-to-current Setup delta, tamper rejection and uninstall
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\scripts\test_setup_delta.ps1
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AstroBirthChart-Windows-Setup-Delta
+          path: dist/installer/AstroBirthChart-Setup-Delta-from-v*-to-v*.exe
+          if-no-files-found: error
       - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-Windows-Setup-EXE
