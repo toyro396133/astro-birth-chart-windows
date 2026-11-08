@@ -229,6 +229,12 @@ def compose_narrative_n2(semantics: dict, *,
         "הרחבות ההתנהגות במאגר N2 הן דוגמאות עריכתיות שלא אומתו, "
         "והן אינן כללים אסטרולוגיים חדשים. מסלולי R1 הם השערות תפקודיות "
         "בלבד; אין להסיק מהם סיבתיות או קשרים אישיותיים מאושרים.")
+    unexpanded = semantics.get("unexpanded_axis_names", [])
+    if unexpanded:
+        disclosure += (
+            " לא נוצר תיאור התנהגותי מפורט לצירים "
+            + _he_list(unexpanded)
+            + ", מפני שאין עדיין יחידת משמעות ייחודית מאומתת במאגר N2.")
     if "unverified" in statuses:
         disclosure += " יש כללים שלא אומתו."
     if "reviewed" in statuses:
