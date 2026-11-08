@@ -225,3 +225,55 @@ def test_copy_selected_row_as_text(window):
     window._copy_selected_table_rows()
     copied = QApplication.clipboard().text()
     assert "שמש" in copied and "טלה" in copied
+
+
+def test_update_notes_are_visible_before_downloading(window):
+    release = Release("9.9.9", "https://example.invalid/release",
+                      "a" * 64, 74_000_000, "גרסה v9.9.9\n- תוספת: יומן שינויים")
+    window._on_update_checked((release, "portable"))
+    assert window.update_details.isVisible()
+    assert window.update_details.isReadOnly()
+    assert "יומן שינויים" in window.update_details.toPlainText()
+    assert window._prepared_update is None
+
+
+def test_mixed_calendar_ui_can_choose_ambiguous_date_and_restore(window):
+    from datetime import date
+    from astrochart.chart_storage import make_record
+
+    window.date_mode.setCurrentIndex(window.date_mode.findData("mixed"))
+    window.mixed_year.setValue(2025)
+    window.hebrew_month.setCurrentIndex(window.hebrew_month.findData(10))
+    window.hebrew_day.setValue(1)
+    window.phase.setCurrentIndex(window.phase.findData("day"))
+    window.hour.setTime(ui.QTime(12, 0))
+    assert window.mixed_choice.count() == 3
+    assert window.mixed_choice.currentData() is None
+    assert "לבחור התאמה" in window.conversion_label.text()
+
+    window.mixed_choice.setCurrentIndex(2)
+    resolved = window._resolved_input()
+    assert resolved.civil_day == date(2025, 12, 21)
+    values = window._capture_input()
+    record = make_record(values, "0.6.0")
+    assert record["input"]["date_mode"] == "mixed"
+    assert record["input"]["hebrew_year"] == 5786
+
+    window._restore_input(values)
+    assert window._capture_input() == values
+
+
+def test_pdf_map_only_menu_never_passes_report_flag(window, monkeypatch, tmp_path):
+    from astrochart.domain import BodyPosition, Chart
+    from astrochart.chart_storage import make_record
+    chart = Chart([BodyPosition("שמש", 12, False)], [], 20, 100, False, [])
+    window._active_chart = chart
+    window._active_record = make_record(window._capture_input(), "0.6.0")
+    target = tmp_path / "wheel.pdf"
+    monkeypatch.setattr(ui.QFileDialog, "getSaveFileName",
+                        lambda *_: (str(target), "PDF (*.pdf)"))
+    calls = []
+    monkeypatch.setattr(ui, "export_chart_pdf",
+                        lambda *args, **kwargs: calls.append(kwargs))
+    window._export_chart("pdf_wheel")
+    assert calls == [{"include_report": False}]
