@@ -14,6 +14,7 @@ from .interpretation import (
     format_interpretation, interpret_chart, model_input,
 )
 from .synthesis import format_synthesis, synthesize
+from .narrative import compose_narrative, format_narrative
 
 
 class RuleInterpretationDialog(QDialog):
@@ -25,12 +26,15 @@ class RuleInterpretationDialog(QDialog):
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.report = interpret_chart(chart, pack)
         self.synthesis_report = synthesize(chart, self.report)
+        self.narrative_report = compose_narrative(self.synthesis_report)
         self.structured_payload = {
             **model_input(chart, self.report),
             "synthesis": self.synthesis_report,
+            "narrative": self.narrative_report,
         }
         self.readable = format_interpretation(self.report)
         self.synthesis_readable = format_synthesis(self.synthesis_report)
+        self.narrative_readable = format_narrative(self.narrative_report)
 
         layout = QVBoxLayout(self)
         header = QLabel(
@@ -49,6 +53,12 @@ class RuleInterpretationDialog(QDialog):
         layout.addWidget(version)
         self.tabs = QTabWidget()
         self.tabs.setObjectName("interpretationTabs")
+        self.narrative_view = QTextEdit()
+        self.narrative_view.setObjectName("interpretationNarrative")
+        self.narrative_view.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.narrative_view.setReadOnly(True)
+        self.narrative_view.setPlainText(self.narrative_readable)
+        self.tabs.addTab(self.narrative_view, "קריאה רציפה (N1)")
         self.synthesis_view = QTextEdit()
         self.synthesis_view.setObjectName("interpretationSynthesis")
         self.synthesis_view.setReadOnly(True)
@@ -99,6 +109,10 @@ class RuleInterpretationDialog(QDialog):
         self.tabs.addTab(self.payload, "מבנה נתונים למודל")
         layout.addWidget(self.tabs, 1)
         buttons = QHBoxLayout()
+        self.copy_narrative_button = QPushButton("העתק קריאה רציפה")
+        self.copy_narrative_button.clicked.connect(
+            lambda: QApplication.clipboard().setText(self.narrative_readable))
+        buttons.addWidget(self.copy_narrative_button)
         self.copy_synthesis_button = QPushButton("העתק סינתזה")
         self.copy_synthesis_button.clicked.connect(
             lambda: QApplication.clipboard().setText(self.synthesis_readable))
