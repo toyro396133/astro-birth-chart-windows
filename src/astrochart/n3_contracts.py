@@ -591,7 +591,7 @@ def _verify_decision_reasons(plan: dict, evaluation: dict, definition: dict,
     def require_reason(code: str, rr: str) -> None:
         expected_blocking = rr in (route, "global")
         _assert(any(r["code"] == code and r["route"] == rr
-                    and r["blocking"] is expected_blocking for r in reasons),
+                    and r["blocking"] is expected_blocking for r in plan["reasons"]),
                 "REASON_MISMATCH: omitted applicable " + code)
     if plan["decision"] == "COMPARISON_ONLY" and source_missing:
         require_reason("NO_RELATION_SOURCE", route)
