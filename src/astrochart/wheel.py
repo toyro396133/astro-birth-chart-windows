@@ -26,6 +26,7 @@ class Wheel(QWidget):
     def __init__(self):
         super().__init__()
         self.chart = None
+        self._symbol_point_size = 16
         self.selected_body = None
         self._hit_targets = {}
         self.setMinimumSize(350, 350)
@@ -33,6 +34,12 @@ class Wheel(QWidget):
         self.setMouseTracking(True)
         self.setAccessibleName("גלגל מפה אינטראקטיבי")
         self.setToolTip("לחץ על סמל בגוף במפה כדי לבחור אותו בטבלה")
+
+    def set_symbol_point_size(self, size):
+        if size not in (14, 16, 18):
+            raise ValueError("גודל סמל גלגל אינו נתמך")
+        self._symbol_point_size = size
+        self.update()
 
     def set_chart(self, chart):
         self.chart = chart
@@ -156,7 +163,7 @@ class Wheel(QWidget):
 
         # The anchor dots are exact; only symbol labels may move.
         angles = spread_marker_angles([b.longitude for b in self.chart.bodies], 15)
-        p.setFont(QFont("Segoe UI Symbol", 15))
+        p.setFont(QFont("Segoe UI Symbol", self._symbol_point_size))
         planet_colors = {
             "שמש": "#c58538", "ירח": "#5272a6", "מרקורי": "#4d8091",
             "ונוס": "#9d6594", "מאדים": "#b9665e", "צדק": "#567d63",
