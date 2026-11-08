@@ -73,36 +73,7 @@ jobs:
             Write-Host "No previous stable release; full ZIP remains available."
             exit 0
           }
-          if ($previous -notmatch '^v[0-9]+\\.[0-9]+\\.[0-9]+        shell: pwsh
-        run: choco install innosetup -y --no-progress --limit-output
-      - name: Compile single-file Windows Setup.exe
-        shell: pwsh
-        run: |
-          $version = (Get-Content dist/AstroBirthChart/version.json -Raw | ConvertFrom-Json).version
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { throw "Missing Inno Setup compiler" }
-          & $iscc "/DAppVersion=$version" "installer\astrochart.iss"
-          if ($LASTEXITCODE -ne 0) { throw "Installer compilation failed" }
-          if (-not (Test-Path "dist\installer\AstroBirthChart-Setup.exe")) { throw "Setup.exe missing" }
-      - name: Validate actual installation, upgrade and Windows uninstall
-        shell: pwsh
-        run: .\scripts\test_installer.ps1
-      - name: Publish release with GitHub-computed SHA256 digest
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          $version = python -c "import sys; sys.path.insert(0, 'src'); import astrochart; print(astrochart.__version__)"
-          $tag = "v$version"
-          if (gh release view $tag 2>$null) { throw "Release $tag already exists; refusing overwrite" }
-          $extra = @()
-          if ("${{ github.ref_type }}" -eq "tag") { $extra += "--verify-tag" }
-          $assets = @("AstroBirthChart-Windows-x64.zip", "dist/installer/AstroBirthChart-Setup.exe")
-          $deltaAssets = @(Get-ChildItem -Path dist -Filter "AstroBirthChart-Delta-from-v*-to-v*.zip" -File)
-          foreach ($asset in $deltaAssets) { $assets += $asset.FullName }
-          gh release create $tag @assets --target "${{ github.sha }}" --title "AstroBirthChart $tag" --generate-notes @extra
-          if ($LASTEXITCODE -ne 0) { throw "Release publishing failed" }
-) {
+          if ($previous -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
             throw "Unexpected previous release tag"
           }
           $version = (Get-Content dist/AstroBirthChart/version.json -Raw | ConvertFrom-Json).version
@@ -143,5 +114,8 @@ jobs:
           if (gh release view $tag 2>$null) { throw "Release $tag already exists; refusing overwrite" }
           $extra = @()
           if ("${{ github.ref_type }}" -eq "tag") { $extra += "--verify-tag" }
-          gh release create $tag AstroBirthChart-Windows-x64.zip dist/installer/AstroBirthChart-Setup.exe --target "${{ github.sha }}" --title "AstroBirthChart $tag" --generate-notes @extra
+          $assets = @("AstroBirthChart-Windows-x64.zip", "dist/installer/AstroBirthChart-Setup.exe")
+          $deltaAssets = @(Get-ChildItem -Path dist -Filter "AstroBirthChart-Delta-from-v*-to-v*.zip" -File)
+          foreach ($asset in $deltaAssets) { $assets += $asset.FullName }
+          gh release create $tag @assets --target "${{ github.sha }}" --title "AstroBirthChart $tag" --generate-notes @extra
           if ($LASTEXITCODE -ne 0) { throw "Release publishing failed" }
