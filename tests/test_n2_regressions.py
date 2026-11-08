@@ -19,11 +19,28 @@ def chart(*positions, unknown=False):
                  time_certainty="unknown" if unknown else "known")
 
 
-def render(c, interpretation=None):
+def render(c, interpretation=None, *, catalog=None):
     evidence = interpretation or interpret_chart(c)
     r1 = synthesize(c, evidence)
-    s = build_personality_model(r1, evidence)
+    s = build_personality_model(r1, evidence, catalog=catalog)
     return evidence, r1, s, compose_narrative_n2(s)
+
+
+def _original_26_catalog():
+    """Pin negative regression conditions without reverting the live expansion.
+
+    These tests protect behavior when a meaning is truly absent. In the expanded
+    catalog those exact rules are now covered, so ordinary runtime is tested
+    separately using the full 86-entry catalog.
+    """
+    catalog = deepcopy(load_meaning_catalog())
+    catalog["rule_readings"] = [
+        r for r in catalog["rule_readings"]
+        if r["provenance"].get("interpretive_basis")
+        != "unverified-original-rule-text-only"
+    ]
+    assert len(catalog["rule_readings"]) == 26
+    return catalog
 
 
 def meaning_signature(s, axis):
@@ -93,7 +110,7 @@ def test_process_is_evidence_specific_comparison_not_action_chain():
 
 def test_no_unsourced_process_story_when_only_one_rule_has_editorial_meaning():
     c = chart(("שמש", 132, None), ("מרקורי", 155, None))
-    _, r1, sem, report = render(c)
+    _, r1, sem, report = render(c, catalog=_original_26_catalog())
     for group in sem["plan"]["processes"]:
         kinds = {next(c for c in sem["claims"] if c["id"] == i)["kind"] for i in group}
         assert kinds == {"process-reading"}
@@ -206,7 +223,8 @@ def test_grouped_rule_statuses_are_not_misattributed_to_selected_rule():
 
 def test_uncurated_rule_axis_is_omitted_not_recycled_as_generic_scenario():
     evidence, r1, sem, report = render(chart(
-        ("שמש", 251.7, None), ("מרקורי", 46.3, None)))
+        ("שמש", 251.7, None), ("מרקורי", 46.3, None)),
+        catalog=_original_26_catalog())
     assert "עצמאות" in sem["unexpanded_axis_names"]
     assert not [c for c in sem["claims"] if c["axis"] == "עצמאות"]
     assert "התמדה" in sem["displayed_axis_names"]
