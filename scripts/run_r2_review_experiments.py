@@ -79,7 +79,7 @@ def group_split() -> tuple[list[dict], list[dict], dict]:
         chart(sun=3, moon=5, mercury=1, venus=0),
         chart(sun=0, moon=5, mercury=3, venus=1),
         chart(sun=3, moon=5, mercury=1, venus=1),  # removes A
-        chart(sun=1, moon=6, mercury=2, venus=6),  # unrelated
+        chart(sun=1, moon=6, mercury=2, venus=8),  # unrelated and disjoint
     ]
     train, holdout = encode(training, "research-train"), encode(validation, "research-val")
 
