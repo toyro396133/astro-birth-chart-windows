@@ -481,7 +481,9 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
                 *, claims: list[dict] = (), allow_user: bool = False,
                 trusted_source_registry_hash: str | None = None,
                 adapted: dict | None = None, n2_catalog: dict | None = None) -> None:
-    # Public API cannot skip validated evidence or accept a partial Evaluation dict.
+    # Schema-first even for lower-level validation: no raw KeyError on missing fields.
+    validate_schema("N3Plan", plan)
+    validate_schema("RelationEvaluation", evaluation)
     _assert(adapted is not None and n2_catalog is not None,
             "UNVERIFIED_EVALUATION: source adapter and N2 catalog required")
     verify_evaluation(evaluation, definition, evaluation["snapshot_id"],
