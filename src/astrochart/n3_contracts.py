@@ -645,7 +645,8 @@ def verify_hash_dag(extra_dependencies: dict[str, tuple[str, ...]] | None = None
 
 
 def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
-                             n2_catalog: dict | None = None) -> None:
+                             n2_catalog: dict | None = None,
+                             definition: dict | None = None) -> None:
     """Never admit invented witnesses, implicit root independence or route leakage.
 
     R1 may be incomplete while direct composite Route B is proven. Only selected
@@ -656,6 +657,11 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
     from .n3_n2 import classify_rule
 
     original = {h["rule_hit_id"]: h for h in adapted["hits"]}
+    role_allowed = ({p["role"]: set(p["allowed_rule_ids"])
+                     for p in definition["participant_specs"]} if definition is not None else None)
+    if definition is not None:
+        _assert(evaluation["definition_id"] == definition["definition_id"],
+                "evidence/definition mismatch")
     _assert(len(original) == len(adapted["hits"]), "duplicate adapted evidence")
     bindings = evaluation["bindings"]
     all_entries = bindings + evaluation["alternatives"]
@@ -669,9 +675,23 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
         for name in ("rule_id", "evidence_key", "fact_keys",
                      "dependency_roots", "witness_group_id"):
             _assert(binding[name] == hit[name], "PROVENANCE_MISMATCH: binding " + name)
+        _assert(binding["rule_review_status"] == hit["review_status"] and
+                binding["source_refs"] == hit["source_refs"],
+                "PROVENANCE_MISMATCH: source status or URL of witness")
+        _assert(role_allowed is None or
+                binding["rule_id"] in role_allowed.get(binding["role"], set()),
+                "ROLE_RULE_MISMATCH: evidence not permitted for role")
         if n2_catalog is not None:
-            _assert(binding["content_category"] == classify_rule(hit["rule_id"], n2_catalog),
+            category = classify_rule(hit["rule_id"], n2_catalog)
+            _assert(binding["content_category"] == category,
                     "N2 content category mismatch")
+            _assert(category not in ("symbolic_explanation", "withheld_editorial_reading")
+                    or binding["meaning_ref"] is None,
+                    "non-behavioral N2 content cannot support semantic binding")
+            if binding["meaning_ref"] is not None:
+                _assert(category == "behavioral_rule_reading" and any(
+                    x["id"] == binding["meaning_ref"] and x["rule_id"] == hit["rule_id"]
+                    for x in n2_catalog["rule_readings"]), "invented N2 meaning reference")
         route = ("r1_path" if binding["origin"] == "r1_witness"
                  else "original_composite")
         groups.setdefault((route, binding["role"]), set()).add(hit["witness_group_id"])
@@ -684,6 +704,8 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
     selected_ids = {b["rule_hit_id"] for b in evaluation["selected_witnesses"]}
     by_id = {b["rule_hit_id"]: b for b in bindings}
     _assert(selected_ids.issubset(by_id), "selected witness outside bindings")
+    _assert(all(b == by_id[b["rule_hit_id"]] for b in evaluation["selected_witnesses"]),
+            "selected witness details differ from authenticated binding")
     proofs = verify_route_proofs(evaluation["route_proofs"])
     for route_name, proof in proofs.items():
         if proof["proof_result"] != "proven":
@@ -700,11 +722,18 @@ def verify_evidence_bindings(evaluation: dict, adapted: dict, *,
         _assert(len(roles) == len(set(roles)), "duplicate role as independent proof")
         roots: set[str] = set()
         fact_refs: set[str] = set()
+        independent = (definition is None or
+                       definition["evidence_policy"]["independent_roots_required"])
         for b in chosen:
-            _assert(not roots.intersection(b["dependency_roots"]),
-                    "DEPENDENT_ROOTS: overlapping proof observations")
+            if independent:
+                _assert(not roots.intersection(b["dependency_roots"]),
+                        "DEPENDENT_ROOTS: overlapping proof observations")
+            # When independent_roots_required=False we preserve overlap; it
+            # cannot count as multiple independent observations for licensing.
             roots.update(b["dependency_roots"])
             fact_refs.update(b["fact_keys"])
+        _assert(len(proof["source_fact_refs"]) == len(set(proof["source_fact_refs"])),
+                "duplicate source facts in route proof")
         _assert(set(proof["source_fact_refs"]) == fact_refs,
                 "invented, omitted or duplicate sky facts")
         if route_name == "original_composite":
