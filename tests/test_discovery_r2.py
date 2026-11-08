@@ -543,3 +543,29 @@ def test_original_eight_recurring_patterns_keep_unverified_source_provenance():
     core = data["target_cross_domain_pattern"]
     assert core["recurrent_without_diversity"] and not core["found"]
     assert core["recurrence_metrics"]["distinct_data_template_count"] == 1
+
+
+def test_r2_hypothesis_id_tracks_r1_ontology_and_not_editorial_text(monkeypatch):
+    import astrochart.discovery_r2 as engine
+    data = training()
+    first = by_members(engine.discover(data))[(A, B)]["id"]
+    # Test an R1 ontology revision without writing to the production R1 module.
+    changed_transitions = dict(engine.TRANSITIONS)
+    changed_transitions[A] = ("גמישות",)
+    monkeypatch.setattr(engine, "TRANSITIONS", changed_transitions)
+    later = by_members(engine.discover(data))[(A, B)]["id"]
+    assert first != later
+    assert engine.discover(data)["ontology_identity"] != engine._digest({
+        "functions": engine.FUNCTIONS,
+        "transitions": {**changed_transitions, A: ("גמישות", "התמדה")},
+        "domain_constraint": "same-domain-directed-no-repetition",
+    })
+
+
+def test_candidate_enumeration_cap_is_not_misreported_as_complete(monkeypatch):
+    import astrochart.discovery_r2 as engine
+    monkeypatch.setattr(engine, "MAX_CANDIDATES", 1)
+    output = discover(training())
+    assert not output["summary"]["candidate_enumeration_complete"]
+    assert not output["summary"]["search_complete"]
+    assert output["search"]["candidate_enumeration_unexamined_pending"] >= 1
