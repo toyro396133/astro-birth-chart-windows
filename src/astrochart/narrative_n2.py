@@ -55,24 +55,23 @@ class DeterministicHebrewRealizer:
         if secondary:
             text = (
                 f"עוד אפשרות העולה מן המפה היא {axis} — {definition}. "
-                f"{situation}, {behavior}. "
+                f"{situation}, בעל המפה {behavior}. "
                 f"מצד אחד אפשר לראות בכך {strength}; מצד אחר, ייתכן גם {challenge}.")
         elif index == 0:
             text = (
                 f"מאפיין אפשרי מרכזי הוא {axis}: {definition}. "
-                f"{situation}, {behavior}. "
+                f"{situation}, בעל המפה {behavior}. "
                 f"מצד אחד אפשר לראות בכך {strength}; לצד זאת ייתכן גם {challenge}.")
         elif index == 1:
             text = (
-                f"{situation}, {behavior}. האפשרות הזו משתלבת בציר {axis}, "
+                f"{situation}, בעל המפה {behavior}. האפשרות הזו משתלבת בציר {axis}, "
                 f"שמשמעותו {definition}. "
-                f"אפשר לראות בכך {strength}, אך ייתכן גם {challenge} "
-                "שיצריך תשומת לב.")
+                f"אפשר לראות בכך {strength}; עם זאת, ייתכן גם {challenge}.")
         else:
             text = (
                 f"לא כל הדפוסים פועלים באותה צורה: {axis} מתייחס ל{definition}. "
                 f"מצד אחד, {strength}. מצד אחר, {challenge}. "
-                f"למשל, {situation}, {behavior}.")
+                f"למשל, {situation}, בעל המפה {behavior}.")
         if anchor is not None:
             fact = anchor["content"]
             text += (
