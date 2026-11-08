@@ -68,6 +68,9 @@ def run_experiment() -> dict:
     core = ("יוזמה", "רגישות", "חשיבה")
     core_hypothesis = next(
         (h for h in r2["hypotheses"] if set(h["members"]) == set(core)), None)
+    core_recurrence = next(
+        (pattern for pattern in r2["recurring_but_not_diverse_patterns"]
+         if set(pattern["members"]) == set(core)), None)
     return {
         "experiment": "r2-independent-synthetic-r1-reports",
         "input": "interpret_chart -> synthesize (same 96 original rules)",
@@ -84,6 +87,12 @@ def run_experiment() -> dict:
             "found": core_hypothesis is not None,
             "metrics": core_hypothesis["metrics"] if core_hypothesis else None,
             "heldout": core_hypothesis["validation"] if core_hypothesis else None,
+            "recurrent_without_diversity": core_recurrence is not None,
+            "recurrence_metrics": core_recurrence["metrics"] if core_recurrence else None,
+            "recurrence_sources": (
+                core_recurrence["source_review_statuses"]
+                if core_recurrence else None),
+            "recurrence_reason": core_recurrence["reason"] if core_recurrence else None,
         },
         "research_limit": (
             "All outputs are engineering hypotheses about symbolic rule matches, "
@@ -107,6 +116,10 @@ def main():
         "target": {
             "found": result["target_cross_domain_pattern"]["found"],
             "metrics": result["target_cross_domain_pattern"]["metrics"],
+            "recurrence_metrics": (
+                result["target_cross_domain_pattern"]["recurrence_metrics"]),
+            "recurrence_sources": (
+                result["target_cross_domain_pattern"]["recurrence_sources"]),
             "heldout_status": (
                 result["target_cross_domain_pattern"]["heldout"]["status"]
                 if result["target_cross_domain_pattern"]["heldout"] else None),
