@@ -216,7 +216,8 @@ def admit_n3_bundle(*, manifest: dict, relation_catalog: dict,
             "HUMAN_REVIEW_REQUIRED: P1 has no independently approved novelty")
     verify_plan(plan, evaluation, definition, sources, claims=list(claims),
                 adapted=adapter, n2_catalog=pinned_n2,
-                verified_r1_incomplete=verified_r1_incomplete,
+                chart=chart, report=report, raw_rulepack=pinned_pack,
+                r1_node=r1_node, r1_limited_path=r1_limited_path,
                 relation_state=relation_state, source_state=source_state)
     return AdmissionResult(status=plan["decision"], plan_id=plan["plan_id"],
                            snapshot_id=snapshot_id, source_condition_state=source_state,
