@@ -78,6 +78,16 @@ jobs:
       - name: Validate actual installation, upgrade and Windows uninstall
         shell: pwsh
         run: .\scripts\test_installer.ps1
+      - name: Build Setup delta from last stable release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .\scripts\build_setup_delta.ps1
+      - name: Test actual registered-install partial upgrade and complete uninstall
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .\scripts\test_setup_delta.ps1
       - name: Publish release with GitHub-computed SHA256 digest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -90,5 +100,7 @@ jobs:
           if ("${{ github.ref_type }}" -eq "tag") { $extra += "--verify-tag" }
           python scripts/render_release_notes.py --version $version --output release-notes.md
           if ($LASTEXITCODE -ne 0) { throw "Release notes generation failed" }
-          gh release create $tag AstroBirthChart-Windows-x64.zip dist/installer/AstroBirthChart-Setup.exe --target "${{ github.sha }}" --title "AstroBirthChart $tag" --notes-file release-notes.md @extra
+          $deltaAssets = @(Get-ChildItem dist/installer -Filter 'AstroBirthChart-Setup-Delta-from-v*-to-v*.exe' -File)
+          if ($deltaAssets.Count -ne 1) { throw "Exactly one verified Setup Delta asset required" }
+          gh release create $tag AstroBirthChart-Windows-x64.zip dist/installer/AstroBirthChart-Setup.exe $deltaAssets[0].FullName --target "${{ github.sha }}" --title "AstroBirthChart $tag" --notes-file release-notes.md @extra
           if ($LASTEXITCODE -ne 0) { throw "Release publishing failed" }
