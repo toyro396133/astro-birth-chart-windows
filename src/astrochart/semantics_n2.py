@@ -233,6 +233,8 @@ def _axis_claims(node: dict, axis_entry: dict, interpretation: dict,
             "selected_rule_id": hit["rule_id"],
             "evidence_type": rule_types.get(hit["rule_id"], "unknown"),
             "review_status": hit["review_status"],
+            "selected_source_url": hit.get("source_url"),
+            "selected_source": hit["source"],
             "witness_group_rule_ids": list(g["rule_ids"]),
         }, groups=[g], suffix=g["evidence_key"])
         claims.append(direct)
