@@ -6,7 +6,7 @@ on:
     paths:
       - "src/astrochart/n3_*.py"
       - "src/astrochart/n3_contracts.schema.json"
-      - "tests/test_n3_p1.py"
+      - "tests/test_n3_p1*.py"
       - "requirements.txt"
       - ".github/workflows/n3-p1-linux.yml"
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
       - name: Install contract validation and test dependencies (isolated)
         run: python -m pip install "pytest>=8,<10" "jsonschema>=4.23,<5"
       - name: N3 contract adversarial and evidence regression
-        run: python -m pytest tests/test_n3_p1.py -q
+        run: python -m pytest tests/test_n3_p1*.py -q
       - name: Lock PR29 immutable fixture and check HEAD drift
         run: |
           git fetch origin +refs/pull/29/head:refs/remotes/origin/pr29-p1-locked
