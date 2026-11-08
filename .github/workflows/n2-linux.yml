@@ -38,10 +38,13 @@ jobs:
         run: python scripts/n2_comparison.py
       - name: Independent JPL chart holdout
         run: python scripts/n2_holdout.py
+      - name: Untouched JPL final holdout (new frozen seed)
+        run: python scripts/n2_holdout.py --sealed
       - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-N2-Linux-Holdout
           path: |
             qa-output/n2-comparison/
             qa-output/n2-holdout/
+            qa-output/n2-final-holdout/
           if-no-files-found: error
