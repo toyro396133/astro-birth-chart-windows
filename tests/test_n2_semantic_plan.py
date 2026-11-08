@@ -191,3 +191,30 @@ def test_one_abstained_path_has_natural_singular_hebrew():
     assert "אותר מסלול נוסף" in p["semantic_text"]
     assert "אותרו 1 מסלולים" not in p["semantic_text"]
     assert len(narrative["abstained_processes"]) == 1
+
+
+def test_missing_first_axis_witness_does_not_renumber_later_meanings():
+    def anchor(i):
+        return {
+            "kind": "rule-anchor", "evidence_keys": [f"group-{i}"],
+            "content": {"chart_evidence": f"ראיה {i}", "selected_rule_id": f"r{i}",
+                        "review_status": "unverified", "selected_source_url": None,
+                        "rule_text": "נוסח כללי"},
+        }
+    def example(i):
+        return {
+            "kind": "axis-example", "evidence_keys": [f"group-{i}"],
+            "content": {"focus": f"מוקד {i}", "distinction": f"הבחנה {i}",
+                        "situation": f"מצב {i}", "behavior": f"עשוי לשקול {i}",
+                        "limit": f"אין להסיק {i}", "evidence_type": "placement"},
+        }
+    claims = [{"kind": "axis-meaning", "content": {
+        "axis": "חשיבה", "definition": "הגדרה",
+        "independent_evidence_count": 3,
+    }}] + [anchor(i) for i in (0, 1, 2)] + [example(1), example(2)]
+    semantic, proof = DeterministicHebrewRealizer().axis(
+        claims, 0, secondary=False)
+    assert "מוקד 1 (קבוצת ראיה 2)" in semantic
+    assert "מוקד 2 (קבוצת ראיה 3)" in semantic
+    assert "מוקד 1 (קבוצת ראיה 1)" not in semantic
+    assert proof.count("• ") == 3

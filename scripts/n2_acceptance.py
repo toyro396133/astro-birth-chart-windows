@@ -18,7 +18,7 @@ from astrochart.semantics_n2 import load_meaning_catalog
 
 ROOT = Path(__file__).resolve().parents[1] / "qa-output" / "n2-acceptance"
 ACCEPTANCE_SEED = 2026110863  # development verification after instrumentation
-FINAL_ACCEPTANCE_SEED = 2026110913  # never used in development or threshold choice
+FINAL_ACCEPTANCE_SEED = 2026110929  # new, never inspected during development
 
 
 def controls():

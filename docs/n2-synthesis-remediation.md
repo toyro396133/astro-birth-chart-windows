@@ -65,7 +65,7 @@ No old sealed JPL samples are used to train or tune this comparison.
 charts, new synthetic controls, claim/evidence lineage and a quantitative
 safety audit into `qa-output/n2-acceptance/` (instrumentation seed
 `2026110863`). After a grammar correction found in an earlier validation, a separate new
-seed `2026110913` is reserved for final acceptance under
+seed `2026110929` is reserved for final acceptance under
 `qa-output/n2-final-acceptance/`. Each supplies complete N1/N2,
 semantic-only and trace JSON outputs. Do not use the final set to tune N2.
 
@@ -87,3 +87,5 @@ different vs repeated Hebrew patterns, and omitted pathways independently.
 
 The branch stays Draft. **Do not merge or release.** Reviewer must decide
 ACCEPTED / ACCEPTED WITH FOLLOW-UPS / CHANGES REQUIRED separately.
+
+Additional safeguard: axis examples retain the *original R1 evidence-group index*, even if an earlier witness lacks curated meaning; their display index no longer implies that the first curated reading is the first source witness.

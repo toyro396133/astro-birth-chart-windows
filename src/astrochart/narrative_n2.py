@@ -67,7 +67,8 @@ class DeterministicHebrewRealizer:
              secondary: bool) -> tuple[str, str]:
         meaning = next(c for c in claims if c["kind"] == "axis-meaning")["content"]
         anchors = [c for c in claims if c["kind"] == "rule-anchor"]
-        examples = [c["content"] for c in claims if c["kind"] == "axis-example"]
+        example_claims = [c for c in claims if c["kind"] == "axis-example"]
+        examples = [c["content"] for c in example_claims]
         axis = meaning["axis"]
         count = meaning["independent_evidence_count"]
         evidence = "ראיות הכללים שנבחרו ב־R1:\n" + "\n".join(
@@ -96,8 +97,16 @@ class DeterministicHebrewRealizer:
                 text += (f" ל־R1 נבחרו {count} קבוצות ראיה עצמאיות לציר הזה; "
                          "רק זו שתוארה כאן כוללת הרחבה התנהגותית מבוקרת במאגר.")
             return text, evidence
+        # Label meaning with the ORIGINAL selected R1 witness-group ordinal,
+        # not its ordinal among curated examples (which may skip witnesses).
+        original_positions = {
+            tuple(a.get("evidence_keys", [])): position + 1
+            for position, a in enumerate(anchors) if a.get("evidence_keys")
+        }
         phrases = [
-            f"{e['focus']} (ראיה {i+1})" for i, e in enumerate(examples)]
+            f"{e['focus']} (קבוצת ראיה "
+            f"{original_positions.get(tuple(c.get('evidence_keys', [])), i + 1)})"
+            for i, (e, c) in enumerate(zip(examples, example_claims))]
         detail = "; ".join(e["distinction"] for e in examples)
         shown = examples[:2]
         situations = "; ".join(
