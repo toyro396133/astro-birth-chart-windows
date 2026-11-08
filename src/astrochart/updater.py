@@ -23,6 +23,7 @@ API = f"https://api.github.com/repos/{REPO}/releases/latest"
 API_HISTORY = f"https://api.github.com/repos/{REPO}/releases?per_page=30"
 ASSET = "AstroBirthChart-Windows-x64.zip"
 SETUP_ASSET = "AstroBirthChart-Setup.exe"
+SETUP_DELTA_PREFIX = "AstroBirthChart-Setup-Delta-from-v"
 INSTALLED_MARKER = "installed-by-setup.marker"
 EXE = "AstroBirthChart.exe"
 HELPER = "AstroBirthChartUpdater.exe"
@@ -53,6 +54,10 @@ class Release:
     digest: str
     size: int
     notes: str = ""
+    delta_url: str = ""
+    delta_digest: str = ""
+    delta_size: int = 0
+    delta_base: str = ""
 
 
 class SecureRedirect(HTTPRedirectHandler):
@@ -96,6 +101,57 @@ def parse_release(payload, asset_name=ASSET):
     return Release(tag[1:], expected_url, match.group(1), size, notes)
 
 
+def setup_delta_asset(payload, release, base_version):
+    """Choose only the exact signed GitHub Release asset from installed to target.
+
+    A missing or invalid patch never prevents the full installer from working.
+    """
+    parts_version(base_version)
+    if not is_newer(release.version, base_version):
+        return release
+    name = (f"{SETUP_DELTA_PREFIX}{base_version}-to-v"
+            f"{release.version}.exe")
+    expected_url = (f"https://github.com/{REPO}/releases/download/"
+                    f"v{release.version}/{name}")
+    matching = [a for a in payload.get("assets", []) if isinstance(a, dict)
+                and a.get("name") == name and a.get("state") == "uploaded"]
+    if len(matching) != 1 or matching[0].get("browser_download_url") != expected_url:
+        return release
+    candidate = matching[0]
+    digest = candidate.get("digest")
+    match = HASH.fullmatch(digest) if isinstance(digest, str) else None
+    size = candidate.get("size")
+    if not match or type(size) is not int or not 0 < size < release.size:
+        return release
+    return replace(release, delta_url=expected_url, delta_digest=match.group(1),
+                   delta_size=size, delta_base=base_version)
+
+
+def selected_setup_download(release):
+    """Return the actual asset metadata and mode; preserve full fallback."""
+    if release.delta_size and release.delta_base:
+        expected = (f"{SETUP_DELTA_PREFIX}{release.delta_base}-to-v"
+                    f"{release.version}.exe")
+        if release.delta_url.endswith("/" + expected):
+            return (Release(release.version, release.delta_url,
+                            release.delta_digest, release.delta_size), expected,
+                    "setup-delta")
+    return release, SETUP_ASSET, "setup"
+
+
+def is_setup_delta_name(filename, version, source_version):
+    if not isinstance(version, str) or not isinstance(source_version, str):
+        return False
+    try:
+        parts_version(version)
+        parts_version(source_version)
+    except UpdateError:
+        return False
+    return filename == (
+        f"{SETUP_DELTA_PREFIX}{source_version}-to-v{version}.exe"
+    )
+
+
 def summarize_release_changes(releases, installed, target):
     """Group release notes by version; never trust or render Markdown as HTML."""
     if not isinstance(releases, list):
@@ -127,10 +183,13 @@ def latest_release(asset_name=ASSET):
             raw = response.read(512_001)
             if len(raw) > 512_000:
                 raise UpdateError("תגובת GitHub ארוכה מדי")
-            release = parse_release(json.loads(raw), asset_name=asset_name)
+            payload = json.loads(raw)
+            release = parse_release(payload, asset_name=asset_name)
         # A later update may skip several releases. A failure to load change
         # notes must never prevent the user from seeing a valid update.
         from . import __version__
+        if asset_name == SETUP_ASSET:
+            release = setup_delta_asset(payload, release, __version__)
         if is_newer(release.version, __version__):
             try:
                 with open_https(API_HISTORY) as history_response:
@@ -319,7 +378,8 @@ def launch_setup_install(downloaded_setup, installed, version, expected_digest):
     if not is_newer(version, __version__):
         raise UpdateError("גרסת העדכון אינה חדשה יותר")
     if (not is_installed_setup(installed)
-            or downloaded_setup.name != SETUP_ASSET
+            or not (downloaded_setup.name == SETUP_ASSET or
+                    is_setup_delta_name(downloaded_setup.name, version, __version__))
             or not downloaded_setup.is_file()
             or not HASH.fullmatch("sha256:" + str(expected_digest))):
         raise UpdateError("מתקין העדכון אינו מאומת או שההתקנה אינה רשומה ב־Windows")
