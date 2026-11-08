@@ -23,6 +23,7 @@ from .updater import (UpdateError, latest_release, is_newer, download_release,
                       is_installed_setup, SETUP_ASSET, ASSET,
                       auto_updates_enabled, save_auto_updates,
                       auto_install_enabled, save_auto_install)
+from .delta_updates import prepare_portable_update
 from .wheel import Wheel, format_body_label
 from .theme import apply_theme
 from .report import format_chart_report
@@ -45,7 +46,8 @@ class UpdateCheckThread(QThread):
         try:
             installed = install_directory()
             mode = "setup" if is_installed_setup(installed) else "portable"
-            latest = latest_release(SETUP_ASSET if mode == "setup" else ASSET)
+            latest = latest_release(SETUP_ASSET if mode == "setup" else ASSET,
+                                    base_version=__version__ if mode == "portable" else None)
             self.result.emit(
                 (latest, mode)
                 if latest and is_newer(latest.version, __version__) else None)
@@ -79,11 +81,10 @@ class UpdateDownloadThread(QThread):
                 self.result.emit((self.release.version, path, "setup", self.release.digest))
             else:
                 installed = install_directory()
-                with tempfile.TemporaryDirectory(prefix="AstroChart-Download-") as temp:
-                    archive = Path(temp) / "update.zip"
-                    download_release(self.release, archive)
-                    stage = extract_release(archive, installed, self.release.version)
-                self.result.emit((self.release.version, stage, "portable", None))
+                stage, method = prepare_portable_update(
+                    self.release, installed, __version__)
+                self.result.emit((self.release.version, stage,
+                                  "portable-delta" if method == "delta" else "portable", None))
         except Exception as exc:
             self.error.emit(str(exc))
 
@@ -671,9 +672,11 @@ class MainWindow(QMainWindow):
         release, mode = value
         self._latest_update = release
         self._update_mode = mode
-        megabytes = release.size / (1024 * 1024)
+        selected = release.delta if mode == "portable" and release.delta else release
+        megabytes = selected.size / (1024 * 1024)
+        description = " (עדכון חלקי)" if selected is not release else ""
         self.latest_update_label.setText(
-            f"גרסה אחרונה: v{release.version} · גודל הורדה: {megabytes:.1f}MB")
+            f"גרסה אחרונה: v{release.version} · גודל הורדה: {megabytes:.1f}MB{description}")
         self.update_panel.show()
         self.download_button.setEnabled(True)
         self.update_status.setText(f"עדכון v{release.version} זמין — טרם הורד")
@@ -700,7 +703,8 @@ class MainWindow(QMainWindow):
     def _on_update_downloaded(self, value):
         self._prepared_update = value
         version = value[0]
-        self.update_status.setText(f"גרסה {version} הורדה ואומתה — מוכנה להתקנה")
+        kind = "עדכון חלקי" if value[2] == "portable-delta" else "חבילת עדכון"
+        self.update_status.setText(f"גרסה {version} הורדה ואומתה ({kind}) — מוכנה להתקנה")
         self.install_button.setEnabled(True)
 
     def _install_prepared(self):
