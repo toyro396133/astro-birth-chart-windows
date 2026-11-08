@@ -182,3 +182,23 @@ def test_catalog_readings_match_original_rule_text_and_never_become_rules():
     # Custom data is injected only in the builder, not revalidated; the
     # validated on-disk loader must be the normal production entry point.
     assert changed != load_meaning_catalog()
+
+
+def test_grouped_rule_statuses_are_not_misattributed_to_selected_rule():
+    c = chart(("מרקורי", 39, None))
+    evidence = deepcopy(interpret_chart(c))
+    chosen = evidence["signals"][0]
+    alt = deepcopy(chosen)
+    alt.update(rule_id="overlay-secondary-witness", weight=chosen["weight"] - 0.1,
+               review_status="reviewed", source_url="https://example.org/other-rule",
+               text="נוסח ניסוי עצמאי; אין אישור")
+    evidence["signals"].append(alt)
+    _, _, sem, report = render(c, evidence)
+    anchor = next(item for item in sem["claims"] if item["kind"] == "rule-anchor")
+    assert anchor["content"]["selected_rule_id"] == "mercury-sign-2"
+    assert anchor["content"]["review_status"] == "unverified"
+    assert set(anchor["source_review_statuses"]) == {"unverified", "reviewed"}
+    p = next(p for section in report["sections"] for p in section["paragraphs"]
+             if p["kind"] == "axis")
+    assert "כלל mercury-sign-2 (טרם אומת)" in p["evidence_text"]
+    assert "https://example.org/other-rule" not in p["evidence_text"]
