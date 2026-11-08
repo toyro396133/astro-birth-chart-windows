@@ -34,7 +34,8 @@ def save_n1_example(name, content):
     path = ROOT / "qa-output" / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
-    # GitHub Windows runners may use a legacy console encoding.\n    print("N1_OUTPUT", name, content.encode("unicode_escape").decode("ascii"))
+    # GitHub Windows runners may use a legacy console encoding.
+    print("N1_OUTPUT", name, content.encode("unicode_escape").decode("ascii"))
 
 
 def main():
