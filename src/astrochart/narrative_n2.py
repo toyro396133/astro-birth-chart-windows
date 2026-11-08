@@ -22,8 +22,7 @@ def _merge(section: str, kind: str, claims: list[dict], text: str) -> dict:
     return {
         "kind": kind, "text": text, "section": section,
         "claim_ids": [c["id"] for c in claims],
-        "classifications": union("classification") if False else
-                           sorted({c["classification"] for c in claims}),
+        "classifications": sorted({c["classification"] for c in claims}),
         "node_ids": union("node_ids"),
         "rule_ids": union("rule_ids"),
         "source_refs": union("source_refs"),
