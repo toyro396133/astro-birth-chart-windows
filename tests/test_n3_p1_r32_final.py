@@ -367,3 +367,15 @@ def test_r32_08_helper_recomputes_instead_of_trusting_claimed_semantic_verdicts(
         with pytest.raises(N3ValidationError, match="REASON_MISMATCH"):
             verify_plan(b["plan"], b["evaluation"], definition, b["sources"],
                         adapted=adapted, n2_catalog=N2, **claimed)
+
+
+
+def test_r32_08_resealed_omission_of_genuine_r1_cap_reason_rejected(monkeypatch):
+    b = _valid_capped_r1_bundle(monkeypatch)
+    b["plan"]["reasons"] = [
+        item for item in b["plan"]["reasons"]
+        if item["code"] != "INCOMPLETE_SEARCH"
+    ]
+    resign(b)
+    with pytest.raises(N3ValidationError, match="REASON_MISMATCH"):
+        admit_n3_bundle(**b)
