@@ -40,6 +40,8 @@ jobs:
         run: python scripts/n2_comparison.py
       - name: Full N2 before-versus-after paragraphs and source traces
         run: python scripts/n2_before_after.py
+      - name: NEW-05 R3 full production-chain audit evidence
+        run: python scripts/n2_new05_evidence.py
       - name: Independent JPL chart holdout
         run: python scripts/n2_holdout.py
       - name: Untouched JPL final holdout (new frozen seed)
@@ -58,4 +60,5 @@ jobs:
             qa-output/n2-acceptance/
             qa-output/n2-final-acceptance/
             qa-output/n2-before-after/
+            qa-output/n2-new05-r3/
           if-no-files-found: error
