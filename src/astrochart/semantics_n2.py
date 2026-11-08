@@ -123,6 +123,19 @@ def _matching_hits(axis: str, group: dict, signals: list[dict],
                 and rule_types.get(h["rule_id"]) in ("house", "aspect"))
             for h in matches):
         return []
+    # For built-in rules, also demand the original catalog wording/status/source.
+    # Custom overlay IDs may appear in R1, but never gain a curated N2 reading.
+    from .interpretation import load_rulepack
+    canonical = {r["id"]: r for r in load_rulepack().rules}
+    for h in matches:
+        rule = canonical.get(h["rule_id"])
+        if rule is not None and (
+                h["text"] != rule["text"]
+                or h["review_status"] != rule.get("review_status", "unverified")
+                or h.get("source_url") != (rule.get("source_detail") or {}).get("url")
+                or h.get("source") != rule["source"]
+                or h["polarity"] != rule["polarity"]):
+            return []
     if (group.get("rule_ids") != _distinct(h["rule_id"] for h in matches)
             or group.get("source_refs") != _distinct(
                 h.get("source_url") for h in matches)
