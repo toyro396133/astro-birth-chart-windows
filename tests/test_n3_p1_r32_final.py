@@ -16,6 +16,7 @@ from astrochart.n3_contracts import (
     N3ValidationError, digest, seal, evaluation_id, plan_id, make_snapshot_id,
 )
 from astrochart.n3_evidence import adapt_hits, match_composite, alternative_set_id
+from astrochart.n3_n2 import classify_rule
 from astrochart import synthesis
 from test_n3_p1 import PACK, RULES, N2
 from test_n3_p1_r32 import _bundle
@@ -287,6 +288,66 @@ def test_r32_09_resigned_forged_cap_metadata_rejected(monkeypatch,tamper):
     elif tamper=="fake_blocking":
         b["plan"]["reasons"][0]["blocking"]=True
         b["plan"]["primary_reason"]="INCOMPLETE_SEARCH"
+    resign(b)
+    with pytest.raises(N3ValidationError):
+        admit_n3_bundle(**b)
+
+
+
+def test_r32_10_authentic_unselected_alternative_cannot_change_semantic_truth():
+    """An observed but non-selected Mercury witness is a valid alternative.
+
+    Admission must accept the unaffected Sun/Moon comparison, but reject an
+    attacker who adds the legitimate alternative to selected_witnesses even
+    after recomputing every non-keyed ID.
+    """
+    b = _with_extra_authentic_hits()
+    ev = b["evaluation"]
+    d = b["relation_catalog"]["definitions"][0]
+    d["participant_specs"][0]["allowed_rule_ids"].append("mercury-sign-2")
+    d = seal(d, "definition_hash")
+    b["relation_catalog"]["definitions"][0] = d
+    b["relation_catalog"] = seal(b["relation_catalog"], "catalog_digest")
+    snapshot = make_snapshot_id(b["manifest"], b["relation_catalog"],
+                                b["execution_contract_version"])
+    b["snapshot_id"] = snapshot
+    ev["snapshot_id"] = snapshot
+    ev["definition_hash"] = d["definition_hash"]
+    original = next(x for x in ev["bindings"] if x["role"] == "A")
+    hit = next(x for x in adapt_hits(b["chart"], b["report"], PACK, RULES)["hits"]
+               if x["rule_id"] == "mercury-sign-2")
+    group_id = alternative_set_id(
+        snapshot_id=snapshot, route="original_composite",
+        definition_id=ev["definition_id"], role="A",
+        witness_group_ids=sorted((original["witness_group_id"], hit["witness_group_id"])))
+    for binding in ev["bindings"]:
+        binding["alternative_set_id"] = (
+            group_id if binding["role"] == "A" else
+            alternative_set_id(
+                snapshot_id=snapshot, route="original_composite",
+                definition_id=ev["definition_id"], role=binding["role"],
+                witness_group_ids=[binding["witness_group_id"]]))
+    alternative = {
+        "role": "A", "rule_id": hit["rule_id"],
+        "rule_hit_id": hit["rule_hit_id"], "evidence_key": hit["evidence_key"],
+        "fact_keys": hit["fact_keys"], "dependency_roots": hit["dependency_roots"],
+        "witness_group_id": hit["witness_group_id"], "alternative_set_id": group_id,
+        "source_refs": hit["source_refs"], "rule_review_status": hit["review_status"],
+        "meaning_ref": None, "content_category": classify_rule(hit["rule_id"], N2),
+        "origin": "direct_composite_component",
+    }
+    ev["alternatives"] = [alternative]
+    ev["selected_witnesses"] = copy.deepcopy(ev["bindings"])
+    ev["route_proofs"][1]["alternative_set_ids"] = [
+        x["alternative_set_id"] for x in ev["bindings"]]
+    b["plan"]["snapshot_id"] = snapshot
+    resign(b)
+
+    result = admit_n3_bundle(**b)
+    assert result.status == "COMPARISON_ONLY"
+    assert result.relation_predicate_state == "TRUE"
+
+    ev["selected_witnesses"].append(copy.deepcopy(alternative))
     resign(b)
     with pytest.raises(N3ValidationError):
         admit_n3_bundle(**b)
