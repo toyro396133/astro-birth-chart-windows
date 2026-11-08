@@ -28,6 +28,8 @@ jobs:
         run: python scripts/n2_comparison.py
       - name: Full N2 before-versus-after paragraphs and source traces
         run: python scripts/n2_before_after.py
+      - name: NEW-05 R3 full production-chain audit evidence on Windows
+        run: python scripts/n2_new05_evidence.py
       - name: N2 independent JPL holdout and semantic-only comparison
         run: python scripts/n2_holdout.py
       - name: N2 untouched JPL final holdout
