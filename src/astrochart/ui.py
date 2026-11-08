@@ -1,8 +1,10 @@
 from datetime import date, time
+import json
+from pathlib import Path
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtWidgets import (
-    QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
-    QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
+    QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
 )
@@ -20,6 +22,8 @@ from .updater import (UpdateError, latest_release, is_newer, download_release,
 from .wheel import Wheel
 from .theme import apply_theme
 from .report import format_chart_report
+from .chart_storage import make_record, read_record, save_record, export_results
+from .chart_export import export_wheel_png, export_chart_pdf
 
 
 
@@ -84,6 +88,8 @@ class MainWindow(QMainWindow):
         self.calc = None
         self._interpretation_chart = None
         self._active_chart = None
+        self._active_record = None
+        self._current_file = None
         self._updating = False
         self._update_thread = None
         self._update_task = None
@@ -129,6 +135,22 @@ class MainWindow(QMainWindow):
         brand.addWidget(title)
         brand.addWidget(subtitle)
         heading.addLayout(brand, 1)
+        self.file_button = QPushButton("קובץ")
+        self.file_button.setObjectName("fileMenuButton")
+        self.file_menu = QMenu(self.file_button)
+        for text, fn in (
+            ("פתח מפה...", self._open_chart),
+            ("שמור מפה", lambda: self._save_chart(False)),
+            ("שמור בשם...", lambda: self._save_chart(True)),
+            ("ייצא כ־JSON...", lambda: self._export_chart("json")),
+            ("ייצא כטקסט...", lambda: self._export_chart("txt")),
+            ("ייצא גלגל PNG...", lambda: self._export_chart("png")),
+            ("ייצא דוח PDF...", lambda: self._export_chart("pdf")),
+        ):
+            action = self.file_menu.addAction(text)
+            action.triggered.connect(fn)
+        self.file_button.setMenu(self.file_menu)
+        heading.addWidget(self.file_button)
         version = QLabel("v" + __version__)
         version.setObjectName("versionPill")
         heading.addWidget(version)
@@ -676,6 +698,7 @@ class MainWindow(QMainWindow):
             self._toggle_advanced(True)
 
     def _calculate(self):
+        self._active_record = None
         try:
             if self.date_mode.currentData() == "hebrew" and self.unknown.isChecked():
                 raise ValueError("לתאריך עברי בחר יום/לילה ושעה בקירוב")
@@ -703,6 +726,7 @@ class MainWindow(QMainWindow):
             if self.date_mode.currentData() == "hebrew":
                 chart.warnings.insert(0, "המרת תאריך עברי: " + resolved.label)
             self._show_chart(chart)
+            self._active_record = make_record(self._capture_input(), __version__)
         except Exception as exc:
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
@@ -775,6 +799,127 @@ class MainWindow(QMainWindow):
             return
         QApplication.clipboard().setText(format_chart_report(self._active_chart))
         self.chart_caption.setText("התקציר הועתק ללוח")
+
+    def _capture_input(self):
+        resolved = self._resolved_input()
+        raw_day = self.day.date()
+        clock = resolved.local_time
+        return {
+            "date_mode": self.date_mode.currentData(),
+            "civil_date": resolved.civil_day.isoformat(),
+            "clock": None if self.unknown.isChecked() else clock.strftime("%H:%M"),
+            "gregorian_date": date(raw_day.year(), raw_day.month(), raw_day.day()).isoformat(),
+            "hebrew_year": self.hebrew_year.value(),
+            "hebrew_month": int(self.hebrew_month.currentData()),
+            "hebrew_day": self.hebrew_day.value(),
+            "phase": self.phase.currentData(),
+            "unknown_time": self.unknown.isChecked(),
+            "estimated_time": self.approx_hour.isChecked() and not self.unknown.isChecked(),
+            "city": self.city.currentText(),
+            "latitude": self.lat.value(),
+            "longitude": self.lon.value(),
+            "zone": self.tz.text().strip(),
+        }
+
+    def _require_current_chart(self):
+        if self._active_chart is None or self._active_record is None:
+            raise ValueError("יש לחשב מפה תקינה לפני שמירה או ייצוא")
+        if self._capture_input() != self._active_record["input"]:
+            raise ValueError("הקלט השתנה מאז החישוב. יש לחשב מחדש לפני שמירה או ייצוא")
+        return self._active_chart, self._active_record
+
+    def _save_chart(self, save_as=False):
+        try:
+            chart, record = self._require_current_chart()
+            selected = None if save_as else self._current_file
+            if not selected:
+                selected, _ = QFileDialog.getSaveFileName(
+                    self, "שמור מפה מקומית", "", "AstroBirthChart (*.astrochart.json);;JSON (*.json)")
+            if not selected:
+                return
+            path = Path(selected)
+            if not path.name.endswith(".json"):
+                path = path.with_name(path.name + ".astrochart.json")
+            save_record(path, record)
+            self._current_file = str(path)
+            self.chart_caption.setText("המפה נשמרה במחשב")
+        except Exception as exc:
+            QMessageBox.warning(self, "שמירת מפה", str(exc))
+
+    def _restore_input(self, values):
+        # Load only validated primitive values; all result fields are recomputed.
+        self.date_mode.setCurrentIndex(self.date_mode.findData("gregorian"))
+        self.day.setDate(QDate.fromString(values["gregorian_date"], "yyyy-MM-dd"))
+        self.hebrew_year.setValue(values["hebrew_year"])
+        month_index = self.hebrew_month.findData(values["hebrew_month"])
+        if month_index < 0:
+            raise ValueError("החודש השמור אינו קיים בשנה העברית")
+        self.hebrew_month.setCurrentIndex(month_index)
+        self.hebrew_day.setValue(values["hebrew_day"])
+        self.phase.setCurrentIndex(self.phase.findData(values["phase"]))
+        city = values["city"] if values["city"] in CITIES else "הזנה ידנית"
+        self.city.setCurrentText(city)
+        self.lat.setValue(values["latitude"])
+        self.lon.setValue(values["longitude"])
+        self.tz.setText(values["zone"])
+        self.date_mode.setCurrentIndex(self.date_mode.findData(values["date_mode"]))
+        if values["clock"] is not None:
+            self.hour.setTime(QTime.fromString(values["clock"], "HH:mm"))
+        self.unknown.setChecked(values["unknown_time"])
+        self.approx_hour.setChecked(values["estimated_time"])
+
+    def _open_chart(self):
+        selected, _ = QFileDialog.getOpenFileName(
+            self, "פתח מפה מקומית", "", "AstroBirthChart (*.astrochart.json *.json)")
+        if not selected:
+            return
+        try:
+            record = read_record(selected)
+            self._restore_input(record["input"])
+            restored = self._capture_input()
+            if restored != record["input"]:
+                raise ValueError("בחירות התאריך או המיקום אינן ניתנות לשחזור מדויק")
+            self._calculate()
+            if self._active_record is None:
+                raise ValueError("חישוב מחדש של הקובץ נכשל")
+            self._current_file = selected
+            if (record["app_version"] != __version__ or
+                    record["tzdata_version"] != self._active_record["tzdata_version"]):
+                QMessageBox.information(
+                    self, "חישוב מחדש",
+                    "גרסת התוכנה או נתוני אזורי הזמן השתנתה. המפה חושבה מחדש; "
+                    "לא הובטח שחזור מספרי זהה לקובץ הקודם.")
+        except Exception as exc:
+            QMessageBox.warning(self, "פתיחת מפה", str(exc))
+
+    def _export_chart(self, kind):
+        try:
+            chart, record = self._require_current_chart()
+            suffix = {"json": ".json", "txt": ".txt",
+                      "png": ".png", "pdf": ".pdf"}[kind]
+            filters = {"json": "JSON (*.json)", "txt": "Text (*.txt)",
+                       "png": "PNG (*.png)", "pdf": "PDF (*.pdf)"}
+            selected, _ = QFileDialog.getSaveFileName(
+                self, "ייצא מפה", "", filters[kind])
+            if not selected:
+                return
+            destination = Path(selected)
+            if destination.suffix.lower() != suffix:
+                destination = destination.with_name(destination.name + suffix)
+            if kind == "json":
+                payload = export_results(chart, record)
+                destination.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False)
+                    + "\n", encoding="utf-8")
+            elif kind == "txt":
+                destination.write_text(format_chart_report(chart), encoding="utf-8")
+            elif kind == "png":
+                export_wheel_png(self.wheel, destination)
+            else:
+                export_chart_pdf(self.wheel, chart, destination)
+            self.chart_caption.setText("הייצוא הושלם במחשב")
+        except Exception as exc:
+            QMessageBox.warning(self, "ייצוא מפה", str(exc))
 
     def _open_interpretation(self):
         if self._interpretation_chart is None:
