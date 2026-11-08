@@ -13,6 +13,10 @@ def window(monkeypatch):
     monkeypatch.setattr(ui, "auto_updates_enabled", lambda: False)
     monkeypatch.setattr(ui, "auto_install_enabled", lambda: False)
     app = QApplication.instance() or QApplication([])
+    # An unexpected UI error must fail CI rather than open a blocking modal.
+    def unexpected_dialog(*args):
+        raise AssertionError("Unexpected QMessageBox.warning: " + str(args[-1]))
+    monkeypatch.setattr(ui.QMessageBox, "warning", unexpected_dialog)
     win = ui.MainWindow()
     win.show()
     app.processEvents()
