@@ -23,8 +23,8 @@ MANIFEST = "delta.json"
 MAX_FILES = 3000
 MAX_MANIFEST = 1_000_000
 HEX = re.compile(r"^[a-f0-9]{64}$")
-BAD = re.compile(r'[<>:"|?*\\\\\x00-\x1f]')
-DEVICE = re.compile(r"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\\.|$)", re.I)
+BAD = re.compile(r'[<>:"|?*\x00-\x1f]')
+DEVICE = re.compile(r"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)", re.I)
 REQUIRED = {
     EXE, HELPER, "version.json", "_internal/data/ephemeris/de440s.bsp",
 }
@@ -32,7 +32,7 @@ REQUIRED = {
 
 def _relative(name):
     """Reject Windows-path ambiguities as well as traditional ZIP traversal."""
-    if not isinstance(name, str) or not 0 < len(name) <= 240 or "\\\\" in name:
+    if not isinstance(name, str) or not 0 < len(name) <= 240 or "\\" in name:
         raise UpdateError("שם קובץ לא בטוח בחבילת עדכון חלקי")
     parts = name.split("/")
     if any(not p or p in (".", "..") or p[-1] in (".", " ")
