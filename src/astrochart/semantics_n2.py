@@ -1,7 +1,8 @@
-"""N2 semantic personality representation, strictly downstream of unchanged R1.
+"""Evidence-conditioned N2 semantic graph; no changes to R1 or original rules.
 
-Only supported R1 nodes may license an editorial meaning. Meaning examples are
-not new astrological rules, observed conduct, independent proofs or diagnoses.
+R1 selects independent evidence. N2 validates its complete original RuleHit
+witness groups, then attaches *unverified* editorial meanings ONLY to exact
+existing rule texts. Unknown rules do not license a fabricated example.
 """
 from __future__ import annotations
 
@@ -12,43 +13,60 @@ from pathlib import Path
 
 from .narrative import _supported_process
 
-N2_SEMANTIC_VERSION = "0.1.0"
+N2_SEMANTIC_VERSION = "0.2.0"
 CATALOG_FILE = "meaning_catalog_n2.json"
 MAX_PRIMARY = 3
 MAX_SECONDARY = 2
 MAX_PROCESSES = 2
-
-
-def load_meaning_catalog(path: Path | None = None) -> dict:
-    """Read and validate an explicit, separately reviewable editorial glossary."""
-    source = path or Path(__file__).with_name(CATALOG_FILE)
-    data = json.loads(source.read_text(encoding="utf-8"))
-    if data.get("schema_version") != 1 or not isinstance(data.get("entries"), list):
-        raise ValueError("מאגר משמעות N2 אינו תקין")
-    from .synthesis import FUNCTIONS  # vocabulary only; never mutate R1
-    entries = data["entries"]
-    if (len(entries) != len(FUNCTIONS)
-            or {e.get("axis") for e in entries} != set(FUNCTIONS)
-            or len({e.get("id") for e in entries}) != len(entries)):
-        raise ValueError("מאגר N2 אינו מכסה באופן ייחודי את צירי R1")
-    for entry in entries:
-        required = ("id", "axis", "definition", "strength", "challenge",
-                    "process_action", "recurrence_note")
-        if (any(not isinstance(entry.get(k), str) or not entry[k].strip()
-                for k in required)
-                or not isinstance(entry.get("example"), dict)
-                or any(not isinstance(entry["example"].get(k), str)
-                       or not entry["example"][k].strip()
-                       for k in ("situation", "behavior"))
-                or entry.get("kind") != "axis_meaning"
-                or entry.get("provenance", {}).get("review_status") != "unverified"
-                or entry.get("provenance", {}).get("astrological_rule") is not False):
-            raise ValueError("יחידת משמעות N2 חסרה או בעלת מעמד שגוי")
-    return data
+MAX_READINGS_PER_AXIS = 3
+VALID_STATUSES = {"unverified", "reviewed", "approved", "conflicting", "rejected"}
 
 
 def _distinct(values) -> list[str]:
     return sorted({v for v in values if isinstance(v, str) and v})
+
+
+def _strip_degrees(text: str) -> str:
+    # Suppress irrelevant numeric noise in presentation; keep unmodified evidence.
+    return re.sub(r"\s*\(\d+(?:\.\d+)?°\)", "", text)
+
+
+def load_meaning_catalog(path: Path | None = None) -> dict:
+    source = path or Path(__file__).with_name(CATALOG_FILE)
+    data = json.loads(source.read_text(encoding="utf-8"))
+    from .synthesis import FUNCTIONS
+    from .interpretation import load_rulepack
+    entries = data.get("entries", [])
+    readings = data.get("rule_readings", [])
+    if (data.get("schema_version") != 1 or not isinstance(entries, list)
+            or not isinstance(readings, list)
+            or len(entries) != len(FUNCTIONS)
+            or {e.get("axis") for e in entries} != set(FUNCTIONS)
+            or len({e.get("id") for e in entries}) != len(entries)):
+        raise ValueError("מאגר משמעות N2 אינו מכסה את צירי R1")
+    for e in entries:
+        if (e.get("kind") != "axis_meaning" or
+                any(not isinstance(e.get(k), str) or not e[k].strip()
+                    for k in ("id", "axis", "definition", "strength", "challenge"))
+                or e.get("provenance", {}).get("review_status") != "unverified"
+                or e.get("provenance", {}).get("astrological_rule") is not False):
+            raise ValueError("ציר משמעות N2 אינו תקין")
+    original = {r["id"]: r for r in load_rulepack().rules}
+    if len({r.get("rule_id") for r in readings}) != len(readings):
+        raise ValueError("קיימות משמעויות כפולות לאותו כלל")
+    for e in readings:
+        rule = original.get(e.get("rule_id"))
+        if (not rule or e.get("kind") != "rule_reading"
+                or rule["text"] != e.get("source_rule_text")
+                or rule["axis"] != e.get("axis")
+                or rule["type"] != e.get("evidence_type")
+                or e.get("eligible_polarity") != 1
+                or any(not isinstance(e.get(k), str) or not e[k].strip()
+                       for k in ("id", "focus", "setting", "behavior", "distinction", "limit"))
+                or e.get("provenance", {}).get("review_status") != "unverified"
+                or e.get("provenance", {}).get("astrological_rule") is not False):
+            raise ValueError("פירוש עריכתי אינו תואם את נוסח הכלל המקורי")
+    return data
 
 
 def _provenance(groups: list[dict]) -> dict:
@@ -66,176 +84,244 @@ def _verified_groups(node: dict, field: str = "independent_facts") -> list[dict]
     groups = node.get(field)
     if not isinstance(groups, list) or not groups:
         return []
-    for group in groups:
-        if (not isinstance(group, dict) or not isinstance(group.get("rule_ids"), list)
-                or not group["rule_ids"] or not group.get("evidence_key")
-                or not group.get("roots") or not isinstance(group.get("review_statuses"), list)):
+    for g in groups:
+        if (not isinstance(g, dict) or not g.get("rule_ids")
+                or not isinstance(g.get("rule_ids"), list)
+                or not g.get("evidence_key") or not g.get("roots")
+                or not isinstance(g.get("review_statuses"), list)
+                or not isinstance(g.get("source_refs"), list)):
             return []
-    result = _provenance(groups)
+    proof = _provenance(groups)
     if field == "independent_facts" and (
-        result["rule_ids"] != _distinct(node.get("rule_ids", []))
-        or result["source_refs"] != _distinct(node.get("source_refs", []))
-        or result["source_review_statuses"] != _distinct(
-            node.get("source_review_statuses", []))
-    ):
+            proof["rule_ids"] != _distinct(node.get("rule_ids", []))
+            or proof["source_refs"] != _distinct(node.get("source_refs", []))
+            or proof["source_review_statuses"] != _distinct(
+                node.get("source_review_statuses", []))):
         return []
     return groups
 
 
+def _matching_hits(axis: str, group: dict, signals: list[dict],
+                   polarity: int, time_mode: str, rule_types: dict) -> list[dict]:
+    """Verify ALL hits in a grouped R1 witness, not merely ID/key membership.
+
+    Mismatched source URL, status, evidence detail, or original RuleHit text
+    causes fail-closed omission. Grouped equal evidence may contain several hits.
+    """
+    matches = [h for h in signals
+               if h.get("axis") == axis and h.get("polarity") == polarity
+               and h.get("evidence_key") == group.get("evidence_key")
+               and not h.get("modifier_only") and h.get("weight", 0) > 0]
+    matches.sort(key=lambda h: (-h["weight"], h["rule_id"]))
+    if not matches or any(
+            not isinstance(h.get("rule_id"), str)
+            or not isinstance(h.get("text"), str) or not h["text"].strip()
+            or not isinstance(h.get("evidence"), str) or not h["evidence"]
+            or h.get("review_status") not in VALID_STATUSES
+            or h.get("provisional") != (time_mode != "known")
+            or (time_mode != "known"
+                and rule_types.get(h["rule_id"]) in ("house", "aspect"))
+            for h in matches):
+        return []
+    if (group.get("rule_ids") != _distinct(h["rule_id"] for h in matches)
+            or group.get("source_refs") != _distinct(
+                h.get("source_url") for h in matches)
+            or group.get("review_statuses") != _distinct(
+                h["review_status"] for h in matches)
+            or sorted(group.get("details", [])) != sorted(h["evidence"] for h in matches)):
+        return []
+    return matches
+
+
+def _all_witnesses(node: dict, field: str, polarity: int,
+                   signals: list[dict], time_mode: str, rule_types: dict) -> list:
+    groups = _verified_groups(node, field)
+    if not groups:
+        return []
+    validated = []
+    for g in groups:
+        hits = _matching_hits(node["axis"], g, signals, polarity, time_mode, rule_types)
+        if not hits:
+            return []
+        validated.append((g, hits))
+    return validated
+
+
 def _key(node: dict, kind: str, suffix: str = "") -> str:
-    code = "|".join((node["id"], kind, suffix))
-    return "n2-" + sha256(code.encode("utf-8")).hexdigest()[:15]
+    return "n2-" + sha256("|".join((node["id"], kind, suffix))
+                           .encode("utf-8")).hexdigest()[:15]
 
 
 def _claim(node: dict, kind: str, classification: str, content: dict,
            *, groups: list[dict] | None = None, meaning_ids: list[str] | None = None,
            suffix: str = "", polarity: dict | None = None,
            audit_status: str | None = None) -> dict:
-    witness_groups = groups if groups is not None else _verified_groups(node)
-    proof = _provenance(witness_groups)
+    proof = _provenance(groups if groups is not None else _verified_groups(node))
     claim = {
         "id": _key(node, kind, suffix),
-        "kind": kind,
-        "classification": classification,
-        "axis": node.get("axis"),
-        "content": content,
-        "node_ids": [node["id"]],
-        "rule_ids": proof["rule_ids"],
-        "source_refs": proof["source_refs"],
+        "kind": kind, "classification": classification, "axis": node.get("axis"),
+        "content": content, "node_ids": [node["id"]],
+        "rule_ids": proof["rule_ids"], "source_refs": proof["source_refs"],
         "source_review_statuses": proof["source_review_statuses"],
         "evidence_keys": proof["evidence_keys"],
         "evidence_roots": proof["evidence_roots"],
         "meaning_ids": list(meaning_ids or []),
         "audit_status": audit_status or node.get("audit_status", "symbolic-input"),
         "provisional_time": bool(node.get("provisional_time")),
-        "limitations": [
-            "symbolic-not-psychological-diagnosis",
-            *([] if classification == "existing_rule" else
-              ["editorial-not-source-approved"]),
-            *([] if classification != "synthesis_hypothesis" else
-              ["r1-transition-is-hypothesis"]),
-        ],
+        "limitations": ["symbolic-not-psychological-diagnosis"] +
+            ([] if classification == "existing_rule" else ["editorial-not-source-approved"]) +
+            (["r1-transition-is-hypothesis"] if classification == "synthesis_hypothesis" else []),
     }
     if polarity is not None:
         claim["evidence_by_polarity"] = polarity
     return claim
 
 
-def _anchor_hit(node: dict, interpretation: dict | None) -> dict | None:
-    """Bind exact rule text to a SELECTED R1 witness, never unrelated hits."""
-    if not interpretation:
-        return None
-    groups = _verified_groups(node)
-    candidates = []
-    for hit in interpretation.get("signals", []):
-        if (hit.get("axis") != node["axis"]
-                or hit.get("polarity") != 1 or hit.get("modifier_only")):
-            continue
-        if any(hit.get("evidence_key") == g["evidence_key"]
-               and hit.get("rule_id") in g["rule_ids"] for g in groups):
-            candidates.append(hit)
-    candidates.sort(key=lambda h: (-h.get("weight", 0), h.get("rule_id", "")))
-    return candidates[0] if candidates else None
+def _witness_summary(hit: dict, reading: dict | None, rule_types: dict) -> dict:
+    return {
+        "rule_id": hit["rule_id"], "type": rule_types.get(hit["rule_id"], "unknown"),
+        "evidence_key": hit["evidence_key"],
+        "evidence": _strip_degrees(hit["evidence"]),
+        "raw_evidence": hit["evidence"],
+        "text": hit["text"],
+        "source_url": hit.get("source_url"),
+        "review_status": hit["review_status"],
+        "meaning_id": reading["id"] if reading else None,
+        "focus": reading["focus"] if reading else None,
+        "distinction": reading["distinction"] if reading else None,
+        "limitation": reading["limit"] if reading else None,
+    }
 
 
-def _axis_claims(node: dict, entry: dict, interpretation: dict | None) -> list[dict]:
-    groups = _verified_groups(node)
-    if node.get("type") != "axis" or not groups or node.get("has_unresolved_tension"):
+def _axis_claims(node: dict, axis_entry: dict, interpretation: dict,
+                 readings: dict, rule_types: dict) -> list[dict]:
+    if node.get("type") != "axis" or node.get("has_unresolved_tension"):
         return []
-    claims = []
-    hit = _anchor_hit(node, interpretation)
-    if hit is not None and isinstance(hit.get("text"), str) and hit["text"].strip():
-        witness = next(g for g in groups
-                       if hit["rule_id"] in g["rule_ids"]
-                       and hit["evidence_key"] == g["evidence_key"])
-        # Source status must remain the status of the original rule.
-        direct = _claim(node, "rule-anchor", "existing_rule", {
-            "rule_text": hit["text"].strip(),
-            "chart_evidence": re.sub(r"\s*\(\d+(?:\.\d+)?°\)", "",
-                                     hit.get("evidence", "")),
-            "raw_chart_evidence": hit.get("evidence", ""),
-            "selected_rule_id": hit["rule_id"],
-        }, groups=[{
-            "rule_ids": [hit["rule_id"]],
-            "source_refs": [hit["source_url"]] if hit.get("source_url") else [],
-            "review_statuses": [hit.get("review_status", "unverified")],
-            "evidence_key": witness["evidence_key"],
-            "roots": witness["roots"],
-        }])
-        claims.append(direct)
-    claims.append(_claim(node, "axis-meaning", "editorial_extension", {
-        "axis": node["axis"], "definition": entry["definition"],
-        "strength": entry["strength"], "challenge": entry["challenge"],
+    groups = _all_witnesses(node, "independent_facts", 1,
+                            interpretation["signals"], interpretation["time_mode"],
+                            rule_types)
+    if not groups:
+        return []
+    # All selected R1 evidence groups are validated before any claim is emitted.
+    claims = [_claim(node, "axis-meaning", "editorial_extension", {
+        "axis": node["axis"], "definition": axis_entry["definition"],
+        "strength": axis_entry["strength"], "challenge": axis_entry["challenge"],
         "independent_evidence_count": len(groups),
-    }, meaning_ids=[entry["id"]]))
-    claims.append(_claim(node, "axis-example", "possible_behavior_example", {
-        "situation": entry["example"]["situation"],
-        "behavior": entry["example"]["behavior"],
-        "recurrence_note": entry["recurrence_note"],
-    }, meaning_ids=[entry["id"]]))
+        "rule_conditioned_coverage": 0,
+    }, meaning_ids=[axis_entry["id"]])]
+    curated = 0
+    for g, hits in groups:
+        hit = hits[0]  # strongest validated RuleHit per independent witness
+        reading = readings.get(hit["rule_id"])
+        direct = _claim(node, "rule-anchor", "existing_rule", {
+            "rule_text": hit["text"],
+            "chart_evidence": _strip_degrees(hit["evidence"]),
+            "raw_chart_evidence": hit["evidence"],
+            "selected_rule_id": hit["rule_id"],
+            "evidence_type": rule_types.get(hit["rule_id"], "unknown"),
+            "review_status": hit["review_status"],
+            "witness_group_rule_ids": list(g["rule_ids"]),
+        }, groups=[g], suffix=g["evidence_key"])
+        claims.append(direct)
+        if reading and curated < MAX_READINGS_PER_AXIS:
+            claims.append(_claim(node, "axis-example", "possible_behavior_example", {
+                "focus": reading["focus"], "situation": reading["setting"],
+                "behavior": reading["behavior"],
+                "distinction": reading["distinction"],
+                "limit": reading["limit"],
+                "selected_rule_id": hit["rule_id"],
+                "evidence_type": reading["evidence_type"],
+                "editorial_review_status": "unverified",
+            }, groups=[g], meaning_ids=[reading["id"]],
+               suffix=g["evidence_key"]))
+            curated += 1
+    claims[0]["content"]["rule_conditioned_coverage"] = curated
     return claims
 
 
-def _process_claims(node: dict, axis_nodes: dict, catalog: dict) -> list[dict]:
+def _process_claims(node: dict, axis_nodes: dict, readings: dict,
+                    signals: list[dict], time_mode: str, rule_types: dict) -> list[dict]:
     if not _supported_process(node) or not _verified_groups(node):
         return []
     path = node["path"]
-    # The model's original selected witnesses and its axis nodes must agree.
     selected = node.get("selected_witnesses_by_axis", {})
-    if (set(selected) != set(path)
-            or any(a not in axis_nodes or a not in catalog
-                   or axis_nodes[a].get("has_unresolved_tension")
-                   or axis_nodes[a].get("domain") != node.get("domain")
-                   for a in path)
-            or any(selected[a] != fact for a, fact in
-                   zip(path, node["independent_facts"]))):
+    if (set(selected) != set(path) or
+            any(a not in axis_nodes or axis_nodes[a].get("has_unresolved_tension")
+                or axis_nodes[a].get("domain") != node.get("domain") for a in path) or
+            any(selected[a] != fact for a, fact in zip(path, node["independent_facts"]))):
         return []
-    return [
-        _claim(node, "process-reading", "synthesis_hypothesis", {
-            "path": list(path), "domain": node["domain"],
-            "model_relation": node.get("relation"),
-            "proof_search_complete": node.get("proof_search", {}).get("complete", True),
-        }, meaning_ids=[catalog[a]["id"] for a in path],
-           audit_status="hypothesis"),
-        _claim(node, "process-example", "possible_behavior_example", {
-            "path": list(path), "domain": node["domain"],
-            "actions": [catalog[a]["process_action"] for a in path],
-            "scenario": {
-                "ביצוע": "כאשר עומדת לפניו משימה שיש בה כמה שלבים",
-                "עיבוד": "כאשר עליו להבין רעיון מורכב",
-                "קשר": "כאשר נדרשת התנהלות מול כמה נקודות מבט",
-            }.get(node["domain"], "כאשר עולה צורך לפעול"),
-        }, meaning_ids=[catalog[a]["id"] for a in path],
-           audit_status="hypothesis"),
-    ]
+    slots, meanings = [], []
+    for axis in path:
+        group = selected[axis]
+        verified = _all_witnesses(axis_nodes[axis], "independent_facts", 1,
+                                  signals, time_mode, rule_types)
+        matched = next((hits for g, hits in verified if g == group), None)
+        if matched is None:
+            return []
+        primary = matched[0]
+        reading = readings.get(primary["rule_id"])
+        slots.append({"axis": axis,
+                      "witness": _witness_summary(primary, reading, rule_types),
+                      "witness_group": group})
+        if reading:
+            meanings.append(reading["id"])
+    base = _claim(node, "process-reading", "synthesis_hypothesis", {
+        "path": list(path), "domain": node["domain"], "slots": slots,
+        "model_relation": node.get("relation"),
+        "proof_search_complete": node.get("proof_search", {}).get("complete", True),
+    }, meaning_ids=meanings, audit_status="hypothesis")
+    # Describe specificity ONLY when two selected independent, *different*
+    # rule meanings exist. Otherwise abstain from an invented interaction.
+    readable = [s for s in slots if s["witness"]["meaning_id"]]
+    if len(readable) < 2 or len({s["witness"]["focus"] for s in readable}) < 2:
+        return [base]
+    comparison = _claim(node, "process-example", "possible_behavior_example", {
+        "path": list(path), "domain": node["domain"],
+        "reading_type": "attributed-comparison-not-new-edge",
+        "components": [{
+            "axis": s["axis"], "focus": s["witness"]["focus"],
+            "distinction": s["witness"]["distinction"],
+            "rule_id": s["witness"]["rule_id"],
+        } for s in readable],
+        "limitation": "Comparison of existing source-supported emphases; "
+                      "does not establish a causal or psychological relation.",
+    }, meaning_ids=meanings, audit_status="hypothesis")
+    return [base, comparison]
 
 
-def _tension_claim(tension: dict, axis_nodes: dict) -> dict:
+def _tension_claim(tension: dict, axis_nodes: dict, interpretation: dict,
+                   rule_types: dict) -> dict | None:
     axis = tension["axis"]
     node = axis_nodes.get(axis)
     if node is None:
-        raise ValueError("סתירת R1 ללא צומת ציר: " + axis)
-    positive = _verified_groups(node)
-    negative = _verified_groups(node, "counter_facts")
-    pos, neg = _provenance(positive), _provenance(negative)
-    if (not positive or not negative
-            or pos["rule_ids"] != _distinct(tension.get("positive_rule_ids", []))
+        return None
+    signals = interpretation["signals"]
+    positive = _all_witnesses(node, "independent_facts", 1, signals,
+                              interpretation["time_mode"], rule_types)
+    negative = _all_witnesses(node, "counter_facts", -1, signals,
+                              interpretation["time_mode"], rule_types)
+    if not positive or not negative:
+        return None
+    pos = _provenance([g for g, _ in positive])
+    neg = _provenance([g for g, _ in negative])
+    if (pos["rule_ids"] != _distinct(tension.get("positive_rule_ids", []))
             or neg["rule_ids"] != _distinct(tension.get("negative_rule_ids", []))):
-        raise ValueError("סתירה שאינה תואמת את ראיות R1: " + axis)
-    all_groups = positive + negative
+        return None
+    all_groups = [g for g, _ in positive + negative]
     return _claim(node, "unresolved-tension", "unresolved_tension", {
-        "axis": axis, "explanation": tension.get("explanation"),
-        "context": None,
+        "axis": axis, "context": None, "explanation": tension.get("explanation"),
+        "positive_witnesses": [
+            _witness_summary(hit, None, rule_types) for _, hits in positive for hit in hits],
+        "negative_witnesses": [
+            _witness_summary(hit, None, rule_types) for _, hits in negative for hit in hits],
     }, groups=all_groups, audit_status="unresolved",
-       polarity={
-           "positive": pos, "negative": neg,
-           "shared_roots": list(tension.get("shared_roots", [])),
-       })
+       polarity={"positive": pos, "negative": neg,
+                 "shared_roots": list(tension.get("shared_roots", []))})
 
 
 def build_personality_model(synthesis: dict, interpretation: dict | None = None,
                             *, catalog: dict | None = None) -> dict:
-    """Assemble attributable content; no generative or relationship mining."""
+    """Strict source matching prevents unsupported or mismatched N2 text."""
     if (not isinstance(synthesis, dict)
             or not isinstance(synthesis.get("nodes"), list)
             or not isinstance(synthesis.get("summary"), dict)):
@@ -246,55 +332,67 @@ def build_personality_model(synthesis: dict, interpretation: dict | None = None,
     if interpretation is not None and interpretation.get("time_mode") != mode:
         raise ValueError("דוח כללים ודוח R1 אינם מסכימים על שעת הלידה")
     meanings = catalog if catalog is not None else load_meaning_catalog()
-    by_meaning = {e["axis"]: e for e in meanings["entries"]}
-    node_by_id = {n["id"]: n for n in synthesis["nodes"]
-                  if isinstance(n, dict) and isinstance(n.get("id"), str)}
-    axis_nodes = {n["axis"]: n for n in synthesis["nodes"]
-                  if isinstance(n, dict) and n.get("type") == "axis"
-                  and isinstance(n.get("axis"), str)}
-    ranked = sorted(axis_nodes.values(), key=lambda n: (
-        -n.get("strength", 0), n["axis"]))
-    ordered_axes = []
+    by_axis = {e["axis"]: e for e in meanings["entries"]}
+    readings = {e["rule_id"]: e for e in meanings.get("rule_readings", [])}
+    from .interpretation import load_rulepack
+    rule_types = {r["id"]: r["type"] for r in load_rulepack().rules}
+    nodes = [n for n in synthesis["nodes"] if isinstance(n, dict)
+             and isinstance(n.get("id"), str)]
+    by_id = {n["id"]: n for n in nodes}
+    axis_nodes = {n["axis"]: n for n in nodes
+                  if n.get("type") == "axis" and isinstance(n.get("axis"), str)}
+    ranked = sorted(axis_nodes.values(), key=lambda n: (-n.get("strength", 0), n["axis"]))
+    order = []
     for axis in synthesis["summary"].get("leading_axes", []):
-        if axis in axis_nodes and axis not in ordered_axes:
-            ordered_axes.append(axis)
-    ordered_axes += [n["axis"] for n in ranked if n["axis"] not in ordered_axes]
-    plans = {"primary": [], "secondary": [], "processes": [], "tensions": []}
-    claims = []
-    covered = []
-    for axis in ordered_axes:
-        node = axis_nodes[axis]
-        if axis not in by_meaning or node.get("has_unresolved_tension"):
-            continue
-        target = ("primary" if len(plans["primary"]) < MAX_PRIMARY else
-                  "secondary" if len(plans["secondary"]) < MAX_SECONDARY else None)
-        if target is None:
-            continue
-        items = _axis_claims(node, by_meaning[axis], interpretation)
-        if not items:
-            continue
-        claims.extend(items)
-        plans[target].append([c["id"] for c in items])
-        covered.append(axis)
-    seen = set()
-    for node_id in synthesis["summary"].get("top_hypotheses", []):
-        if node_id in seen or len(plans["processes"]) >= MAX_PROCESSES:
-            continue
-        seen.add(node_id)
-        node = node_by_id.get(node_id)
-        if node is None or node.get("type") != "synthesis":
-            continue
-        items = _process_claims(node, axis_nodes, by_meaning)
-        if items:
+        if axis in axis_nodes and axis not in order:
+            order.append(axis)
+    order += [n["axis"] for n in ranked if n["axis"] not in order]
+    plan = {"primary": [], "secondary": [], "processes": [], "tensions": []}
+    claims, covered, skipped = [], [], []
+    safe_input = (isinstance(interpretation, dict)
+                  and isinstance(interpretation.get("signals"), list)
+                  and interpretation.get("time_mode") == mode)
+    if safe_input:
+        for axis in order:
+            node = axis_nodes[axis]
+            if axis not in by_axis or node.get("has_unresolved_tension"):
+                continue
+            target = ("primary" if len(plan["primary"]) < MAX_PRIMARY else
+                      "secondary" if len(plan["secondary"]) < MAX_SECONDARY else None)
+            if target is None:
+                continue
+            items = _axis_claims(node, by_axis[axis], interpretation, readings, rule_types)
+            if not items:
+                skipped.append(axis)
+                continue
             claims.extend(items)
-            plans["processes"].append([c["id"] for c in items])
-    for item in synthesis.get("tensions", []):
-        if item.get("status") != "unresolved":
-            continue
-        c = _tension_claim(item, axis_nodes)
-        claims.append(c)
-        plans["tensions"].append([c["id"]])
+            plan[target].append([c["id"] for c in items])
+            covered.append(axis)
+        seen = set()
+        for node_id in synthesis["summary"].get("top_hypotheses", []):
+            if node_id in seen or len(plan["processes"]) >= MAX_PROCESSES:
+                continue
+            seen.add(node_id)
+            node = by_id.get(node_id)
+            if node is None or node.get("type") != "synthesis":
+                continue
+            items = _process_claims(node, axis_nodes, readings,
+                                    interpretation["signals"], mode, rule_types)
+            if items:
+                claims.extend(items)
+                plan["processes"].append([c["id"] for c in items])
+        for item in synthesis.get("tensions", []):
+            if item.get("status") != "unresolved":
+                continue
+            c = _tension_claim(item, axis_nodes, interpretation, rule_types)
+            if c is not None:
+                claims.append(c)
+                plan["tensions"].append([c["id"]])
+            else:
+                skipped.append(item.get("axis", "unknown"))
     warnings = list(synthesis.get("warnings", []))
+    if skipped or not safe_input:
+        warnings.append("N2: טענות הושמטו בשל חוסר התאמה בין ראיות R1 לבין פלט הכללים.")
     return {
         "schema_version": 1, "semantic_version": N2_SEMANTIC_VERSION,
         "source_engine_version": synthesis.get("engine_version"),
@@ -302,11 +400,10 @@ def build_personality_model(synthesis: dict, interpretation: dict | None = None,
         "source_rule_pack": synthesis.get("source_rule_pack"),
         "catalog_version": meanings.get("catalog_version"),
         "catalog_review_status": "unverified",
-        "time_mode": mode,
-        "symbolic_not_diagnostic": True,
+        "time_mode": mode, "symbolic_not_diagnostic": True,
         "relationship_discovery_enabled": False,
         "local_language_model_enabled": False,
-        "claims": claims, "plan": plans,
-        "displayed_axis_names": covered,
+        "claims": claims, "plan": plan,
+        "displayed_axis_names": covered, "skipped_unverifiable_axes": _distinct(skipped),
         "warnings": warnings,
     }
