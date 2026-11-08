@@ -29,6 +29,10 @@ OPERATORS = {
 TRUTH = ("TRUE", "FALSE", "UNKNOWN")
 N2_CATEGORIES = ("rule_readings", "symbolic_explanations", "withheld_editorial_readings", "entries")
 
+# Separate immutable approval root. P1 has ZERO source reviews approved for relations.
+# Caller-controlled hashes, status and reviewer text can never extend this allowlist.
+PINNED_APPROVED_SOURCE_REGISTRY_HASHES: frozenset[str] = frozenset()
+
 
 class N3ValidationError(ValueError):
     """Explicit fail-closed admission failure; never silently recover."""
@@ -105,13 +109,15 @@ def _ordered_unique(items: list, key: str) -> None:
 
 
 def n2_content_digests(catalog: dict) -> tuple[dict[str, str], str]:
-    categories = {k: digest(catalog.get(k, [])) for k in N2_CATEGORIES}
+    _assert(all(k in catalog and isinstance(catalog[k], list) for k in N2_CATEGORIES),
+            "N2 mandatory category absent")
+    categories = {k: digest(catalog[k]) for k in N2_CATEGORIES}
     policies = {
         "rule_reading_policy": catalog.get("rule_reading_policy"),
         "symbolic": [(v.get("id"), v.get("display_policy"), v.get("source_support"))
-                     for v in catalog.get("symbolic_explanations", [])],
+                     for v in catalog["symbolic_explanations"]],
         "withheld": [(v.get("id"), v.get("status"), v.get("reason"))
-                     for v in catalog.get("withheld_editorial_readings", [])],
+                     for v in catalog["withheld_editorial_readings"]],
     }
     return categories, digest(policies)
 
@@ -350,20 +356,17 @@ def evaluation_id(evaluation: dict) -> str:
 
 
 def claim_id(claim: dict) -> str:
-    return digest({"evaluation_id": claim["evaluation_id"],
-                   "licensed_effect_id": claim["licensed_effect_id"],
-                   "derived_effect_key": digest(claim["derived_predicate"]),
-                   "source_anchor_refs": sorted(claim["source_anchor_refs"])})
+    """P1 amendment: full-content SHA256, not merely the identity projection.
+
+    With schema additionalProperties=false there is no field for a separate seal;
+    use the public ID as the content seal until a versioned schema revision.
+    """
+    return digest(_without(claim, "claim_id"))
 
 
 def plan_id(plan: dict) -> str:
-    return digest({"evaluation_id": plan["evaluation_id"],
-                   "decision": plan["decision"],
-                   "primary_reason": plan["primary_reason"],
-                   "route_proof_hashes": [digest(x) for x in sorted(
-                       plan["route_proofs"], key=lambda x: ROUTES.index(x["route"]))],
-                   "reason_records": plan["reasons"],
-                   "claim_ids": sorted(plan["relation_claim_ids"])})
+    """P1 amendment: seal *all* trace, reason, retained atom and claim-state fields."""
+    return digest(_without(plan, "plan_id"))
 
 
 def verify_route_proofs(proofs: list[dict]) -> dict[str, dict]:
@@ -421,7 +424,13 @@ def verify_evaluation(evaluation: dict, definition: dict, snapshot_id: str,
 def source_eligible(definition: dict, sources: dict, *,
                     trusted_source_registry_hash: str | None = None) -> bool:
     """Review status in caller-controlled JSON is not itself authorization."""
-    if trusted_source_registry_hash is None or sources.get("registry_hash") != trusted_source_registry_hash:
+    # No caller-supplied value can change this separately reviewed allowlist.
+    if (sources.get("registry_hash") not in PINNED_APPROVED_SOURCE_REGISTRY_HASHES
+            or trusted_source_registry_hash not in (None, sources.get("registry_hash"))):
+        return False
+    try:
+        verify_registry(sources)
+    except (N3ValidationError, KeyError, TypeError):
         return False
     by_id = {x["anchor_id"]: x for x in sources["anchors"]}
     return (definition["relation_review"]["status"] == "approved_for_symbolic_wording"
@@ -437,7 +446,15 @@ def source_eligible(definition: dict, sources: dict, *,
 
 def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
                 *, claims: list[dict] = (), allow_user: bool = False,
-                trusted_source_registry_hash: str | None = None) -> None:
+                trusted_source_registry_hash: str | None = None,
+                adapted: dict | None = None, n2_catalog: dict | None = None) -> None:
+    # Public API cannot skip validated evidence or accept a partial Evaluation dict.
+    _assert(adapted is not None and n2_catalog is not None,
+            "UNVERIFIED_EVALUATION: source adapter and N2 catalog required")
+    verify_evaluation(evaluation, definition, evaluation["snapshot_id"],
+                      adapter_trace=adapted)
+    verify_evidence_bindings(evaluation, adapted, definition=definition,
+                             n2_catalog=n2_catalog)
     validate_schema("N3Plan", plan)
     proofs = verify_route_proofs(plan["route_proofs"])
     _assert(plan["route_proofs"] == evaluation["route_proofs"], "route proof differs from evaluation")
@@ -445,15 +462,21 @@ def verify_plan(plan: dict, evaluation: dict, definition: dict, sources: dict,
             plan["evaluation_id"] == evaluation["evaluation_id"] and
             plan["definition_id"] == definition["definition_id"], "plan reference mismatch")
     _assert(plan["plan_id"] == plan_id(plan), "BAD_ID: plan signature")
+    verify_registry(sources)
     _assert(plan["trace"]["source_snapshot_hash"] == sources["registry_hash"],
             "PROVENANCE_MISMATCH: source trace hash")
-    if "trace_digest" in evaluation:
-        _assert(plan["trace"]["evaluation_trace_hash"] == evaluation["trace_digest"],
-                "PROVENANCE_MISMATCH: evaluation trace hash")
-    if "bindings" in evaluation:
-        matched_atoms = {b["rule_id"] for b in evaluation["bindings"]}
-        _assert(set(plan["retained_atomic_rule_ids"]).issubset(matched_atoms),
-                "invented retained atomic rule ID")
+    _assert(plan["trace"]["adapter_trace_hash"] == adapted["trace_digest"],
+            "PROVENANCE_MISMATCH: adapter trace hash")
+    selected_routes = [p for p in plan["route_proofs"] if p["proof_result"] == "proven"]
+    actual_facts = {f for p in selected_routes for f in p["source_fact_refs"]}
+    _assert(set(plan["trace"]["atomic_evidence_refs"]) == actual_facts,
+            "PROVENANCE_MISMATCH: Plan atomic facts must equal proven route facts")
+    _assert(plan["trace"]["evaluation_trace_hash"] == evaluation["trace_digest"],
+            "PROVENANCE_MISMATCH: evaluation trace hash")
+    matched_atoms = {b["rule_id"] for b in evaluation["bindings"]}
+    _assert(set(plan["retained_atomic_rule_ids"]).issubset(matched_atoms),
+            "invented retained atomic rule ID")
+    _assert(not claims, "P1 has no approved relation claims")
     _assert(plan["reasons"] == sorted(plan["reasons"], key=lambda x: (
         ROUTES.index(x["route"]) if x["route"] in ROUTES else 2, not x["blocking"], x["code"])),
         "reason order inconsistent")
@@ -544,7 +567,7 @@ def verify_claim(claim: dict, evaluation: dict, definition: dict, sources: dict,
             source_eligible(definition, sources,
                 trusted_source_registry_hash=trusted_source_registry_hash),
             "unlicensed source or novelty")
-    _assert(claim["audience"] != "user" and not allow_user, "P1 user output always forbidden")
+    _assert(False, "P1_NO_LICENSED_CLAIM: zero externally approved positive gold")
 
 
 # Explicit DAG check: a signature may never transitively depend on itself.
