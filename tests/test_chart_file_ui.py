@@ -77,8 +77,8 @@ def test_native_png_pdf_and_text_exports(tmp_path, window, monkeypatch):
 
 def test_uncertainty_tooltips_selections_and_table_are_qualified(window):
     """Unknown and estimated positions cannot masquerade as exact values."""
-    from PySide6.QtCore import QPoint
-    from PySide6.QtTest import QTest
+    from PySide6.QtCore import QPointF, QEvent, Qt
+    from PySide6.QtGui import QMouseEvent
     from astrochart.wheel import format_body_label
 
     unknown = Chart([BodyPosition("ירח", 29.7, False, (0, 1))],
@@ -93,7 +93,11 @@ def test_uncertainty_tooltips_selections_and_table_are_qualified(window):
 
     window.wheel.grab()
     marker = window.wheel._hit_targets["ירח"]
-    QTest.mouseMove(window.wheel, QPoint(round(marker.x()), round(marker.y())))
+    # Send the Qt mouse-move event directly: hosted CI may suppress OS hover.
+    move = QMouseEvent(QEvent.Type.MouseMove, QPointF(marker),
+                       Qt.MouseButton.NoButton, Qt.MouseButton.NoButton,
+                       Qt.KeyboardModifier.NoModifier)
+    window.wheel.mouseMoveEvent(move)
     assert window.wheel.toolTip() == format_body_label(unknown, unknown.bodies[0])
 
     estimated = Chart([BodyPosition("ירח", 29.7, False, house=3)],
