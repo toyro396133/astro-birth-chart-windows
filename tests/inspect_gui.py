@@ -2,6 +2,7 @@
 import json
 import sys
 from datetime import date
+from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,6 +13,9 @@ from PySide6.QtWidgets import QApplication, QFrame, QWidget
 
 from astrochart.ui import MainWindow
 from astrochart.interpretation_dialog import RuleInterpretationDialog
+from astrochart.interpretation import interpret_chart
+from astrochart.synthesis import synthesize
+from astrochart.narrative import compose_narrative, format_narrative
 
 
 def snapshot(window, name):
@@ -22,6 +26,15 @@ def snapshot(window, name):
     assert pix.width() >= 1000 and pix.height() >= 700
     assert pix.save(str(path), "PNG"), f"Unable to save screenshot {path}"
     print("SCREENSHOT", str(path), pix.width(), pix.height())
+
+
+
+def save_n1_example(name, content):
+    """Actual R1->N1 output from a QA chart/fixture, not hand-written copy."""
+    path = ROOT / "qa-output" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    print("N1_OUTPUT", name, "\n" + content + "\n")
 
 
 def main():
@@ -94,6 +107,24 @@ def main():
     dialog.resize(1024, 790)
     dialog.show()
     snapshot(dialog, "narrative-known.png")
+    save_n1_example("n1-known.txt", dialog.narrative_readable)
+    # Actual QTextEdit scroll/selection/copy stress under a repeated real
+    # report (layout fixture, not a separate semantic example).
+    original_n1_text = dialog.narrative_view.toPlainText()
+    dialog.narrative_view.setPlainText((original_n1_text + "\n\n") * 6)
+    app.processEvents()
+    bar = dialog.narrative_view.verticalScrollBar()
+    assert bar.maximum() > 0, "Long narrative failed to create vertical scroll"
+    bar.setValue(bar.maximum())
+    app.processEvents()
+    assert bar.value() == bar.maximum()
+    snapshot(dialog, "narrative-long-scroll.png")
+    dialog.narrative_view.selectAll()
+    assert dialog.narrative_view.textCursor().hasSelection()
+    dialog.copy_narrative_button.click()
+    assert QApplication.clipboard().text() == dialog.narrative_readable
+    dialog.narrative_view.setPlainText(original_n1_text)
+    assert dialog.narrative_view.isReadOnly()
     dialog.close()
     # Real interactive chart: table -> wheel, then wheel -> table.
     assert window.copy_button.isEnabled()
@@ -159,6 +190,7 @@ def main():
     unknown_dialog.resize(1024, 790)
     unknown_dialog.show()
     snapshot(unknown_dialog, "narrative-unknown.png")
+    save_n1_example("n1-unknown.txt", unknown_dialog.narrative_readable)
     unknown_dialog.close()
     snapshot(window, "unknown-time.png")
     unknown_summary = {
@@ -192,6 +224,14 @@ def main():
     assert "שעת הלידה משוערת" in window.warnings.text()
     assert all(b.house is not None for b in window.wheel.chart.bodies)
     snapshot(window, "hebrew-evening.png")
+    estimated_dialog = RuleInterpretationDialog(window.wheel.chart, window)
+    assert estimated_dialog.narrative_report["time_mode"] == "estimated"
+    assert "שעת הלידה משוערת" in estimated_dialog.narrative_readable
+    estimated_dialog.resize(1024, 790)
+    estimated_dialog.show()
+    snapshot(estimated_dialog, "narrative-estimated.png")
+    save_n1_example("n1-estimated.txt", estimated_dialog.narrative_readable)
+    estimated_dialog.close()
 
     window.phase.setCurrentIndex(window.phase.findData("after_midnight"))
     assert window.hour.text() == "01:00", window.hour.text()
@@ -227,6 +267,18 @@ def main():
     assert decoded.width() >= 1360 and decoded.height() >= 860, (
         "The actual screenshot is not wide", decoded)
 
+
+    # Opposing test-only evidence on a real chart, processed by unmodified R1.
+    conflict_input = deepcopy(interpret_chart(chart))
+    opposing = deepcopy(next(hit for hit in conflict_input["signals"]
+                             if hit["rule_id"] == "sun-sign-1"))
+    opposing.update(rule_id="qa-opposing-sun", polarity=-1)
+    conflict_input["signals"].append(opposing)
+    conflict_r1 = synthesize(chart, conflict_input)
+    conflict_n1 = compose_narrative(conflict_r1)
+    assert any(p["kind"] == "tension" and p["evidence_by_polarity"]
+               for section in conflict_n1["sections"] for p in section["paragraphs"])
+    save_n1_example("n1-contradictory-fixture.txt", format_narrative(conflict_n1))
 
     report = {
         "hebrew": {

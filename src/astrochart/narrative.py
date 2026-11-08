@@ -130,7 +130,7 @@ def _explain_process(node: dict, steps: list[tuple[str, str]], index: int) -> st
             + f"{first_axis} משמשת נקודת פתיחה של {first_function}; "
             + f"בהמשך מוצע מעבר אל {middle}. "
             + f"במונחי הפעולות, הכיוון הוא "
-            + " ← ".join(function for _, function in steps) + ". "
+            + " אל ".join(function for _, function in steps) + ". "
         )
     return (
         lead
@@ -183,7 +183,7 @@ def _review_disclosure(paragraphs: list[dict]) -> dict | None:
         return None
     statements = []
     if "unverified" in statuses:
-        statements.append("חלק מכללי המקור טרם אומתו פרטנית")
+        statements.append("יש כללי מקור שטרם אומתו פרטנית")
     if "reviewed" in statuses:
         statements.append("יש כללים שנבדקו אך לא קיבלו מעמד 'מאושר'")
     if "approved" in statuses:
