@@ -56,18 +56,18 @@ class DeterministicHebrewRealizer:
             text = (
                 f"עוד אפשרות העולה מן המפה היא {axis} — {definition}. "
                 f"{situation}, {behavior}. "
-                f"הצד המסייע עשוי להיות {strength}; בצד זאת ייתכן גם {challenge}.")
+                f"מצד אחד אפשר לראות בכך {strength}; מצד אחר, ייתכן גם {challenge}.")
         elif index == 0:
             text = (
                 f"מאפיין אפשרי מרכזי הוא {axis}: {definition}. "
                 f"{situation}, {behavior}. "
-                f"יש כאן פוטנציאל של {strength}, לצד קושי אפשרי של {challenge}.")
+                f"מצד אחד אפשר לראות בכך {strength}; לצד זאת ייתכן גם {challenge}.")
         elif index == 1:
             text = (
                 f"{situation}, {behavior}. האפשרות הזו משתלבת בציר {axis}, "
                 f"שמשמעותו {definition}. "
-                f"הצד המועיל עשוי להיות {strength}; לעומתו, {challenge} "
-                "עשוי להצריך תשומת לב.")
+                f"אפשר לראות בכך {strength}, אך ייתכן גם {challenge} "
+                "שיצריך תשומת לב.")
         else:
             text = (
                 f"לא כל הדפוסים פועלים באותה צורה: {axis} מתייחס ל{definition}. "
@@ -80,8 +80,9 @@ class DeterministicHebrewRealizer:
                 f"הכלל הקיים מתאר זאת כך: {fact['rule_text'].rstrip('.')}."
             )
         if index == 0 and not secondary:
-            text += (" בדומה לכך, " + example["recurrence_note"].rstrip(".")
-                     + ". זו אפשרות לדפוס חוזר, לא תיאור של עברו או ניבוי לאירוע.")
+            text += (" אם הנטייה הזו אכן מתאימה לבעל המפה, היא עשויה להופיע "
+                     "גם בהקשרים אחרים: " + example["recurrence_note"].rstrip(".")
+                     + ". אין בכך תיאור של עברו או תחזית לאירוע.")
         return text
 
     def process(self, claims: list[dict], index: int) -> str:
@@ -90,12 +91,12 @@ class DeterministicHebrewRealizer:
         example = by_kind["process-example"]["content"]
         path = reading["path"]
         actions = example["actions"]
-        sequence = ", לאחר מכן ".join(actions)
+        sequence = actions[0] + "".join(", ובהמשך " + action for action in actions[1:])
         intro = ("מתוך הצירוף המסוים של הראיות במפה עולה גם אפשרות "
                  "לקריאה משולבת. " if index == 0 else
                  "צירוף נוסף שאפשר לבחון בנפרד: ")
         return (
-            intro + f"{example['scenario']}, ייתכן מהלך של "
+            intro + f"{example['scenario']}, ייתכן שבעל המפה ינסה "
             + sequence + ". "
             + f"הצירים {_list_he(path)} מופיעים כמסלול ב־R1, "
             + "אך החיבור ביניהם הוא השערת סינתזה ולא כלל מאושר. "
