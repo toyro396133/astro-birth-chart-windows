@@ -4,8 +4,8 @@ from pathlib import Path
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
-    QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QCompleter, QDateEdit, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QHeaderView, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
 )
@@ -14,6 +14,9 @@ from .engine import Calculator
 from .hebrew_dates import (months_of_year, days_of_month, from_gregorian,
                            resolve_hebrew_date, sun_altitude, validate_phase_sun)
 from .locations import CITIES
+from .location_catalog import (
+    catalog_labels, resolve_location, load_favorites, save_favorite, MANUAL_LABEL,
+)
 from . import __version__
 from .updater import (UpdateError, latest_release, is_newer, download_release,
                       extract_release, install_directory, launch_install, launch_setup_install,
@@ -91,6 +94,8 @@ class MainWindow(QMainWindow):
         self._active_chart = None
         self._active_record = None
         self._current_file = None
+        self._favorites = load_favorites()
+        self._session_locations = {}
         self._updating = False
         self._update_thread = None
         self._update_task = None
@@ -271,8 +276,14 @@ class MainWindow(QMainWindow):
         form.addLayout(options, 1, 2, 1, 2)
 
         self.city = QComboBox()
-        self.city.addItems(["הזנה ידנית", *CITIES])
+        self.city.setEditable(True)
+        self.city.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.city.addItems(catalog_labels(self._favorites))
         self.city.setCurrentText("ירושלים")
+        completer = self.city.completer()
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.city.currentTextChanged.connect(self._city_changed)
         self.city.setMaximumWidth(300)
         form.addWidget(field_label("מקום לידה"), 2, 0)
@@ -336,6 +347,11 @@ class MainWindow(QMainWindow):
         self.tz.setAlignment(Qt.AlignmentFlag.AlignLeft)
         adv.addWidget(field_label("אזור זמן IANA"), 1, 0)
         adv.addWidget(self.tz, 1, 1, 1, 3)
+        self.save_favorite_button = QPushButton("שמור מיקום נוכחי כמועדף")
+        self.save_favorite_button.setToolTip(
+            "שומר את הקואורדינטות ואזור הזמן במחשב זה בלבד")
+        self.save_favorite_button.clicked.connect(self._save_favorite_location)
+        adv.addWidget(self.save_favorite_button, 2, 0, 1, 4)
         form.addWidget(self.advanced, 5, 0, 1, 4)
         self.advanced.setVisible(False)
         main.addWidget(form_box)
@@ -738,18 +754,47 @@ class MainWindow(QMainWindow):
             self.conversion_label.setText(str(exc))
 
     def _city_changed(self, city):
-        if city in CITIES:
-            lat, lon, tz = CITIES[city]
+        location = resolve_location(
+            city, {**self._favorites, **self._session_locations})
+        if location is not None:
+            lat, lon, tz = location
             self.lat.setValue(lat)
             self.lon.setValue(lon)
             self.tz.setText(tz)
-        elif city == "הזנה ידנית":
+            self.run.setEnabled(True)
+            self.city.setToolTip("")
+        elif city == MANUAL_LABEL:
             self._toggle_advanced(True)
+            self.run.setEnabled(True)
+            self.city.setToolTip("הזן קואורדינטות ואזור זמן במיקום מתקדם")
+        else:
+            # Never silently calculate an unrecognized city using old coordinates.
+            self.run.setEnabled(False)
+            self.city.setToolTip("מיקום לא מוכר: בחר מהרשימה או בהזנה ידנית")
+
+    def _save_favorite_location(self):
+        name, accepted = QInputDialog.getText(
+            self, "שמירת מיקום", "שם המיקום המועדף:")
+        if not accepted:
+            return
+        try:
+            saved = save_favorite(
+                name, self.lat.value(), self.lon.value(), self.tz.text().strip())
+            self._favorites = saved
+            if self.city.findText(name) < 0:
+                self.city.addItem(name)
+            self.city.setCurrentText(name)
+        except Exception as exc:
+            QMessageBox.warning(self, "שמירת מיקום מועדף", str(exc))
 
     def _calculate(self):
         self._invalidate_chart()
         self._active_record = None
         try:
+            if self.city.currentText() != MANUAL_LABEL and resolve_location(
+                    self.city.currentText(),
+                    {**self._favorites, **self._session_locations}) is None:
+                raise ValueError("בחר מיקום מוכר או השתמש בהזנה ידנית")
             if self.date_mode.currentData() == "hebrew" and self.unknown.isChecked():
                 raise ValueError("לתאריך עברי בחר יום/לילה ושעה בקירוב")
             resolved = self._resolved_input()
@@ -922,7 +967,15 @@ class MainWindow(QMainWindow):
         self.hebrew_month.setCurrentIndex(month_index)
         self.hebrew_day.setValue(values["hebrew_day"])
         self.phase.setCurrentIndex(self.phase.findData(values["phase"]))
-        city = values["city"] if values["city"] in CITIES else "הזנה ידנית"
+        city = values["city"]
+        if city != MANUAL_LABEL and resolve_location(
+                city, {**self._favorites, **self._session_locations}) is None:
+            # Portably restore a user-defined location from the saved chart,
+            # without persisting it to the favorites catalogue.
+            self._session_locations[city] = (
+                values["latitude"], values["longitude"], values["zone"])
+            if self.city.findText(city) < 0:
+                self.city.addItem(city)
         self.city.setCurrentText(city)
         self.lat.setValue(values["latitude"])
         self.lon.setValue(values["longitude"])
