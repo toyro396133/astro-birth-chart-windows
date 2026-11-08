@@ -206,3 +206,29 @@ def test_inno_upgrade_blocks_modified_download(tmp_path):
     setup.write_bytes(b"modified setup")
     with pytest.raises(InstallationError):
         install_setup(installed, setup, "0.3.0", "a" * 64, invoke=lambda args: None)
+
+
+def test_release_notes_are_display_only_and_skip_unwanted_versions():
+    from astrochart.updater import summarize_release_changes
+    history = [
+        {"tag_name": "v0.6.0", "draft": False, "prerelease": False,
+         "body": "## ייצוא\n- PDF מפה בלבד"},
+        {"tag_name": "v0.5.1", "draft": False, "prerelease": False,
+         "body": "## מאגר\n- פרשנות מורחבת"},
+        {"tag_name": "v0.4.0", "draft": False, "prerelease": False,
+         "body": "שינוי ישן"},
+        {"tag_name": "v0.7.0", "draft": True, "prerelease": False,
+         "body": "טיוטה חסומה"},
+    ]
+    text = summarize_release_changes(history, "0.5.0", "0.6.0")
+    assert "PDF" in text and "פרשנות" in text
+    assert text.index("v0.6.0") < text.index("v0.5.1")
+    assert "שינוי ישן" not in text and "טיוטה חסומה" not in text
+
+
+def test_release_body_is_bounded_untrusted_plain_text():
+    from astrochart.updater import parse_release
+    data = release_payload("0.6.0")
+    data["body"] = "x" * 20000
+    parsed = parse_release(data)
+    assert len(parsed.notes) == 10000
