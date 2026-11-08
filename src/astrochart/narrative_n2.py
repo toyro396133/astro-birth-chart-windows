@@ -88,7 +88,7 @@ class DeterministicHebrewRealizer:
                 intro = (f"נקודת המוצא לציר {axis} היא " if index == 0
                          else f"בציר {axis} ניכר דגש מסוים: ")
             text = (intro + e["focus"] + ". "
-                    + f"{e['situation']}, אפשר שבעל המפה {e['behavior']}. "
+                    + f"{e['situation']}, בעל המפה {e['behavior']}. "
                     + e["distinction"] + ". "
                     + e["limit"] + ".")
             if count > 1:
@@ -102,10 +102,10 @@ class DeterministicHebrewRealizer:
             f"ציר {axis} נתמך בכמה ראיות עצמאיות שאינן אומרות בדיוק אותו הדבר: "
             + _he_list(phrases) + ". "
             + detail + ". "
-            + f"{examples[0]['situation']}, אפשר שבעל המפה "
+            + f"{examples[0]['situation']}, בעל המפה "
               f"{examples[0]['behavior']}; "
-            + f"בנסיבות אחרות, {examples[1]['situation']}, "
-              f"אפשר ש{examples[1]['behavior']}. "
+            + f"בהקשר נפרד, {examples[1]['situation']}, "
+              f"בעל המפה {examples[1]['behavior']}. "
             + "אלה דוגמאות נפרדות התלויות בכללי המקור; אין בכך ראיה "
               "ששני הדפוסים מתרחשים יחד או שאחד גורם לשני.")
         if count > len(examples):
