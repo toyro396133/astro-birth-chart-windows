@@ -82,14 +82,13 @@ class Wheel(QWidget):
 
         lookup = {b.name: b for b in self.chart.bodies}
         for aspect in self.chart.aspects:
-            kind = aspect.kind
-            if "משולש" in kind or "שישית" in kind:
-                color = QColor("#5487d4")
-            elif ("ריבוע" in kind or "מרובע" in kind or
-                  "מולות" in kind or "ניגוד" in kind):
-                color = QColor("#d39a55")
-            else:
-                color = QColor("#a7b7c9")
+            # Stable aspect identifier; never infer semantics from translated labels.
+            color = QColor({
+                "sextile": "#5487d4",
+                "trine": "#5487d4",
+                "square": "#d39a55",
+                "opposition": "#d39a55",
+            }.get(aspect.kind_id, "#a7b7c9"))
             color.setAlpha(175)
             p.setPen(QPen(color, 1.25))
             p.drawLine(point(lookup[aspect.first].longitude, r * 0.52),
