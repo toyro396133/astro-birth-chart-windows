@@ -28,3 +28,17 @@ def test_separation_and_aspect_orb():
     assert aspects[0].kind == "ריבוע"
     assert aspects[0].separation == 92
     assert aspects[0].orb == 2
+
+def test_aspect_has_stable_identifier_not_translated_label():
+    bodies = [BodyPosition("a", 20, False), BodyPosition("b", 80, False)]
+    aspects = calculate_aspects(bodies)
+    assert len(aspects) == 1
+    assert aspects[0].kind == "שישים"
+    assert aspects[0].kind_id == "sextile"
+    assert aspects[0].certainty == "known"
+
+
+def test_legacy_approximate_chart_is_unknown_time():
+    from astrochart.domain import Chart
+    chart = Chart([], [], None, None, True, [])
+    assert chart.time_certainty == "unknown"
