@@ -44,6 +44,10 @@ jobs:
         run: python scripts/n2_holdout.py
       - name: Untouched JPL final holdout (new frozen seed)
         run: python scripts/n2_holdout.py --sealed
+      - name: Fresh expansion-only computed charts and full paired traces
+        run: python scripts/n2_catalog_impact.py
+      - name: Separate sealed expansion-only cohort (do not tune)
+        run: python scripts/n2_catalog_impact.py --sealed
       - name: New N2 acceptance seed (code frozen before inspection)
         run: python scripts/n2_acceptance.py
       - name: Independent final acceptance on a second previously unused seed
@@ -58,4 +62,6 @@ jobs:
             qa-output/n2-acceptance/
             qa-output/n2-final-acceptance/
             qa-output/n2-before-after/
+            qa-output/n2-catalog-impact/
+            qa-output/n2-catalog-sealed/
           if-no-files-found: error
