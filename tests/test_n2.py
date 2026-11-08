@@ -38,20 +38,22 @@ def test_catalog_is_editorial_and_rules_remain_unmodified():
                and item["provenance"]["review_status"] == "unverified"
                for item in catalog["entries"])
     assert len(load_rulepack().rules) == 96
-    assert catalog["catalog_version"] == "0.1.0"
+    assert catalog["catalog_version"] == "0.2.0"
+    assert len(catalog["rule_readings"]) == 26
 
 
 def test_n2_is_attributed_and_more_concrete_than_n1():
     evidence, r1, semantic, narrative = run(chart())
     nodes = {n["id"]: n for n in r1["nodes"]}
     rules = {h["rule_id"] for h in evidence["signals"]}
-    meanings = {e["id"] for e in load_meaning_catalog()["entries"]}
+    catalog = load_meaning_catalog()
+    meanings = {e["id"] for e in catalog["entries"] + catalog["rule_readings"]}
     text = format_narrative_n2(narrative)
     old = format_narrative(compose_narrative(r1))
     assert "פרשנות אישית" in text
-    assert "מול משימה חדשה" in text or "מצטברות מטלות" in text
+    assert "בעת בירור רעיון מורכב" in text or "התחלה מעשית" in text
     assert "חוזקה" not in old or "פעולת" in old
-    assert "בעל המפה" in text and "מצד אחד" in text
+    assert "בעל המפה" in text and "ראיות הכללים" in text
     assert any(c["kind"] == "axis-meaning" and c["content"]["strength"]
                and c["content"]["challenge"] for c in semantic["claims"])
     assert "אבחון אישיות" in text
@@ -90,7 +92,7 @@ def test_changed_material_rule_changes_personality_content_not_just_name():
     x, y = format_narrative_n2(a), format_narrative_n2(b)
     assert x != y
     assert "יוזמה" in x and "גמישות" in y
-    assert "צעד ראשון" in x and "חלופות" in y
+    assert "פתיחת מהלך" in x and "מעבר ביניהם" in y
     assert "sun-sign-1" in {r for c in aries["claims"] for r in c["rule_ids"]}
     assert "sun-sign-3" in {r for c in gemini["claims"] for r in c["rule_ids"]}
 
@@ -143,7 +145,12 @@ def test_unresolved_tension_has_both_original_polarities_without_context():
     assert tension["content"]["context"] is None
     assert not [c for c in semantic["claims"]
                 if c["axis"] == "יוזמה" and c["kind"] == "axis-example"]
-    assert "אינו מאפשר להכריע" in format_narrative_n2(compose_narrative_n2(semantic))
+    narrative = compose_narrative_n2(semantic)
+    visible = format_narrative_n2(narrative)
+    assert "אינו מאפשר להכריע" in visible
+    assert "ראיות לכיוון החיובי" in visible and "ראיות לכיוון המנוגד" in visible
+    assert "n2-fixture-opposition" in visible
+    assert "https://example.org/contradiction" in visible
 
 
 def test_r1_forgery_is_rejected_not_rendered():
