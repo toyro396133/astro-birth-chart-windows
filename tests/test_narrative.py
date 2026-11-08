@@ -33,7 +33,7 @@ def test_n1_combines_supported_chain_with_full_witness_lineage():
     paths = [n for n in synthesis["nodes"] if n["type"] == "synthesis"]
     assert paths
     assert "יוזמה" in text and "התמדה" in text and "אחריות" in text
-    assert "השערה" in text and "לא אבחון" in text
+    assert "השערה" in text and "אינה אבחון" in text
     assert "אחוז" not in text
 
     by_id = {n["id"]: n for n in synthesis["nodes"]}
