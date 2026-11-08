@@ -759,7 +759,8 @@ class MainWindow(QMainWindow):
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(chart.bodies))
         for row, b in enumerate(chart.bodies):
-            signs = " / ".join(SIGNS[i] for i in b.signs_possible) if chart.approximate else b.sign
+            signs = (" / ".join(SIGNS[i] for i in b.signs_possible)
+                     if chart.approximate and b.signs_possible else b.sign)
             motion = "לא ודאי" if b.motion_uncertain else ("נסיגה" if b.retrograde else "ישירה")
             values = [
                 b.name, signs,
