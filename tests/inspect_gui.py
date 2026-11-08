@@ -16,6 +16,8 @@ from astrochart.interpretation_dialog import RuleInterpretationDialog
 from astrochart.interpretation import interpret_chart
 from astrochart.synthesis import synthesize, FUNCTIONS
 from astrochart.narrative import compose_narrative, format_narrative
+from astrochart.semantics_n2 import build_personality_model
+from astrochart.narrative_n2 import compose_narrative_n2, format_narrative_n2
 
 
 def snapshot(window, name):
@@ -98,8 +100,15 @@ def main():
     assert dialog.synthesis_report["source_rule_pack"] == dialog.report["pack_version"]
     assert dialog.synthesis_view.isReadOnly()
     assert dialog.narrative_view.isReadOnly()
-    assert "קריאה רציפה" in dialog.tabs.tabText(0)
-    assert "סינתזה" in dialog.tabs.tabText(1)
+    assert "פרשנות אישית (N2)" in dialog.tabs.tabText(0)
+    assert "קריאה רציפה" in dialog.tabs.tabText(1)
+    assert "סינתזה" in dialog.tabs.tabText(2)
+    assert dialog.n2_view.isReadOnly()
+    assert "personality_n2" in copied
+    assert copied["personality_n2"]["semantics"]["source_engine_version"] == copied["synthesis"]["engine_version"]
+    assert "בעל המפה" in dialog.narrative_n2_readable or "עשוי" in dialog.narrative_n2_readable
+    dialog.copy_n2_button.click()
+    assert QApplication.clipboard().text() == dialog.narrative_n2_readable
     assert "לא אבחון" not in dialog.narrative_readable or "אבחון" in dialog.narrative_readable
     dialog.copy_narrative_button.click()
     assert QApplication.clipboard().text() == dialog.narrative_readable
@@ -107,6 +116,9 @@ def main():
     assert QApplication.clipboard().text() == dialog.synthesis_readable
     dialog.resize(1024, 790)
     dialog.show()
+    snapshot(dialog, "n2-known.png")
+    save_n1_example("n2-known.txt", dialog.narrative_n2_readable)
+    dialog.tabs.setCurrentIndex(1)
     snapshot(dialog, "narrative-known.png")
     save_n1_example("n1-known.txt", dialog.narrative_readable)
     # Actual QTextEdit scroll/selection/copy stress under a repeated real
@@ -185,11 +197,16 @@ def main():
     assert unknown_dialog.synthesis_report["time_mode"] == "unknown"
     assert "synthesis" in unknown_dialog.structured_payload
     assert "narrative" in unknown_dialog.structured_payload
+    assert "personality_n2" in unknown_dialog.structured_payload
+    assert "שעת הלידה אינה ידועה" in unknown_dialog.narrative_n2_readable
     assert "שעת הלידה אינה ידועה" in unknown_dialog.narrative_readable
     assert all(node["provisional_time"]
                for node in unknown_dialog.synthesis_report["nodes"])
     unknown_dialog.resize(1024, 790)
     unknown_dialog.show()
+    snapshot(unknown_dialog, "n2-unknown.png")
+    save_n1_example("n2-unknown.txt", unknown_dialog.narrative_n2_readable)
+    unknown_dialog.tabs.setCurrentIndex(1)
     snapshot(unknown_dialog, "narrative-unknown.png")
     save_n1_example("n1-unknown.txt", unknown_dialog.narrative_readable)
     unknown_dialog.close()
@@ -230,6 +247,9 @@ def main():
     assert "שעת הלידה משוערת" in estimated_dialog.narrative_readable
     estimated_dialog.resize(1024, 790)
     estimated_dialog.show()
+    snapshot(estimated_dialog, "n2-estimated.png")
+    save_n1_example("n2-estimated.txt", estimated_dialog.narrative_n2_readable)
+    estimated_dialog.tabs.setCurrentIndex(1)
     snapshot(estimated_dialog, "narrative-estimated.png")
     save_n1_example("n1-estimated.txt", estimated_dialog.narrative_readable)
     estimated_dialog.close()
@@ -282,6 +302,11 @@ def main():
     assert any(p["kind"] == "tension" and p["evidence_by_polarity"]
                for section in conflict_n1["sections"] for p in section["paragraphs"])
     save_n1_example("n1-contradictory-fixture.txt", format_narrative(conflict_n1))
+    conflict_semantic_n2 = build_personality_model(conflict_r1, conflict_input)
+    conflict_n2 = compose_narrative_n2(conflict_semantic_n2)
+    assert any(p["kind"] == "unresolved-tension" and p["evidence_by_polarity"]
+               for section in conflict_n2["sections"] for p in section["paragraphs"])
+    save_n1_example("n2-contradictory-fixture.txt", format_narrative_n2(conflict_n2))
 
     report = {
         "hebrew": {

@@ -15,6 +15,8 @@ from .interpretation import (
 )
 from .synthesis import format_synthesis, synthesize
 from .narrative import compose_narrative, format_narrative
+from .semantics_n2 import build_personality_model
+from .narrative_n2 import compose_narrative_n2, format_narrative_n2
 
 
 class RuleInterpretationDialog(QDialog):
@@ -27,14 +29,19 @@ class RuleInterpretationDialog(QDialog):
         self.report = interpret_chart(chart, pack)
         self.synthesis_report = synthesize(chart, self.report)
         self.narrative_report = compose_narrative(self.synthesis_report)
+        self.semantic_n2_report = build_personality_model(self.synthesis_report, self.report)
+        self.narrative_n2_report = compose_narrative_n2(self.semantic_n2_report)
         self.structured_payload = {
             **model_input(chart, self.report),
             "synthesis": self.synthesis_report,
             "narrative": self.narrative_report,
+            "personality_n2": {"semantics": self.semantic_n2_report,
+                               "narrative": self.narrative_n2_report},
         }
         self.readable = format_interpretation(self.report)
         self.synthesis_readable = format_synthesis(self.synthesis_report)
         self.narrative_readable = format_narrative(self.narrative_report)
+        self.narrative_n2_readable = format_narrative_n2(self.narrative_n2_report)
 
         layout = QVBoxLayout(self)
         header = QLabel(
@@ -53,6 +60,12 @@ class RuleInterpretationDialog(QDialog):
         layout.addWidget(version)
         self.tabs = QTabWidget()
         self.tabs.setObjectName("interpretationTabs")
+        self.n2_view = QTextEdit()
+        self.n2_view.setObjectName("interpretationPersonalN2")
+        self.n2_view.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.n2_view.setReadOnly(True)
+        self.n2_view.setPlainText(self.narrative_n2_readable)
+        self.tabs.addTab(self.n2_view, "פרשנות אישית (N2)")
         self.narrative_view = QTextEdit()
         self.narrative_view.setObjectName("interpretationNarrative")
         self.narrative_view.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -109,6 +122,10 @@ class RuleInterpretationDialog(QDialog):
         self.tabs.addTab(self.payload, "מבנה נתונים למודל")
         layout.addWidget(self.tabs, 1)
         buttons = QHBoxLayout()
+        self.copy_n2_button = QPushButton("העתק פרשנות אישית N2")
+        self.copy_n2_button.clicked.connect(
+            lambda: QApplication.clipboard().setText(self.narrative_n2_readable))
+        buttons.addWidget(self.copy_n2_button)
         self.copy_narrative_button = QPushButton("העתק קריאה רציפה")
         self.copy_narrative_button.clicked.connect(
             lambda: QApplication.clipboard().setText(self.narrative_readable))

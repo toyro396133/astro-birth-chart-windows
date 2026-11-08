@@ -1,0 +1,64 @@
+name: N2 Linux independent semantic tests
+on:
+  push:
+    branches: ["feat/n2-semantic-personality-20261108"]
+  pull_request:
+    paths:
+      - "src/astrochart/semantics_n2.py"
+      - "src/astrochart/narrative_n2.py"
+      - "src/astrochart/meaning_catalog_n2.json"
+      - "tests/test_n2*.py"
+      - "scripts/n2_*.py"
+      - ".github/workflows/n2-linux.yml"
+  workflow_dispatch:
+jobs:
+  n2-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install Linux Qt runtime and Python dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3
+          python -m pip install -r requirements-dev.txt
+      - name: Download and verify pinned JPL DE440s
+        run: python scripts/download_ephemeris.py
+      - name: Full Python and Qt regression suite on Linux
+        run: python -m pytest -q
+      - name: N1/N2 full paired reports
+        run: python scripts/n2_comparison.py
+      - name: Full N2 before-versus-after paragraphs and source traces
+        run: python scripts/n2_before_after.py
+      - name: NEW-05 R3 full production-chain audit evidence
+        run: python scripts/n2_new05_evidence.py
+      - name: Independent JPL chart holdout
+        run: python scripts/n2_holdout.py
+      - name: Untouched JPL final holdout (new frozen seed)
+        run: python scripts/n2_holdout.py --sealed
+      - name: New N2 acceptance seed (code frozen before inspection)
+        run: python scripts/n2_acceptance.py
+      - name: Independent final acceptance on a second previously unused seed
+        run: python scripts/n2_acceptance.py --final
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AstroBirthChart-N2-Linux-Holdout
+          path: |
+            qa-output/n2-comparison/
+            qa-output/n2-holdout/
+            qa-output/n2-final-holdout/
+            qa-output/n2-acceptance/
+            qa-output/n2-final-acceptance/
+            qa-output/n2-before-after/
+            qa-output/n2-new05-r3/
+          if-no-files-found: error
