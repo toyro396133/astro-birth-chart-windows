@@ -307,25 +307,31 @@ def _joint(case: dict, members: tuple[str, ...]) -> tuple[list[dict] | None, boo
 
 
 def _proof(case: dict, witnesses: list[dict]) -> dict:
+    sources = sorted({x for w in witnesses for x in w["source_refs"]})
+    statuses = sorted({x for w in witnesses for x in w["review_statuses"]})
+    missing = [w["axis"] for w in witnesses
+               if not w["source_refs"] or not w["review_statuses"]]
     return {
         "case_id": case["id"], "r1_digest": case["digest"],
+        "canonical_evidence_digest": case["evidence_digest"],
         "time_mode": case["time_mode"],
+        "source_id": case["source_id"],
         "node_ids": [fact["node_id"] for fact in witnesses],
         "selected_witnesses": witnesses,
+        "evidence_signature": _support_signature(witnesses),
+        "data_template_signature": _support_template(witnesses),
         "rule_ids": sorted({x for w in witnesses for x in w["rule_ids"]}),
-        "source_refs": sorted({x for w in witnesses for x in w["source_refs"]}),
-        "source_review_statuses": sorted({
-            x for w in witnesses for x in w["review_statuses"]}),
+        "source_refs": sources, "source_review_statuses": statuses,
+        "missing_provenance_axes": missing,
+        "has_missing_or_unverified_source": (
+            bool(missing) or "unverified" in statuses or "conflicting" in statuses),
         "evidence_roots": sorted({x for w in witnesses for x in w["roots"]}),
     }
 
 
 def _measure(members: tuple[str, ...], cases: list[dict],
              proof_cache: dict[tuple[str, tuple[str, ...]], tuple]) -> dict:
-    support = []
-    dependent = []
-    partial = []
-    incomplete = []
+    support, dependent, partial, incomplete, absent = [], [], [], [], []
     for case in cases:
         present = [axis for axis in members if axis in case["axes"]]
         if len(present) == len(members):
@@ -345,61 +351,116 @@ def _measure(members: tuple[str, ...], cases: list[dict],
                 "missing_axes": [x for x in members if x not in case["axes"]],
                 "meaning": "missing-R1-coactivation-not-a-negative-personality-label",
             })
+        else:
+            absent.append(case["id"])
     return {
         "supports": support, "dependent_case_ids": dependent,
-        "counterexamples": partial, "incomplete_proof_case_ids": incomplete,
+        "counterexamples": partial, "absent_case_ids": absent,
+        "incomplete_proof_case_ids": incomplete,
     }
 
 
-def _metrics(members: tuple[str, ...], cases: list[dict], measurement: dict) -> dict:
+def _metrics(members: tuple[str, ...], cases: list[dict], measurement: dict,
+             *, excluded_count: int = 0) -> dict:
     n = len(cases)
     counts = [sum(axis in c["axes"] for c in cases) for axis in members]
     expected = math.prod(x / n for x in counts) if n else 0
-    support = len(measurement["supports"])
+    proofs = measurement["supports"]
+    support = len(proofs)
     partial = len(measurement["counterexamples"])
+    denominator = support + partial
+    signatures = {p["evidence_signature"] for p in proofs}
+    templates = {p["data_template_signature"] for p in proofs}
+    declared_sources = {p["source_id"] for p in proofs if p["source_id"]}
     return {
         "independent_support_count": support,
+        "supporting_report_count": support,
+        "distinct_evidence_signature_count": len(signatures),
+        "distinct_data_template_count": len(templates),
+        "declared_data_source_count": len(declared_sources),
+        "source_independence_verified": False,
+        "source_id_missing_report_count": sum(not p["source_id"] for p in proofs),
+        "missing_provenance_report_count": sum(
+            bool(p["missing_provenance_axes"]) for p in proofs),
+        "unverified_provenance_report_count": sum(
+            p["has_missing_or_unverified_source"] for p in proofs),
         "partial_counterexample_count": partial,
+        "absent_case_count": len(measurement["absent_case_ids"]),
         "dependent_cooccurrence_count": len(measurement["dependent_case_ids"]),
         "incomplete_proof_count": len(measurement["incomplete_proof_case_ids"]),
+        "excluded_case_count": excluded_count,
         "eligible_case_count": n,
         "member_observation_counts": dict(zip(members, counts)),
         "lift_over_independent_presence": round(
             support / n / expected, 6) if expected else 0.0,
-        "coactivation_precision": round(
-            support / (support + partial), 6) if support + partial else None,
+        "symbolic_coactivation_ratio": (
+            round(support / denominator, 6) if denominator else None),
+        "symbolic_ratio_numerator": support,
+        "symbolic_ratio_denominator": denominator,
+        "symbolic_ratio_wilson_95_case_based": _wilson(support, denominator),
+        "metric_scope": (
+            "symbolic-case-frequencies-only; repeated patterns violate "
+            "independent-case statistical assumptions"),
     }
 
 
-def _validation(members: tuple[str, ...], cases: list[dict],
-                cache: dict) -> dict:
-    measurement = _measure(members, cases, cache)
-    metrics = _metrics(members, cases, measurement)
-    count = metrics["independent_support_count"]
-    counter = metrics["partial_counterexample_count"]
+def _validation(members: tuple[str, ...], cases: list[dict], cache: dict,
+                training_signatures: set[str], min_ratio: float,
+                excluded_count: int) -> dict:
+    raw = _measure(members, cases, cache)
+    # Identity of positive *selected witnesses* matters; mere different
+    # full-chart documents/metadata do not make new support patterns.
+    reused = [p for p in raw["supports"]
+              if p["evidence_signature"] in training_signatures]
+    novel = [p for p in raw["supports"]
+             if p["evidence_signature"] not in training_signatures]
+    valid = dict(raw, supports=novel)
+    metrics = _metrics(members, cases, valid, excluded_count=excluded_count)
+    # Reused support is NOT an absent observation, a counterexample, or
+    # positive evidence of generalization. It has its own denominator.
+    metrics["reused_training_signature_count"] = len(reused)
+    ratio = metrics["symbolic_coactivation_ratio"]
+    unique = metrics["distinct_evidence_signature_count"]
+    if not cases or not novel:
+        status = "generalization-unproven-no-novel-positive-signatures"
+    elif (unique >= 2 and ratio is not None and ratio >= min_ratio
+          and not raw["incomplete_proof_case_ids"]):
+        status = "passes-prespecified-symbolic-holdout-gate"
+    else:
+        status = "fails-prespecified-symbolic-holdout-gate"
     return {
-        "status": ("not-observed" if not (count or counter)
-                   else "counterexamples-observed" if counter
-                   else "no-counterexamples-observed"),
-        "metrics": metrics,
-        "support_cases": measurement["supports"],
-        "counterexamples": measurement["counterexamples"],
-        "dependent_case_ids": measurement["dependent_case_ids"],
-        "incomplete_proof_case_ids": measurement["incomplete_proof_case_ids"],
+        "status": status, "metrics": metrics,
+        "prespecified_gate": {
+            "min_novel_holdout_signatures": 2,
+            "min_symbolic_coactivation_ratio": min_ratio,
+            "require_complete_proof": True,
+        },
+        "support_cases": novel, "reused_signature_cases": reused,
+        "counterexamples": raw["counterexamples"],
+        "absent_case_ids": raw["absent_case_ids"],
+        "dependent_case_ids": raw["dependent_case_ids"],
+        "incomplete_proof_case_ids": raw["incomplete_proof_case_ids"],
+        "generalization_demonstrated": status.startswith("passes-"),
     }
 
 
 def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
              min_support: int = 3, min_lift: float = 1.25,
-             min_precision: float = 0.65) -> dict:
-    """Discover unsupported-by-R1 recurrent relationships with held-out checks.
+             min_precision: float = 0.65, min_unique_signatures: int = 2) -> dict:
+    """Induce symbolic coactivations, explicitly not semantic or causal relations.
 
-    Each case is {"id": non-identifying identifier, "synthesis": R1 dict}.
-    Training and validation cases must be disjoint. Does not change R1 results.
-    Reported lift/precision describe *symbolic recurrence*, never person truth.
+    Supply *pre-split* cohorts, with fixed thresholds established prior to
+    inspecting holdout. Case IDs and optional independent_record_id/source_id
+    are metadata, not independently verified identities.
     """
     if (not isinstance(min_support, int) or isinstance(min_support, bool)
-            or min_support < 2 or not 1 <= min_lift <= 100
+            or min_support < 2
+            or not isinstance(min_unique_signatures, int)
+            or isinstance(min_unique_signatures, bool)
+            or min_unique_signatures < 2
+            or not all(isinstance(v, (int, float)) and math.isfinite(v)
+                       for v in (min_lift, min_precision))
+            or not 1 <= min_lift <= 100
             or not 0 <= min_precision <= 1):
         raise ValueError("invalid R2 thresholds")
     train, excluded, duplicates, profile = _prepare(cases)
@@ -413,23 +474,26 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
         c["case_id"] for c in val_excluded + val_duplicates}
     if training_ids & validation_ids:
         raise ValueError("training and validation case id leakage")
-    train_digests = {c["digest"] for c in train} | {
-        x["r1_digest"] for x in excluded + duplicates}
-    val_digests = {c["digest"] for c in val} | {
-        x["r1_digest"] for x in val_excluded + val_duplicates}
-    if train_digests & val_digests:
+    training_fingerprints = {c["evidence_digest"] for c in train} | {
+        x["evidence_digest"] for x in excluded + duplicates}
+    validation_fingerprints = {c["evidence_digest"] for c in val} | {
+        x["evidence_digest"] for x in val_excluded + val_duplicates}
+    if training_fingerprints & validation_fingerprints:
+        raise ValueError("identical canonical R1 evidence leaked into validation")
+    if {c["digest"] for c in train} & {c["digest"] for c in val}:
         raise ValueError("identical R1 report leaked into validation")
 
-    # Holdout data must never affect either candidate generation or novelty.
-    known = {pattern for case in train for pattern in case["known"]}
-    axes = sorted({axis for case in train for axis in case["axes"]})
+    ontology = _ontology()
+    observed = {path for c in train for path in c["known"]}
+    known_paths = ontology["member_sets"]
+    axes = sorted({axis for c in train for axis in c["axes"]})
     cache: dict[tuple[str, tuple[str, ...]], tuple] = {}
     vcache: dict[tuple[str, tuple[str, ...]], tuple] = {}
     accepted: dict[tuple[str, ...], dict] = {}
     frequent: set[tuple[str, ...]] = set()
+    predefined, recurrent_only, affected = [], [], []
     pending = [tuple(p) for p in combinations(axes, 2)]
-    evaluated = 0
-    truncated = False
+    evaluated, truncated = 0, False
     while pending:
         survivors = set()
         for members in sorted(pending):
@@ -437,42 +501,85 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
                 truncated = True
                 break
             evaluated += 1
-            measurement = _measure(members, train, cache)
-            metrics = _metrics(members, train, measurement)
+            measure = _measure(members, train, cache)
+            metrics = _metrics(members, train, measure,
+                               excluded_count=len(excluded))
+            if measure["incomplete_proof_case_ids"]:
+                affected.append({
+                    "members": list(members),
+                    "case_ids": measure["incomplete_proof_case_ids"],
+                    "reason": "R2-witness-search-capped",
+                })
             if metrics["independent_support_count"] < min_support:
                 continue
+            # Frequent-set extension is based on observed support, even when
+            # the combination is authored or fails a conservative R2 gate.
             survivors.add(members)
-            if members in known:
+            classification = ("observed-r1-path" if members in observed
+                              else "authored-r1-path-not-observed"
+                              if members in known_paths
+                              else "not-derivable-as-directed-r1-path")
+            if classification != "not-derivable-as-directed-r1-path":
+                predefined.append({"members": list(members),
+                                   "classification": classification,
+                                   "metrics": metrics})
+                continue
+            if (metrics["distinct_evidence_signature_count"] < min_unique_signatures
+                    or metrics["distinct_data_template_count"] < 2):
+                recurrent_only.append({
+                    "members": list(members), "metrics": metrics,
+                    "reason": "insufficient-distinct-evidence-patterns",
+                    "classification": classification,
+                })
                 continue
             if (metrics["lift_over_independent_presence"] < min_lift
-                    or (metrics["coactivation_precision"] or 0) < min_precision
+                    or (metrics["symbolic_coactivation_ratio"] or 0) < min_precision
                     or metrics["incomplete_proof_count"]):
                 continue
-            candidate_id = "r2-" + _digest(
-                [profile, list(members), VERSION])[:16]
+            candidate_id = "r2-" + _digest([
+                profile, ontology["identity"], list(members), VERSION])[:16]
+            training_signatures = {
+                p["evidence_signature"] for p in measure["supports"]}
+            source_statuses = sorted({
+                st for p in measure["supports"]
+                for st in p["source_review_statuses"]})
             accepted[members] = {
                 "id": candidate_id, "status": "hypothesis",
                 "relation_type": (
                     "unreviewed-coactivation" if len(members) == 2
                     else "unreviewed-recurrent-conjunction"),
+                "semantic_relation_discovered": False,
+                "conceptual_generalization_demonstrated": False,
                 "members": list(members), "level": len(members) - 2,
                 "parent_hypothesis_ids": [],
-                "novelty": "not-present-as-contiguous-R1-composition",
-                "novelty_scope": "compared-to-observed-R1-results-only",
+                "novelty": classification,
+                "novelty_scope": "all-directed-R1-ontology-paths",
                 "metrics": metrics,
-                "support_cases": measurement["supports"],
-                "counterexamples": measurement["counterexamples"],
-                "dependent_case_ids": measurement["dependent_case_ids"],
+                "support_cases": measure["supports"],
+                "counterexamples": measure["counterexamples"],
+                "absent_case_ids": measure["absent_case_ids"],
+                "dependent_case_ids": measure["dependent_case_ids"],
                 "source_refs": sorted({
-                    src for p in measurement["supports"] for src in p["source_refs"]}),
+                    src for p in measure["supports"] for src in p["source_refs"]}),
                 "rule_ids": sorted({
-                    rid for p in measurement["supports"] for rid in p["rule_ids"]}),
-                "source_review_statuses": sorted({
-                    st for p in measurement["supports"]
-                    for st in p["source_review_statuses"]}),
+                    rid for p in measure["supports"] for rid in p["rule_ids"]}),
+                "source_review_statuses": source_statuses,
+                "provenance_quality": {
+                    "missing_sources_or_statuses": (
+                        metrics["missing_provenance_report_count"]),
+                    "unverified_or_conflicting_reports": (
+                        metrics["unverified_provenance_report_count"]),
+                    "all_supporting_reports_unverified_or_missing": (
+                        metrics["unverified_provenance_report_count"]
+                        == metrics["independent_support_count"]),
+                    "any_source_approved_automatically": False,
+                },
                 "validation": (
-                    _validation(members, val, vcache)
-                    if validation_cases is not None else {"status": "not-run"}),
+                    _validation(members, val, vcache, training_signatures,
+                                min_precision, len(val_excluded))
+                    if validation_cases is not None else {
+                        "status": "not-run",
+                        "generalization_demonstrated": False}),
                 "approved_for_r1": False,
             }
         if truncated or not survivors:
@@ -485,52 +592,96 @@ def discover(cases: list[dict], validation_cases: list[dict] | None = None, *,
                 if axis in base:
                     continue
                 candidate = tuple(sorted((*base, axis)))
-                if (len(candidate) == size + 1 and
-                        all(tuple(s) in frequent for s in combinations(candidate, size))):
+                if (len(candidate) == size + 1
+                        and all(tuple(s) in frequent
+                                for s in combinations(candidate, size))):
                     next_set.add(candidate)
         pending = sorted(next_set)
 
     for members, item in accepted.items():
-        parents = [accepted[sub]["id"] for sub in combinations(members, len(members) - 1)
-                   if sub in accepted]
-        item["parent_hypothesis_ids"] = sorted(parents)
-
+        item["parent_hypothesis_ids"] = sorted(
+            accepted[sub]["id"]
+            for sub in combinations(members, len(members) - 1)
+            if sub in accepted)
     hypotheses = sorted(accepted.values(), key=lambda h: (
         -len(h["members"]), -h["metrics"]["independent_support_count"], h["id"]))
+    candidate_complete = not truncated
+    witness_complete = not affected
+    r1_input_complete = not any(
+        any("R1" in str(b) or "cap" in str(b) or "proof" in str(b)
+            for b in e["blocked_axes"]) for e in excluded + val_excluded)
     warnings = [
-        "R2 hypotheses are symbolic corpus associations, not causal or scientific personality claims.",
-        "Absent R1 axis means no matching symbolic witness, not absence of a trait.",
-        "A new relation is novel only relative to the observed R1 output paths.",
-        "Hypotheses never modify R1, the 96 source rules, or N1.",
+        "Level 1 only: recurring symbolic feature sets, not learned semantic relations.",
+        "Novelty is classified against ALL directed R1 paths and domain restrictions.",
+        "Case counts, evidence signatures and rule templates must not be confused.",
+        "Source status is preserved; no source or hypothesis is promoted automatically.",
+        "The case-based Wilson interval assumes independence and is not validated here.",
+        "The held-out gate must use genuinely unseen evidence signatures.",
+        "Hypotheses never alter R1, its source rules, N1 or the user-facing UI.",
     ]
     if excluded or val_excluded:
-        warnings.append("Time uncertainty, conflicts and incomplete proof searches are excluded.")
+        warnings.append("Time uncertainty, tensions or incomplete R1 search excluded cases.")
     if duplicates or val_duplicates:
-        warnings.append("Identical R1 payloads are deduplicated within each cohort.")
-    if truncated:
-        warnings.append("Candidate budget exhausted: hypothesis search was not exhaustive.")
-
+        warnings.append("Canonical evidence duplicates without record identity were excluded.")
+    if any(h["provenance_quality"]["all_supporting_reports_unverified_or_missing"]
+           for h in hypotheses):
+        warnings.append("Some hypotheses rely entirely on unverified/missing source evidence.")
+    if truncated or not witness_complete or not r1_input_complete:
+        warnings.append("Search was incomplete: missing evidence is NOT a negative result.")
     return {
         "schema_version": 1, "engine_version": VERSION,
         "profile_id": profile[0] if profile else None,
         "source_rule_pack": profile[1] if profile else None,
-        "status": "experimental-hypotheses-only",
+        "ontology_identity": ontology["identity"],
+        "ontology_directed_path_count": len(ontology["directed_paths"]),
+        "status": "experimental-symbolic-patterns-only",
         "r1_unchanged": True, "learning_enabled_in_product": False,
         "hypotheses": hypotheses,
-        "excluded_cases": excluded,
-        "duplicate_cases": duplicates,
+        "predefined_r1_patterns": sorted(
+            predefined, key=lambda x: (x["members"], x["classification"])),
+        "recurring_but_not_diverse_patterns": sorted(
+            recurrent_only, key=lambda x: x["members"]),
+        "excluded_cases": excluded, "duplicate_cases": duplicates,
         "validation_excluded_cases": val_excluded,
         "validation_duplicate_cases": val_duplicates,
+        "search": {
+            "candidate_enumeration_complete": candidate_complete,
+            "witness_proof_search_complete": witness_complete,
+            "r1_input_search_complete": r1_input_complete,
+            "resource_affected_candidates": affected,
+            "r1_resource_excluded_case_ids": [
+                e["case_id"] for e in excluded + val_excluded
+                if any("R1" in b or "cap" in b or "proof" in b
+                       for b in e["blocked_axes"])],
+        },
+        "frozen_thresholds": {
+            "min_support": min_support, "min_lift": min_lift,
+            "min_symbolic_ratio": min_precision,
+            "min_distinct_evidence_signatures": min_unique_signatures,
+            "min_distinct_data_templates": 2,
+        },
         "summary": {
             "train_input_cases": len(cases), "train_eligible_cases": len(train),
             "validation_input_cases": len(validation_cases or []),
             "validation_eligible_cases": len(val),
-            "observed_r1_compositions": len(known),
+            "train_excluded_count": len(excluded),
+            "train_canonical_duplicate_count": len(duplicates),
+            "observed_r1_compositions": len(observed),
+            "possible_r1_directed_compositions": len(ontology["directed_paths"]),
+            "predefined_r1_pattern_count": len(predefined),
+            "recurrent_insufficient_diversity_count": len(recurrent_only),
             "candidate_patterns_tested": evaluated,
             "novel_hypotheses": len(hypotheses),
             "novel_pair_relations": sum(len(h["members"]) == 2 for h in hypotheses),
             "novel_higher_structures": sum(len(h["members"]) > 2 for h in hypotheses),
-            "search_complete": not truncated,
+            "candidate_enumeration_complete": candidate_complete,
+            "witness_proof_search_complete": witness_complete,
+            "r1_input_search_complete": r1_input_complete,
+            "search_complete": (candidate_complete and witness_complete
+                                and r1_input_complete),
+            "level_1_symbolic_patterns_observed": bool(hypotheses or recurrent_only),
+            "level_2_semantic_relations_demonstrated": False,
+            "level_3_conceptual_generalization_demonstrated": False,
         },
         "warnings": warnings,
     }
