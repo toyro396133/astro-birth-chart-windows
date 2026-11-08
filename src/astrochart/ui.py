@@ -1,8 +1,11 @@
 from datetime import date, time
-from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal
+import json
+from pathlib import Path
+from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal, QSettings
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
-    QHeaderView, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QCompleter, QDateEdit, QDialog, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QHeaderView, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
     QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
 )
@@ -11,6 +14,9 @@ from .engine import Calculator
 from .hebrew_dates import (months_of_year, days_of_month, from_gregorian,
                            resolve_hebrew_date, sun_altitude, validate_phase_sun)
 from .locations import CITIES
+from .location_catalog import (
+    catalog_labels, resolve_location, load_favorites, save_favorite, MANUAL_LABEL,
+)
 from . import __version__
 from .updater import (UpdateError, latest_release, is_newer, download_release,
                       extract_release, install_directory, launch_install, launch_setup_install,
@@ -19,6 +25,14 @@ from .updater import (UpdateError, latest_release, is_newer, download_release,
                       auto_install_enabled, save_auto_install)
 from .wheel import Wheel
 from .theme import apply_theme
+from .report import format_chart_report
+from .chart_storage import make_record, read_record, save_record, export_results
+from .chart_export import export_wheel_png, export_chart_pdf
+from .aspect_explorer import AspectExplorerDialog
+from .display_preferences import (
+    DisplayPreferences, read_preferences, save_preferences,
+    FONT_PERCENTS, ROW_HEIGHTS, SYMBOL_SIZES,
+)
 
 
 
@@ -82,6 +96,13 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(980, 700)
         self.calc = None
         self._interpretation_chart = None
+        self._active_chart = None
+        self._aspect_dialog = None
+        self._active_record = None
+        self._current_file = None
+        self._display_settings = QSettings("AstroBirthChart", "AstroBirthChart")
+        self._favorites = load_favorites()
+        self._session_locations = {}
         self._updating = False
         self._update_thread = None
         self._update_task = None
@@ -90,6 +111,7 @@ class MainWindow(QMainWindow):
         self._prepared_update = None
         self._install_after_download = False
         self._build()
+        self._apply_display_preferences(read_preferences(self._display_settings))
         QTimer.singleShot(1000, self._automatic_update_check)
 
     def _build(self):
@@ -127,6 +149,25 @@ class MainWindow(QMainWindow):
         brand.addWidget(title)
         brand.addWidget(subtitle)
         heading.addLayout(brand, 1)
+        self.file_button = QPushButton("קובץ")
+        self.file_button.setObjectName("fileMenuButton")
+        self.file_menu = QMenu(self.file_button)
+        for text, fn in (
+            ("פתח מפה...", self._open_chart),
+            ("שמור מפה", lambda: self._save_chart(False)),
+            ("שמור בשם...", lambda: self._save_chart(True)),
+            ("ייצא כ־JSON...", lambda: self._export_chart("json")),
+            ("ייצא כטקסט...", lambda: self._export_chart("txt")),
+            ("ייצא גלגל PNG...", lambda: self._export_chart("png")),
+            ("ייצא דוח PDF...", lambda: self._export_chart("pdf")),
+        ):
+            action = self.file_menu.addAction(text)
+            action.triggered.connect(fn)
+        self.file_menu.addSeparator()
+        preferences_action = self.file_menu.addAction("הגדרות תצוגה...")
+        preferences_action.triggered.connect(self._open_display_preferences)
+        self.file_button.setMenu(self.file_menu)
+        heading.addWidget(self.file_button)
         version = QLabel("v" + __version__)
         version.setObjectName("versionPill")
         heading.addWidget(version)
@@ -246,8 +287,14 @@ class MainWindow(QMainWindow):
         form.addLayout(options, 1, 2, 1, 2)
 
         self.city = QComboBox()
-        self.city.addItems(["הזנה ידנית", *CITIES])
+        self.city.setEditable(True)
+        self.city.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.city.addItems(catalog_labels(self._favorites))
         self.city.setCurrentText("ירושלים")
+        completer = self.city.completer()
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.city.currentTextChanged.connect(self._city_changed)
         self.city.setMaximumWidth(300)
         form.addWidget(field_label("מקום לידה"), 2, 0)
@@ -311,6 +358,11 @@ class MainWindow(QMainWindow):
         self.tz.setAlignment(Qt.AlignmentFlag.AlignLeft)
         adv.addWidget(field_label("אזור זמן IANA"), 1, 0)
         adv.addWidget(self.tz, 1, 1, 1, 3)
+        self.save_favorite_button = QPushButton("שמור מיקום נוכחי כמועדף")
+        self.save_favorite_button.setToolTip(
+            "שומר את הקואורדינטות ואזור הזמן במחשב זה בלבד")
+        self.save_favorite_button.clicked.connect(self._save_favorite_location)
+        adv.addWidget(self.save_favorite_button, 2, 0, 1, 4)
         form.addWidget(self.advanced, 5, 0, 1, 4)
         self.advanced.setVisible(False)
         main.addWidget(form_box)
@@ -340,11 +392,13 @@ class MainWindow(QMainWindow):
         wheel_layout.setSpacing(4)
         wheel_heading = QHBoxLayout()
         wheel_heading.addWidget(section_title("גלגל המפה"), 1)
-        wheel_legend = QLabel("מיקומים והיבטים")
-        wheel_legend.setObjectName("helperText")
-        wheel_heading.addWidget(wheel_legend)
+        self.wheel_legend = QLabel("לחץ על סמל במפה כדי לבחור גוף")
+        self.wheel_legend.setObjectName("helperText")
+        self.wheel_legend.setMinimumWidth(120)
+        wheel_heading.addWidget(self.wheel_legend)
         wheel_layout.addLayout(wheel_heading)
         self.wheel = Wheel()
+        self.wheel.bodySelected.connect(self._on_wheel_selection)
         wheel_layout.addWidget(self.wheel, 1)
         split.addWidget(wheel_card)
 
@@ -365,28 +419,62 @@ class MainWindow(QMainWindow):
         self.interpret_button.setEnabled(False)
         self.interpret_button.clicked.connect(self._open_interpretation)
         table_heading.addWidget(self.interpret_button)
+        self.copy_button = QPushButton("העתק תקציר")
+        self.copy_button.setObjectName("copyReportButton")
+        self.copy_button.setToolTip("העתק את נתוני המפה, כולל מגבלות הדיוק")
+        self.copy_button.setAccessibleName("העתקת תקציר מפה")
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self._copy_report)
+        table_heading.addWidget(self.copy_button)
+        self.copy_row_button = QPushButton("העתק שורה")
+        self.copy_row_button.setObjectName("copyRowButton")
+        self.copy_row_button.clicked.connect(self._copy_selected_table_rows)
+        table_heading.addWidget(self.copy_row_button)
         details_layout.addLayout(table_heading)
 
         self.table = QTableWidget(0, 5)
         self.table.setObjectName("bodyTable")
         self.table.setHorizontalHeaderLabels(
             ["גוף", "מזל", "מעלה במזל", "בית", "תנועה"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setFixedHeight(27)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setDefaultSectionSize(98)
+        self.table.horizontalHeader().setFixedHeight(24)
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(22)
+        self.table.verticalHeader().setMinimumSectionSize(18)
+        self.table.verticalHeader().setDefaultSectionSize(21)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setMinimumHeight(275)
+        self.table.setMinimumHeight(262)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.currentCellChanged.connect(self._on_table_selection)
+        self.table.setSortingEnabled(True)
+        QShortcut(QKeySequence.StandardKey.Copy, self.table).activated.connect(
+            self._copy_selected_table_rows)
+        self.table.setToolTip("בחירת שורה מסמנת את הגוף בגלגל")
         details_layout.addWidget(self.table, 1)
 
         self.aspects_title = section_title("היבטים בין הגופים")
-        details_layout.addWidget(self.aspects_title)
+        aspect_heading = QHBoxLayout()
+        aspect_heading.addWidget(self.aspects_title)
+        aspect_heading.addStretch()
+        self.aspect_explorer_button = QPushButton("חקירת היבטים")
+        self.aspect_explorer_button.setObjectName("aspectExplorerButton")
+        self.aspect_explorer_button.setFixedHeight(18)
+        self.aspect_explorer_button.setStyleSheet(
+            "QPushButton { border: none; background: transparent; "
+            "color: #2a609e; min-height: 0; padding: 0 5px; font-size: 10px; }")
+        self.aspect_explorer_button.setEnabled(False)
+        self.aspect_explorer_button.clicked.connect(self._open_aspect_explorer)
+        aspect_heading.addWidget(self.aspect_explorer_button)
+        details_layout.addLayout(aspect_heading)
         self.aspects = QTextEdit()
         self.aspects.setObjectName("aspectText")
         self.aspects.setReadOnly(True)
-        self.aspects.setMinimumHeight(47)
-        self.aspects.setMaximumHeight(66)
+        self.aspects.setMinimumHeight(34)
+        self.aspects.setMaximumHeight(54)
         details_layout.addWidget(self.aspects)
 
         details_layout.addWidget(section_title("הערות ודיוק החישוב"))
@@ -394,8 +482,8 @@ class MainWindow(QMainWindow):
         self.warning_scroll.setObjectName("warningScroll")
         self.warning_scroll.setWidgetResizable(True)
         self.warning_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.warning_scroll.setMinimumHeight(39)
-        self.warning_scroll.setMaximumHeight(61)
+        self.warning_scroll.setMinimumHeight(29)
+        self.warning_scroll.setMaximumHeight(52)
         warning_contents = QWidget()
         warning_contents.setObjectName("warningContents")
         warning_layout = QVBoxLayout(warning_contents)
@@ -413,6 +501,104 @@ class MainWindow(QMainWindow):
         main.addWidget(split, 1)
 
         apply_theme(self)
+
+        for signal in (
+            self.day.dateChanged, self.hour.timeChanged, self.unknown.toggled,
+            self.approx_hour.toggled, self.city.currentIndexChanged,
+            self.lat.valueChanged, self.lon.valueChanged, self.tz.textChanged,
+            self.date_mode.currentIndexChanged, self.hebrew_year.valueChanged,
+            self.hebrew_month.currentIndexChanged, self.hebrew_day.valueChanged,
+            self.phase.currentIndexChanged,
+        ):
+            signal.connect(self._invalidate_chart)
+
+    def _apply_display_preferences(self, preferences):
+        """Adjust layout only; the computed astronomical chart remains unchanged."""
+        apply_theme(self, preferences.font_percent)
+        self.table.verticalHeader().setDefaultSectionSize(preferences.row_height)
+        self.wheel.set_symbol_point_size(preferences.symbol_size)
+
+    def _open_display_preferences(self):
+        current = read_preferences(self._display_settings)
+        dialog = QDialog(self)
+        dialog.setWindowTitle("הגדרות תצוגה")
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        dialog.setMinimumWidth(320)
+        layout = QVBoxLayout(dialog)
+        description = QLabel("הגדרות אלו נשמרות במחשב זה ואינן משנות את החישוב.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        def combo(caption, options, selected):
+            layout.addWidget(QLabel(caption))
+            widget = QComboBox()
+            for text, value in options:
+                widget.addItem(text, value)
+            widget.setCurrentIndex(widget.findData(selected))
+            layout.addWidget(widget)
+            return widget
+
+        font = combo("גודל הגופנים", [
+            ("קטן (90%)", 90), ("רגיל (100%)", 100),
+            ("גדול (110%)", 110), ("גדול מאוד (120%)", 120),
+        ], current.font_percent)
+        rows = combo("צפיפות טבלת התוצאות", [
+            ("צפופה", 21), ("רגילה", 26), ("מרווחת", 30),
+        ], current.row_height)
+        symbols = combo("גודל סמלי הגלגל", [
+            ("קטנים", 14), ("רגילים", 16), ("גדולים", 18),
+        ], current.symbol_size)
+        buttons = QHBoxLayout()
+        save = QPushButton("שמור")
+        cancel = QPushButton("ביטול")
+        save.clicked.connect(dialog.accept)
+        cancel.clicked.connect(dialog.reject)
+        buttons.addStretch()
+        buttons.addWidget(save)
+        buttons.addWidget(cancel)
+        layout.addLayout(buttons)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        updated = DisplayPreferences(
+            font.currentData(), rows.currentData(), symbols.currentData())
+        try:
+            save_preferences(self._display_settings, updated)
+            self._apply_display_preferences(updated)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "הגדרות תצוגה", str(exc))
+
+    def _invalidate_chart(self, *args):
+        """A form change invalidates all chart data, interpretation and exports."""
+        if self._active_chart is None and self._interpretation_chart is None:
+            return
+        self._active_chart = None
+        self._interpretation_chart = None
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+            self._aspect_dialog = None
+        self._active_record = None
+        self.aspect_explorer_button.setEnabled(False)
+        self.copy_button.setEnabled(False)
+        self.interpret_button.setEnabled(False)
+        self.wheel.set_chart(None)
+        self.table.setRowCount(0)
+        self.aspects.clear()
+        self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
+        self.chart_caption.setText("הנתונים השתנו — נדרש חישוב מחדש")
+        self.warnings.setText("התוצאה הקודמת הוסרה כי אינה מתאימה לנתוני הקלט")
+
+    def _copy_selected_table_rows(self):
+        selection = self.table.selectionModel()
+        rows = sorted({index.row() for index in selection.selectedRows()})
+        if not rows and self.table.currentRow() >= 0:
+            rows = [self.table.currentRow()]
+        if not rows and self.table.rowCount() == 1:
+            rows = [0]
+        if not rows:
+            return
+        QApplication.clipboard().setText("\n".join("\t".join(
+            self.table.item(row, column).text() if self.table.item(row, column) else ""
+            for column in range(self.table.columnCount())) for row in rows))
 
     def _toggle_advanced(self, checked=None):
         expanded = (not self.advanced.isHidden()) if checked is None else bool(checked)
@@ -651,16 +837,47 @@ class MainWindow(QMainWindow):
             self.conversion_label.setText(str(exc))
 
     def _city_changed(self, city):
-        if city in CITIES:
-            lat, lon, tz = CITIES[city]
+        location = resolve_location(
+            city, {**self._favorites, **self._session_locations})
+        if location is not None:
+            lat, lon, tz = location
             self.lat.setValue(lat)
             self.lon.setValue(lon)
             self.tz.setText(tz)
-        elif city == "הזנה ידנית":
+            self.run.setEnabled(True)
+            self.city.setToolTip("")
+        elif city == MANUAL_LABEL:
             self._toggle_advanced(True)
+            self.run.setEnabled(True)
+            self.city.setToolTip("הזן קואורדינטות ואזור זמן במיקום מתקדם")
+        else:
+            # Never silently calculate an unrecognized city using old coordinates.
+            self.run.setEnabled(False)
+            self.city.setToolTip("מיקום לא מוכר: בחר מהרשימה או בהזנה ידנית")
+
+    def _save_favorite_location(self):
+        name, accepted = QInputDialog.getText(
+            self, "שמירת מיקום", "שם המיקום המועדף:")
+        if not accepted:
+            return
+        try:
+            saved = save_favorite(
+                name, self.lat.value(), self.lon.value(), self.tz.text().strip())
+            self._favorites = saved
+            if self.city.findText(name) < 0:
+                self.city.addItem(name)
+            self.city.setCurrentText(name)
+        except Exception as exc:
+            QMessageBox.warning(self, "שמירת מיקום מועדף", str(exc))
 
     def _calculate(self):
+        self._invalidate_chart()
+        self._active_record = None
         try:
+            if self.city.currentText() != MANUAL_LABEL and resolve_location(
+                    self.city.currentText(),
+                    {**self._favorites, **self._session_locations}) is None:
+                raise ValueError("בחר מיקום מוכר או השתמש בהזנה ידנית")
             if self.date_mode.currentData() == "hebrew" and self.unknown.isChecked():
                 raise ValueError("לתאריך עברי בחר יום/לילה ושעה בקירוב")
             resolved = self._resolved_input()
@@ -680,41 +897,245 @@ class MainWindow(QMainWindow):
             if phase_warning:
                 chart.warnings.append(phase_warning)
             if self.approx_hour.isChecked() and not self.unknown.isChecked():
+                chart.time_certainty = "estimated"
+                for body in chart.bodies:
+                    body.degree_certainty = "estimated"
+                    body.sign_certainty = "estimated"
+                for aspect in chart.aspects:
+                    aspect.certainty = "estimated"
                 chart.warnings.append(
                     "שעת הלידה משוערת. המעלות, האופק, רום השמיים, "
                     "הבתים וההיבטים חושבו לפי שעה זו בלבד; "
                     "ייתכנו שינויים כאשר השעה האמיתית שונה.")
             if self.date_mode.currentData() == "hebrew":
                 chart.warnings.insert(0, "המרת תאריך עברי: " + resolved.label)
+            record = make_record(self._capture_input(), __version__)
             self._show_chart(chart)
+            self._active_record = record
         except Exception as exc:
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
     def _show_chart(self, chart):
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+            self._aspect_dialog = None
+        self._active_chart = chart
+        self.aspect_explorer_button.setEnabled(True)
         self._interpretation_chart = chart
+        self.copy_button.setEnabled(True)
+        self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
         self.interpret_button.setEnabled(True)
         self.chart_caption.setText(
             f"{len(chart.bodies)} גופים · " +
-            ("שעה לא ידועה" if chart.approximate else "מפה מחושבת"))
+            {"known": "מפה מחושבת", "estimated": "שעה משוערת",
+             "unknown": "שעה לא ידועה"}[chart.time_certainty])
+        self.table.blockSignals(True)
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(len(chart.bodies))
         for row, b in enumerate(chart.bodies):
-            signs = " / ".join(SIGNS[i] for i in b.signs_possible) if chart.approximate else b.sign
+            signs = (" / ".join(SIGNS[i] for i in b.signs_possible)
+                     if chart.approximate and b.signs_possible else b.sign)
             motion = "לא ודאי" if b.motion_uncertain else ("נסיגה" if b.retrograde else "ישירה")
             values = [
                 b.name, signs,
-                f"{degree_in_sign(b.longitude):.3f}°" + (" (דגימה)" if chart.approximate else ""),
+                f"{degree_in_sign(b.longitude):.3f}°" + (
+                    " (דגימה)" if chart.time_certainty == "unknown"
+                    else " (משוער)" if b.degree_certainty == "estimated" else ""),
                 "—" if b.house is None else str(b.house), motion
             ]
+            tooltip = f"{b.name} · {signs} · {degree_in_sign(b.longitude):.3f}°"
             for column, value in enumerate(values):
-                self.table.setItem(row, column, QTableWidgetItem(value))
+                item = QTableWidgetItem(value)
+                item.setToolTip(tooltip)
+                self.table.setItem(row, column, item)
+        self.table.clearSelection()
+        self.table.setCurrentCell(-1, -1)
+        self.table.blockSignals(False)
+        self.table.setSortingEnabled(True)
         self.aspects.setPlainText("\n".join(
             f"{a.first} – {a.second}: {a.kind}, מרחק {a.separation:.2f}°, סטייה {a.orb:.2f}°"
+            + (" (דגימה בלבד; לא היבט לידה)" if chart.time_certainty == "unknown"
+               else " (לפי שעה משוערת)" if a.certainty == "estimated" else "")
             for a in chart.aspects))
         angles = "" if chart.ascendant is None else (
             f"\nאופק: {chart.ascendant:.3f}° | MC: {chart.mc:.3f}°"
             f" | ציר נגדי: {chart.descendant:.3f}°")
         self.warnings.setText("\n".join(chart.warnings) + angles)
         self.wheel.set_chart(chart)
+
+    def _open_aspect_explorer(self):
+        if self._active_chart is None:
+            return
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+        dialog = AspectExplorerDialog(self._active_chart, self)
+        dialog.aspectSelected.connect(self.wheel.set_selected_aspect_pair)
+        self._aspect_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+
+    def _on_table_selection(self, row, column, previous_row, previous_column):
+        chart = self._active_chart
+        if chart is None or row < 0 or row >= self.table.rowCount():
+            self.wheel.set_selected_body(None)
+            self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
+            return
+        item = self.table.item(row, 0)
+        if item is None:
+            return
+        body = next((b for b in chart.bodies if b.name == item.text()), None)
+        if body is None:
+            return
+        self.wheel.set_selected_body(body.name)
+        location = f" · בית {body.house}" if body.house is not None else ""
+        if chart.approximate:
+            location = " · שעה לא ידועה"
+        self.wheel_legend.setText(
+            f"{body.name} · {body.sign} · {degree_in_sign(body.longitude):.1f}°{location}")
+
+    def _on_wheel_selection(self, name):
+        if self._active_chart is None:
+            return
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if item is not None and item.text() == name:
+                self.table.setCurrentCell(row, 0)
+                return
+
+    def _copy_report(self):
+        if self._active_chart is None:
+            return
+        QApplication.clipboard().setText(format_chart_report(self._active_chart))
+        self.chart_caption.setText("התקציר הועתק ללוח")
+
+    def _capture_input(self):
+        resolved = self._resolved_input()
+        raw_day = self.day.date()
+        clock = resolved.local_time
+        return {
+            "date_mode": self.date_mode.currentData(),
+            "civil_date": resolved.civil_day.isoformat(),
+            "clock": None if self.unknown.isChecked() else clock.strftime("%H:%M"),
+            "gregorian_date": date(raw_day.year(), raw_day.month(), raw_day.day()).isoformat(),
+            "hebrew_year": self.hebrew_year.value(),
+            "hebrew_month": int(self.hebrew_month.currentData()),
+            "hebrew_day": self.hebrew_day.value(),
+            "phase": self.phase.currentData(),
+            "unknown_time": self.unknown.isChecked(),
+            "estimated_time": self.approx_hour.isChecked() and not self.unknown.isChecked(),
+            "city": self.city.currentText(),
+            "latitude": self.lat.value(),
+            "longitude": self.lon.value(),
+            "zone": self.tz.text().strip(),
+        }
+
+    def _require_current_chart(self):
+        if self._active_chart is None or self._active_record is None:
+            raise ValueError("יש לחשב מפה תקינה לפני שמירה או ייצוא")
+        if self._capture_input() != self._active_record["input"]:
+            raise ValueError("הקלט השתנה מאז החישוב. יש לחשב מחדש לפני שמירה או ייצוא")
+        return self._active_chart, self._active_record
+
+    def _save_chart(self, save_as=False):
+        try:
+            chart, record = self._require_current_chart()
+            selected = None if save_as else self._current_file
+            if not selected:
+                selected, _ = QFileDialog.getSaveFileName(
+                    self, "שמור מפה מקומית", "", "AstroBirthChart (*.astrochart.json);;JSON (*.json)")
+            if not selected:
+                return
+            path = Path(selected)
+            if not path.name.endswith(".json"):
+                path = path.with_name(path.name + ".astrochart.json")
+            save_record(path, record)
+            self._current_file = str(path)
+            self.chart_caption.setText("המפה נשמרה במחשב")
+        except Exception as exc:
+            QMessageBox.warning(self, "שמירת מפה", str(exc))
+
+    def _restore_input(self, values):
+        # Load only validated primitive values; all result fields are recomputed.
+        self.date_mode.setCurrentIndex(self.date_mode.findData("gregorian"))
+        self.day.setDate(QDate.fromString(values["gregorian_date"], "yyyy-MM-dd"))
+        self.hebrew_year.setValue(values["hebrew_year"])
+        month_index = self.hebrew_month.findData(values["hebrew_month"])
+        if month_index < 0:
+            raise ValueError("החודש השמור אינו קיים בשנה העברית")
+        self.hebrew_month.setCurrentIndex(month_index)
+        self.hebrew_day.setValue(values["hebrew_day"])
+        self.phase.setCurrentIndex(self.phase.findData(values["phase"]))
+        city = values["city"]
+        if city != MANUAL_LABEL and resolve_location(
+                city, {**self._favorites, **self._session_locations}) is None:
+            # Portably restore a user-defined location from the saved chart,
+            # without persisting it to the favorites catalogue.
+            self._session_locations[city] = (
+                values["latitude"], values["longitude"], values["zone"])
+            if self.city.findText(city) < 0:
+                self.city.addItem(city)
+        self.city.setCurrentText(city)
+        self.lat.setValue(values["latitude"])
+        self.lon.setValue(values["longitude"])
+        self.tz.setText(values["zone"])
+        self.date_mode.setCurrentIndex(self.date_mode.findData(values["date_mode"]))
+        if values["clock"] is not None:
+            self.hour.setTime(QTime.fromString(values["clock"], "HH:mm"))
+        self.unknown.setChecked(values["unknown_time"])
+        self.approx_hour.setChecked(values["estimated_time"])
+
+    def _open_chart(self):
+        selected, _ = QFileDialog.getOpenFileName(
+            self, "פתח מפה מקומית", "", "AstroBirthChart (*.astrochart.json *.json)")
+        if not selected:
+            return
+        try:
+            record = read_record(selected)
+            self._restore_input(record["input"])
+            restored = self._capture_input()
+            if restored != record["input"]:
+                raise ValueError("בחירות התאריך או המיקום אינן ניתנות לשחזור מדויק")
+            self._calculate()
+            if self._active_record is None:
+                raise ValueError("חישוב מחדש של הקובץ נכשל")
+            self._current_file = selected
+            if (record["app_version"] != __version__ or
+                    record["tzdata_version"] != self._active_record["tzdata_version"]):
+                QMessageBox.information(
+                    self, "חישוב מחדש",
+                    "גרסת התוכנה או נתוני אזורי הזמן השתנתה. המפה חושבה מחדש; "
+                    "לא הובטח שחזור מספרי זהה לקובץ הקודם.")
+        except Exception as exc:
+            QMessageBox.warning(self, "פתיחת מפה", str(exc))
+
+    def _export_chart(self, kind):
+        try:
+            chart, record = self._require_current_chart()
+            suffix = {"json": ".json", "txt": ".txt",
+                      "png": ".png", "pdf": ".pdf"}[kind]
+            filters = {"json": "JSON (*.json)", "txt": "Text (*.txt)",
+                       "png": "PNG (*.png)", "pdf": "PDF (*.pdf)"}
+            selected, _ = QFileDialog.getSaveFileName(
+                self, "ייצא מפה", "", filters[kind])
+            if not selected:
+                return
+            destination = Path(selected)
+            if destination.suffix.lower() != suffix:
+                destination = destination.with_name(destination.name + suffix)
+            if kind == "json":
+                payload = export_results(chart, record)
+                destination.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False)
+                    + "\n", encoding="utf-8")
+            elif kind == "txt":
+                destination.write_text(format_chart_report(chart), encoding="utf-8")
+            elif kind == "png":
+                export_wheel_png(self.wheel, destination)
+            else:
+                export_chart_pdf(self.wheel, chart, destination)
+            self.chart_caption.setText("הייצוא הושלם במחשב")
+        except Exception as exc:
+            QMessageBox.warning(self, "ייצוא מפה", str(exc))
 
     def _open_interpretation(self):
         if self._interpretation_chart is None:

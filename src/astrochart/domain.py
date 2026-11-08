@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 from itertools import combinations
+from typing import Literal
+
+Certainty = Literal["known", "estimated", "unknown"]
 
 SIGNS = ("טלה", "שור", "תאומים", "סרטן", "אריה", "בתולה",
          "מאזניים", "עקרב", "קשת", "גדי", "דלי", "דגים")
@@ -7,6 +10,8 @@ BODIES = ("שמש", "ירח", "מרקורי", "ונוס", "מאדים",
           "צדק", "שבתאי", "אורנוס", "נפטון", "פלוטו")
 ASPECTS = ((0, "צמידות", 8), (60, "שישים", 6), (90, "ריבוע", 6),
            (120, "משולש", 6), (180, "ניגוד", 8))
+ASPECT_IDS = {0: "conjunction", 60: "sextile", 90: "square",
+              120: "trine", 180: "opposition"}
 
 
 def sign_index(longitude: float) -> int:
@@ -34,6 +39,8 @@ class BodyPosition:
     signs_possible: tuple[int, ...] = ()
     motion_uncertain: bool = False
     house: int | None = None
+    degree_certainty: Certainty = "known"
+    sign_certainty: Certainty = "known"
 
     @property
     def sign(self) -> str:
@@ -47,6 +54,8 @@ class Aspect:
     kind: str
     separation: float
     orb: float
+    kind_id: str = ""
+    certainty: Certainty = "known"
 
 
 @dataclass
@@ -57,6 +66,12 @@ class Chart:
     mc: float | None
     approximate: bool
     warnings: list[str]
+    time_certainty: Certainty = "known"
+
+    def __post_init__(self):
+        # Preserve the meaning of existing callers that construct approximate charts.
+        if self.approximate:
+            self.time_certainty = "unknown"
 
     @property
     def descendant(self) -> float | None:
@@ -74,7 +89,8 @@ def calculate_aspects(bodies: list[BodyPosition]) -> list[Aspect]:
         for exact, name, max_orb in ASPECTS:
             orb = abs(distance - exact)
             if orb <= max_orb:
-                result.append(Aspect(a.name, b.name, name, distance, orb))
+                result.append(Aspect(a.name, b.name, name, distance, orb,
+                                     kind_id=ASPECT_IDS[exact]))
                 break
     return sorted(result, key=lambda a: a.orb)
 

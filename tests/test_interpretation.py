@@ -21,6 +21,7 @@ def sample_chart(*, unknown=False, estimated=False):
         None if unknown else 96.0,
         unknown,
         ["שעת הלידה משוערת לצורך הבדיקה"] if estimated else [],
+        time_certainty="estimated" if estimated else "unknown" if unknown else "known",
     )
 
 
