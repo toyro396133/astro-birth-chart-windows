@@ -1,0 +1,2394 @@
+{
+  "schema_version": 1,
+  "pack_version": "0.2.0",
+  "tradition": "western-tropical-whole-sign",
+  "editorial_status": "mixed-reviewed-and-unverified-symbolic-draft",
+  "description": "96 כללים סמליים: המקור הכללי מתועד, אך אין פירוש הדבר אימות פרטני של כל הניסוחים. לא אבחון אישיות מדעי.",
+  "rules": [
+    {
+      "id": "sun-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "טלה"
+      },
+      "axis": "יוזמה",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "במסורת המערבית מיקום זה מדגיש יוזמה, תגובה מהירה והעדפה להתחיל דברים.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-2",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "שור"
+      },
+      "axis": "יציבות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מקושר במילון הסמלי לעקביות, קצב מדוד וחיפוש אחר יציבות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-3",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "תאומים"
+      },
+      "axis": "גמישות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מתואר כדגש על סקרנות, החלפת רעיונות וגמישות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-4",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "סרטן"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה נתפס כסמל לזיכרון רגשי, רגישות לסביבה והמשכיות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-5",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "אריה"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מסמל ביטוי אישי, נראות ונטייה לפעולה יצירתית.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-6",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "בתולה"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מקושר לאבחנה בפרטים, ארגון ובחינה שיטתית.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "מאזניים"
+      },
+      "axis": "שיתופיות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה משמש סמל לחיפוש איזון, שיחה ושיתוף.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-8",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "עקרב"
+      },
+      "axis": "התבוננות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מקושר לעומק, בדיקת מניעים ותהליכים פנימיים.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-9",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "קשת"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מסמל מרחב, חקירה וחיפוש פרספקטיבה רחבה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה נקשר להתמדה, מבנה ותכנון לטווח ארוך.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-11",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "דלי"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה מתואר כדגש על עצמאות מחשבתית ופתיחות לדרכי פעולה שונות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-sign-12",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שמש",
+        "sign": "דגים"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 2.25,
+      "text": "מיקום זה משמש סמל לדמיון, הזדהות וקשב לרבדים עדינים.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "טלה"
+      },
+      "axis": "יוזמה",
+      "polarity": 1,
+      "weight": 2,
+      "text": "לפי המסורת, דחפים רגשיים מסומלים כאן כישירים ומהירי תגובה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-2",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "שור"
+      },
+      "axis": "יציבות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "במילון הסמלי, הצורך הרגשי ביציבות וברציפות מקבל כאן משקל.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-3",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "תאומים"
+      },
+      "axis": "תקשורת",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מסמל עיבוד רגשות דרך שיחה, סקרנות ותנועה מחשבתית.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-4",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "סרטן"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מקושר לספיגה רגשית, זיכרון ותגובה לשינויי אווירה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-5",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "אריה"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מציע פרשנות של ביטוי רגש דרך חום, יצירתיות ונראות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-6",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "בתולה"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום נקשר לעיבוד רגשות דרך מיון, הסבר ופרטים.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "מאזניים"
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מדגיש באופן סמלי את החיפוש אחר הדדיות ואיזון רגשי.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-8",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "עקרב"
+      },
+      "axis": "התבוננות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מתאר רגש כמורכב, עמוק ומצריך זמן להתבוננות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-9",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "קשת"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מתאר תגובה רגשית שמבקשת מרחב ותמונה רחבה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.25,
+      "text": "מיקום זה מתואר בסמליות המערבית כאופן מדוד וזהיר של עיבוד רגשות, ולא כחוסר רגישות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הסרת הקביעה שמשמעות ריסון ביטוי רגשי היא רגישות נמוכה; מיפוי לציר אחריות.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-11",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "דלי"
+      },
+      "axis": "התבוננות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מציע מרחק התבוננות לפני תגובה רגשית.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-sign-12",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ירח",
+        "sign": "דגים"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 2,
+      "text": "המיקום מקושר לדמיון, קליטה רגשית וזרימה משתנה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "mercury-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "טלה"
+      },
+      "axis": "תקשורת",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מסמל תקשורת ישירה ומהירה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-2",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "שור"
+      },
+      "axis": "התמדה",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מסמל חשיבה הדרגתית ובדיקה חוזרת.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-3",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "תאומים"
+      },
+      "axis": "תקשורת",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה נקשר לגמישות מילולית וסקרנות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-4",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "סרטן"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מסמל חשיבה הקשובה להקשר ולזיכרון.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-5",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "אריה"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מתואר כסגנון ביטוי מוחשי ויצירתי.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-6",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "בתולה"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מסמל עיבוד שיטתי ותשומת לב לפרטים.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "מאזניים"
+      },
+      "axis": "שיתופיות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה נקשר לשקילת נקודות מבט ולניסוח מאזן.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-8",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "עקרב"
+      },
+      "axis": "התבוננות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מסמל שאלות עומק ובחינת הנחות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-9",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "קשת"
+      },
+      "axis": "גמישות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מתואר כהעדפת הקשרים רחבים על פני פירוט רב.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה מסמל תכנון מסודר ודיבור שקול.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-11",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "דלי"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.4,
+      "text": "מרקורי במיקום זה נקשר לארגון רעיונות בדרכים לא שגרתיות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-sign-12",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מרקורי",
+        "sign": "דגים"
+      },
+      "axis": "גמישות",
+      "polarity": 1,
+      "weight": 1.1,
+      "text": "המיקום משמש סמל לחשיבה אסוציאטיבית וחיבור בין דימויים, ללא דירוג איכות החשיבה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "אסוציאטיביות אינה מדידה של יכולת חשיבה נמוכה; הוחלפה קוטביות שלילית בציר תיאורי מתאים.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "sun-moon-trine",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "שמש",
+          "ירח"
+        ],
+        "kind": "משולש"
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 1.35,
+      "text": "היבט זה נתפס כסמל לזרימה בין אופן הביטוי העצמי לבין תגובה רגשית.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-moon-square",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "שמש",
+          "ירח"
+        ],
+        "kind": "ריבוע"
+      },
+      "axis": "הרמוניה",
+      "polarity": -1,
+      "weight": 1.35,
+      "text": "היבט זה מתפרש כסמל למתח אפשרי בין ביטוי עצמי לבין צרכים רגשיים.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-moon-opposition",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "שמש",
+          "ירח"
+        ],
+        "kind": "ניגוד"
+      },
+      "axis": "הרמוניה",
+      "polarity": -1,
+      "weight": 1.35,
+      "text": "היבט זה מסמל צורך אפשרי לאזן בין שתי דרכי תגובה שונות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "mercury-jupiter-trine",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "מרקורי",
+          "צדק"
+        ],
+        "kind": "משולש"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 1.35,
+      "text": "היבט זה מתואר כסמל להרחבת אופקים מחשבתית וקישור רעיונות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "mercury-saturn-square",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "מרקורי",
+          "שבתאי"
+        ],
+        "kind": "ריבוע"
+      },
+      "axis": "תקשורת",
+      "polarity": -1,
+      "weight": 1.35,
+      "text": "היבט זה מתואר כסמל לבחינה עצמית קפדנית ולזהירות בניסוח.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "moon-saturn-conjunction",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "ירח",
+          "שבתאי"
+        ],
+        "kind": "צמידות"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.1,
+      "text": "הצמידות מסמלת אפשרות לעיבוד רגשי מאופק, תוך גבולות ובקרה, ולא חוסר יכולת להרגיש.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "תיקון ערבוב בין ריסון רגשי לבין העדר רגישות; פרשנות מותנית.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "venus-mars-trine",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "ונוס",
+          "מאדים"
+        ],
+        "kind": "משולש"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 1.35,
+      "text": "היבט זה מסמל שילוב בין בחירה אסתטית לבין פעולה.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "sun-house-1",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "שמש",
+        "house": 1
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.1,
+      "text": "בית ראשון משמש כאן סמל לדגש על נוכחות וביטוי אישי.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "sun-house-10",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "שמש",
+        "house": 10
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.1,
+      "text": "בית עשירי משמש כאן סמל לכיוון, מבנה ועיסוק במטרות נראות.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "moon-house-4",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "ירח",
+        "house": 4
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 1.1,
+      "text": "בית רביעי מסמל דגש אפשרי על תחושת בסיס והמשכיות רגשית.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "mercury-house-3",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "מרקורי",
+        "house": 3
+      },
+      "axis": "תקשורת",
+      "polarity": 1,
+      "weight": 1.1,
+      "text": "בית שלישי מסמל דגש אפשרי על למידה, שיחה ועיבוד מידע.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "saturn-house-1",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "שבתאי",
+        "house": 1
+      },
+      "axis": "עצמאות",
+      "polarity": -1,
+      "weight": 1.1,
+      "text": "מיקום זה מסמל זהירות או ריסון בדרך הצגת העצמי.",
+      "source": "נוסח ניסויי של כללים אסטרולוגיים מערביים; ממתין לאימות מול מקורות",
+      "review_status": "unverified",
+      "created_in": "0.1.0",
+      "updated_in": "0.2.0",
+      "revision_note": "נבדק המבנה וההקשר הסמלי בלבד; לא נמצאה אסמכתה ממוקדת לנוסח המדויק, נשאר זמני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation / general framework",
+        "scope": "framework-only; exact sentence NOT verified"
+      }
+    },
+    {
+      "id": "venus-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "טלה"
+      },
+      "axis": "יוזמה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל טלה משמש במסגרת הפרשנות הסמלית לתיאור העדפה לבחור סגנון אסתטי באופן מהיר וישיר.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-2",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "שור"
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל שור משמש במסגרת הפרשנות הסמלית לתיאור העדפה לצורות מוכרות, עקביות ונוחות חושית.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-3",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "תאומים"
+      },
+      "axis": "תקשורת",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל תאומים משמש במסגרת הפרשנות הסמלית לתיאור סקרנות לגבי טעמים מגוונים והחלפת רעיונות על יופי.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-4",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "סרטן"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל סרטן משמש במסגרת הפרשנות הסמלית לתיאור העדפה לאסתטיקה שמזכירה בית והקשר מוכר.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-5",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "אריה"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל אריה משמש במסגרת הפרשנות הסמלית לתיאור נטייה סמלית לביטוי אסתטי בולט ונדיב.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-6",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "בתולה"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל בתולה משמש במסגרת הפרשנות הסמלית לתיאור חיפוש אחר פרטים מדויקים ושימושיות בבחירה אסתטית.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "מאזניים"
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל מאזניים משמש במסגרת הפרשנות הסמלית לתיאור חיפוש איזון, סימטריה ותיאום בין טעמים.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-8",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "עקרב"
+      },
+      "axis": "התבוננות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל עקרב משמש במסגרת הפרשנות הסמלית לתיאור משיכה סמלית לעומק ולמשמעויות נסתרות ביצירה.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-9",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "קשת"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל קשת משמש במסגרת הפרשנות הסמלית לתיאור עניין בטעמים מתרבויות וממרחבים מגוונים.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור העדפת בחירות אסתטיות מרוסנות ועמידות לאורך זמן.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-11",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "דלי"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל דלי משמש במסגרת הפרשנות הסמלית לתיאור נכונות לבחון סגנונות חריגים ומקוריים.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "venus-sign-12",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "ונוס",
+        "sign": "דגים"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "ונוס במזל דגים משמש במסגרת הפרשנות הסמלית לתיאור חיבור סמלי בין דמיון, צליל וצורה אמנותית.",
+      "source": "Astrodienst Astrowiki, Venus, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "טלה"
+      },
+      "axis": "יוזמה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל טלה משמש במסגרת הפרשנות הסמלית לתיאור יוזמה ישירה ונכונות להתחיל פעולה בלי הכנה ממושכת.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-2",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "שור"
+      },
+      "axis": "התמדה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל שור משמש במסגרת הפרשנות הסמלית לתיאור התקדמות עיקשת והעדפה לפעולה בקצב יציב.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-3",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "תאומים"
+      },
+      "axis": "גמישות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל תאומים משמש במסגרת הפרשנות הסמלית לתיאור פעולה דרך מגוון משימות, תנועה והחלפת רעיונות.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-4",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "סרטן"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל סרטן משמש במסגרת הפרשנות הסמלית לתיאור דחף לפעולה המושפע מהקשר ומתחושת ביטחון.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-5",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "אריה"
+      },
+      "axis": "יצירתיות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל אריה משמש במסגרת הפרשנות הסמלית לתיאור השקעת אנרגיה בביטוי אישי וביצוע יצירתי.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-6",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "בתולה"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל בתולה משמש במסגרת הפרשנות הסמלית לתיאור פעולה שיטתית המבוססת על תיקון והתאמת פרטים.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "מאזניים"
+      },
+      "axis": "שיתופיות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל מאזניים משמש במסגרת הפרשנות הסמלית לתיאור העדפת פעולה מתוך תיאום והערכת חלופות.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-8",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "עקרב"
+      },
+      "axis": "התמדה",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל עקרב משמש במסגרת הפרשנות הסמלית לתיאור ריכוז אנרגיה במשימות מורכבות לאורך זמן.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-9",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "קשת"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל קשת משמש במסגרת הפרשנות הסמלית לתיאור פעולה מתוך חיפוש מרחב, חקירה ויעדים רחבים.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור הפניית אנרגיה לתכנון, משמעת והתקדמות מדורגת.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-11",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "דלי"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל דלי משמש במסגרת הפרשנות הסמלית לתיאור יוזמה בדרך לא שגרתית ופעולה מתוך רעיון עצמאי.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "mars-sign-12",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "מאדים",
+        "sign": "דגים"
+      },
+      "axis": "גמישות",
+      "polarity": 1,
+      "weight": 1.15,
+      "text": "מאדים במזל דגים משמש במסגרת הפרשנות הסמלית לתיאור פעולה המכוונת לעתים באמצעות השראה, דימוי והקשר משתנה.",
+      "source": "Astrodienst Astrowiki, Mars, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "jupiter-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "צדק",
+        "sign": "טלה"
+      },
+      "axis": "יוזמה",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "צדק במזל טלה משמש במסגרת הפרשנות הסמלית לתיאור הרחבת אפשרויות באמצעות התחלה נועזת וניסוי.",
+      "source": "Astrodienst Astrowiki, Jupiter, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "jupiter-sign-4",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "צדק",
+        "sign": "סרטן"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "צדק במזל סרטן משמש במסגרת הפרשנות הסמלית לתיאור חיפוש צמיחה מתוך בסיס בטוח ושייכות.",
+      "source": "Astrodienst Astrowiki, Jupiter, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "jupiter-sign-6",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "צדק",
+        "sign": "בתולה"
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "צדק במזל בתולה משמש במסגרת הפרשנות הסמלית לתיאור הרחבת אופקים באמצעות לימוד, סיווג ודיוק.",
+      "source": "Astrodienst Astrowiki, Jupiter, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "jupiter-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "צדק",
+        "sign": "מאזניים"
+      },
+      "axis": "שיתופיות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "צדק במזל מאזניים משמש במסגרת הפרשנות הסמלית לתיאור חיפוש התפתחות מתוך משא ומתן וראיית כמה צדדים.",
+      "source": "Astrodienst Astrowiki, Jupiter, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "jupiter-sign-9",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "צדק",
+        "sign": "קשת"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "צדק במזל קשת משמש במסגרת הפרשנות הסמלית לתיאור הרחבה באמצעות חקירה, לימוד ומבט למרחק.",
+      "source": "Astrodienst Astrowiki, Jupiter, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "jupiter-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "צדק",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "צדק במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור התפתחות בסדר הדרגתי תוך בחינת גבולות מעשיים.",
+      "source": "Astrodienst Astrowiki, Jupiter, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "saturn-sign-1",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שבתאי",
+        "sign": "טלה"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "שבתאי במזל טלה משמש במסגרת הפרשנות הסמלית לתיאור סמל למתח בין רצון להתחיל לבין הצורך בגבולות ותכנון.",
+      "source": "Astrodienst Astrowiki, Saturn, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "saturn-sign-2",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שבתאי",
+        "sign": "שור"
+      },
+      "axis": "התמדה",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "שבתאי במזל שור משמש במסגרת הפרשנות הסמלית לתיאור דגש על בניית הרגלים וקביעות בעבודה לאורך זמן.",
+      "source": "Astrodienst Astrowiki, Saturn, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "saturn-sign-7",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שבתאי",
+        "sign": "מאזניים"
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "שבתאי במזל מאזניים משמש במסגרת הפרשנות הסמלית לתיאור חיפוש מבנה, כללים והוגנות בתוך תיאום בין אנשים.",
+      "source": "Astrodienst Astrowiki, Saturn, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "saturn-sign-10",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שבתאי",
+        "sign": "גדי"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "שבתאי במזל גדי משמש במסגרת הפרשנות הסמלית לתיאור סמל להעמקת מחויבות, גבולות ומבנה לטווח ארוך.",
+      "source": "Astrodienst Astrowiki, Saturn, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "saturn-sign-11",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שבתאי",
+        "sign": "דלי"
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "שבתאי במזל דלי משמש במסגרת הפרשנות הסמלית לתיאור הצבת עקרונות ומבנים בתוך חשיבה עצמאית.",
+      "source": "Astrodienst Astrowiki, Saturn, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "saturn-sign-12",
+      "enabled": true,
+      "type": "placement",
+      "when": {
+        "body": "שבתאי",
+        "sign": "דגים"
+      },
+      "axis": "התבוננות",
+      "polarity": 1,
+      "weight": 0.85,
+      "text": "שבתאי במזל דגים משמש במסגרת הפרשנות הסמלית לתיאור בדיקה של גבולות מציאותיים ביחס לדמיון ולשאיפות.",
+      "source": "Astrodienst Astrowiki, Saturn, §Interpretation; Zodiac Sign, §Using the Signs (סינתזה עריכתית, לא ציטוט פרטני).",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "סינתזה עריכתית בין תפקיד הגוף לבין משמעות סמלית של המזלות; טעון אימות פרטני נוסף לפני approved.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "planet-function; sign-specific synthesis, not directly attested"
+      }
+    },
+    {
+      "id": "sun-saturn-trine",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "שמש",
+          "שבתאי"
+        ],
+        "kind": "משולש"
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 1.05,
+      "text": "המשולש מסמל אפשרות לשלב בין ביטוי אישי לתכנון והצבת גבולות.",
+      "source": "Astrodienst Astrowiki — Sun, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "mercury-mars-square",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "מרקורי",
+          "מאדים"
+        ],
+        "kind": "ריבוע"
+      },
+      "axis": "תקשורת",
+      "polarity": -1,
+      "weight": 1.05,
+      "text": "הריבוע מסמל מתח אפשרי בין ניסוח רעיונות לבין דחף לפעולה מהירה.",
+      "source": "Astrodienst Astrowiki — Mercury, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      }
+    },
+    {
+      "id": "moon-jupiter-trine",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "ירח",
+          "צדק"
+        ],
+        "kind": "משולש"
+      },
+      "axis": "רגישות",
+      "polarity": 1,
+      "weight": 1.05,
+      "text": "המשולש מסמל אפשרות לשלב תגובה רגשית עם מבט רחב ותומך.",
+      "source": "Astrodienst Astrowiki — Moon, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      }
+    },
+    {
+      "id": "mars-saturn-square",
+      "enabled": true,
+      "type": "aspect",
+      "when": {
+        "pair": [
+          "מאדים",
+          "שבתאי"
+        ],
+        "kind": "ריבוע"
+      },
+      "axis": "יוזמה",
+      "polarity": -1,
+      "weight": 1.05,
+      "text": "הריבוע מסמל מתח אפשרי בין הדחף להתחיל לבין אילוצי מבנה ומגבלות.",
+      "source": "Astrodienst Astrowiki — Mars, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      }
+    },
+    {
+      "id": "venus-house-2",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "ונוס",
+        "house": 2
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 0.95,
+      "text": "בית שני מצביע במילון הסמלי על תחום שבו הטעם האסתטי נקשר לבחירת משאבים וחפצים.",
+      "source": "Astrodienst Astrowiki — Venus, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      }
+    },
+    {
+      "id": "mars-house-6",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "מאדים",
+        "house": 6
+      },
+      "axis": "התמדה",
+      "polarity": 1,
+      "weight": 0.95,
+      "text": "בית שישי מצביע על אפשרות להשקיע אנרגיה בתהליכי עבודה והרגלים.",
+      "source": "Astrodienst Astrowiki — Mars, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mars",
+        "url": "https://www.astro.com/astrowiki/en/Mars",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      }
+    },
+    {
+      "id": "jupiter-house-9",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "צדק",
+        "house": 9
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 0.95,
+      "text": "בית תשיעי מסמל תחום של הרחבת ידע וחיפוש פרספקטיבה רחבה.",
+      "source": "Astrodienst Astrowiki — Jupiter, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Jupiter",
+        "url": "https://www.astro.com/astrowiki/en/Jupiter",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      }
+    },
+    {
+      "id": "saturn-house-10",
+      "enabled": true,
+      "type": "house",
+      "when": {
+        "body": "שבתאי",
+        "house": 10
+      },
+      "axis": "אחריות",
+      "polarity": 1,
+      "weight": 0.95,
+      "text": "בית עשירי מסמל תחום שבו נבחנים מבנה, מחויבות ויעדים ארוכי טווח.",
+      "source": "Astrodienst Astrowiki — Saturn, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "reviewed",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "הנגשה סמלית מתוך תפקיד הגופים וההיבטים/הבתים; נדרשת אסמכתה פרטנית לנוסח.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Saturn",
+        "url": "https://www.astro.com/astrowiki/en/Saturn",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      }
+    },
+    {
+      "id": "sun-aries-moon-taurus",
+      "enabled": true,
+      "type": "composite",
+      "when": {
+        "all": [
+          {
+            "body": "שמש",
+            "sign": "טלה"
+          },
+          {
+            "body": "ירח",
+            "sign": "שור"
+          }
+        ]
+      },
+      "axis": "יוזמה",
+      "polarity": 1,
+      "weight": 1.05,
+      "text": "כאשר דחף הפתיחה של השמש בטלה פוגש צורך ברציפות של הירח בשור, מתקבל תיאור סמלי של שני קצבים שדורשים תיאום.",
+      "source": "Astrodienst Astrowiki — Planets, §Astrology; סינתזה ניסויית ולא ציטוט פרטני.",
+      "review_status": "unverified",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "כלל תלוי בשני מיקומים, להסבר בלבד וללא משקל עצמאי; דורש מקור פרטני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      },
+      "related_rule_ids": [
+        "sun-sign-1",
+        "moon-sign-2"
+      ]
+    },
+    {
+      "id": "mercury-virgo-saturn-capricorn",
+      "enabled": true,
+      "type": "composite",
+      "when": {
+        "all": [
+          {
+            "body": "מרקורי",
+            "sign": "בתולה"
+          },
+          {
+            "body": "שבתאי",
+            "sign": "גדי"
+          }
+        ]
+      },
+      "axis": "חשיבה",
+      "polarity": 1,
+      "weight": 1.05,
+      "text": "שני הסמלים יחד מדגישים אפשרות לשלב בדיקת פרטים עם תכנון ארוך טווח.",
+      "source": "Astrodienst Astrowiki — Mercury, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "unverified",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "כלל תלוי בשני מיקומים, להסבר בלבד וללא משקל עצמאי; דורש מקור פרטני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Mercury",
+        "url": "https://www.astro.com/astrowiki/en/Mercury",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      },
+      "related_rule_ids": [
+        "mercury-sign-6",
+        "saturn-sign-10"
+      ]
+    },
+    {
+      "id": "venus-libra-mars-libra",
+      "enabled": true,
+      "type": "composite",
+      "when": {
+        "all": [
+          {
+            "body": "ונוס",
+            "sign": "מאזניים"
+          },
+          {
+            "body": "מאדים",
+            "sign": "מאזניים"
+          }
+        ]
+      },
+      "axis": "הרמוניה",
+      "polarity": 1,
+      "weight": 1.05,
+      "text": "הופעת שני הגופים במאזניים מאפשרת קריאה משולבת של בחירה אסתטית ופעולה מחושבת סביב איזון.",
+      "source": "Astrodienst Astrowiki — Venus, §Interpretation; סינתזה ניסויית ולא ציטוט של צירוף מדויק.",
+      "review_status": "unverified",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "כלל תלוי בשני מיקומים, להסבר בלבד וללא משקל עצמאי; דורש מקור פרטני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Venus",
+        "url": "https://www.astro.com/astrowiki/en/Venus",
+        "section": "Interpretation",
+        "scope": "general framework; composite/aspect/house synthesis"
+      },
+      "related_rule_ids": [
+        "venus-sign-7",
+        "mars-sign-7"
+      ]
+    },
+    {
+      "id": "sun-sagittarius-mercury-sagittarius",
+      "enabled": true,
+      "type": "composite",
+      "when": {
+        "all": [
+          {
+            "body": "שמש",
+            "sign": "קשת"
+          },
+          {
+            "body": "מרקורי",
+            "sign": "קשת"
+          }
+        ]
+      },
+      "axis": "עצמאות",
+      "polarity": 1,
+      "weight": 1.05,
+      "text": "חיבור שני המיקומים בקשת מסמל הדגשת מבט רחב הן בביטוי האישי הן בניסוח רעיונות.",
+      "source": "Astrodienst Astrowiki — Planets, §Astrology; סינתזה ניסויית ולא ציטוט פרטני.",
+      "review_status": "unverified",
+      "created_in": "0.2.0",
+      "updated_in": "0.2.0",
+      "revision_note": "כלל תלוי בשני מיקומים, להסבר בלבד וללא משקל עצמאי; דורש מקור פרטני.",
+      "source_detail": {
+        "title": "Astrodienst Astrowiki — Planets",
+        "url": "https://www.astro.com/astrowiki/en/Planets",
+        "section": "Astrology",
+        "scope": "general planetary framework only; placement-specific claim not established"
+      },
+      "related_rule_ids": [
+        "sun-sign-9",
+        "mercury-sign-9"
+      ]
+    }
+  ]
+}

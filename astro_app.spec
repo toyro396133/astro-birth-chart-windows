@@ -7,6 +7,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ("data/ephemeris/de440s.bsp", "data/ephemeris"),
+        ("src/astrochart/interpretation_rules.json", "astrochart"),
     ] + collect_data_files("tzdata"),
     hiddenimports=[],
     hookspath=[],

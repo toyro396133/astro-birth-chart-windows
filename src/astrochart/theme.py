@@ -66,6 +66,35 @@ QFrame#appHeader QPushButton#updateButton:disabled {
     color: #8da5c1;
     background: #223b55;
 }
+QFrame#updatePanel {
+    background-color: #e8f2ff;
+    border: 1px solid #bcd8f4;
+    border-radius: 9px;
+}
+QFrame#updatePanel QLabel#latestUpdateLabel {
+    color: #204d81;
+    font-weight: 650;
+    font-size: 11px;
+}
+QFrame#updatePanel QCheckBox {
+    color: #284e7b;
+    font-size: 11px;
+}
+QFrame#updatePanel QPushButton {
+    color: #ffffff;
+    background-color: #2766aa;
+    border: 1px solid #2766aa;
+    border-radius: 7px;
+    min-height: 26px;
+    padding: 3px 10px;
+    font-size: 11px;
+}
+QFrame#updatePanel QPushButton:hover { background-color: #1e528c; }
+QFrame#updatePanel QPushButton:disabled {
+    color: #7690b1;
+    background-color: #eef3fa;
+    border-color: #cddceb;
+}
 QGroupBox#inputCard {
     border: 1px solid #e2eaf4;
     border-radius: 15px;
@@ -181,6 +210,25 @@ QPushButton#calculateButton:hover {
 }
 QPushButton#calculateButton:pressed {
     background-color: #153e77;
+}
+QPushButton#interpretationButton {
+    color: #244f85;
+    background-color: #eef6ff;
+    border: 1px solid #b7d1ee;
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-weight: 650;
+    font-size: 11px;
+    min-height: 23px;
+}
+QPushButton#interpretationButton:hover {
+    background-color: #dbeafa;
+    border-color: #6d9dcc;
+}
+QPushButton#interpretationButton:disabled {
+    color: #98a9bc;
+    background: #f5f8fc;
+    border-color: #e1e8f0;
 }
 QPushButton#copyReportButton {
     color: #275f9c;

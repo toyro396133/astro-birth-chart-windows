@@ -17,6 +17,12 @@ def self_test():
     from astrochart.hebrew_dates import resolve_hebrew_date
     resolved = resolve_hebrew_date(5784, 7, 1, "evening", time(21))
     assert resolved.civil_day == date(2023, 9, 15)
+    from astrochart.interpretation import interpret_chart, load_rulepack
+    rules = load_rulepack()
+    assert len(rules.rules) >= 40
+    interpretation = interpret_chart(result, rules)
+    assert interpretation["signals"] and interpretation["axes"]
+    print("INTERPRETATION_RULE_ENGINE_OK")
     from astrochart.updater import is_newer
     assert is_newer("0.3.0", "0.2.0")
     print("UPDATE_ENGINE_OK")
