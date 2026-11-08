@@ -40,6 +40,8 @@ jobs:
         run: python scripts/n2_holdout.py
       - name: Untouched JPL final holdout (new frozen seed)
         run: python scripts/n2_holdout.py --sealed
+      - name: New N2 acceptance seed (code frozen before inspection)
+        run: python scripts/n2_acceptance.py
       - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-N2-Linux-Holdout
@@ -47,4 +49,5 @@ jobs:
             qa-output/n2-comparison/
             qa-output/n2-holdout/
             qa-output/n2-final-holdout/
+            qa-output/n2-acceptance/
           if-no-files-found: error

@@ -103,7 +103,7 @@ class DeterministicHebrewRealizer:
         situations = "; ".join(
             f"{e['situation']}, בעל המפה {e['behavior']}" for e in shown)
         text = (
-            f"מתוך {count} קבוצות ראיה עצמאיות לציר {axis}, "
+            f"ציר {axis} נתמך בכמה ראיות עצמאיות: מתוך {count} קבוצות, "
             f"ל־{len(examples)} יש פירוש עריכתי תלוי־כלל: "
             + "; ".join(phrases) + ". "
             + "ההבחנות בין המשמעויות הן: " + detail + ". "
