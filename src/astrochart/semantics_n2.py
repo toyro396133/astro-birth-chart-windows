@@ -223,9 +223,17 @@ def _axis_claims(node: dict, axis_entry: dict, interpretation: dict,
         "axis": node["axis"], "definition": axis_entry["definition"],
         "strength": axis_entry["strength"], "challenge": axis_entry["challenge"],
         "independent_evidence_count": len(groups),
+        # Backward-compatible count of actually emitted axis-example claims.
         "rule_conditioned_coverage": 0,
+        # Catalog coverage is independent of the GUI's per-axis length cap.
+        "catalog_coverage_count": 0,
+        "displayed_meaning_count": 0,
+        "catalog_covered_evidence_keys": [],
+        "catalog_missing_evidence_keys": [],
+        "omitted_due_to_display_limit": [],
     }, meaning_ids=[axis_entry["id"]])]
     curated = 0
+    catalog_covered, catalog_missing, display_omitted = [], [], []
     for g, hits in groups:
         hit = hits[0]  # strongest validated RuleHit per independent witness
         reading = readings.get(hit["rule_id"])
@@ -241,6 +249,10 @@ def _axis_claims(node: dict, axis_entry: dict, interpretation: dict,
             "witness_group_rule_ids": list(g["rule_ids"]),
         }, groups=[g], suffix=g["evidence_key"])
         claims.append(direct)
+        if reading:
+            catalog_covered.append(g["evidence_key"])
+        else:
+            catalog_missing.append(g["evidence_key"])
         if reading and curated < MAX_READINGS_PER_AXIS:
             claims.append(_claim(node, "axis-example", "possible_behavior_example", {
                 "focus": reading["focus"], "situation": reading["setting"],
@@ -253,7 +265,17 @@ def _axis_claims(node: dict, axis_entry: dict, interpretation: dict,
             }, groups=[g], meaning_ids=[reading["id"]],
                suffix=g["evidence_key"]))
             curated += 1
-    claims[0]["content"]["rule_conditioned_coverage"] = curated
+        elif reading:
+            display_omitted.append(g["evidence_key"])
+    coverage = claims[0]["content"]
+    coverage["rule_conditioned_coverage"] = curated
+    coverage["catalog_coverage_count"] = len(catalog_covered)
+    coverage["displayed_meaning_count"] = curated
+    coverage["catalog_covered_evidence_keys"] = catalog_covered
+    coverage["catalog_missing_evidence_keys"] = catalog_missing
+    coverage["omitted_due_to_display_limit"] = display_omitted
+    assert len(catalog_covered) + len(catalog_missing) == len(groups)
+    assert curated + len(display_omitted) == len(catalog_covered)
     return claims
 
 
