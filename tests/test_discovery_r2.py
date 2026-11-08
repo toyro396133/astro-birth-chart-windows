@@ -469,3 +469,52 @@ def test_g_metrics_include_full_part_absent_dependent_and_exclusion():
     assert m["symbolic_ratio_denominator"] == 6
     assert m["symbolic_ratio_wilson_95_case_based"] is not None
     assert "coactivation_precision" not in m
+
+
+def test_r1_axis_proof_cap_marks_entire_search_incomplete():
+    cases = training()
+    cases[0]["synthesis"]["nodes"][0]["selection_search_limited"] = True
+    out = discover(cases)
+    assert not out["summary"]["r1_input_search_complete"]
+    assert "positive-0" in out["search"]["r1_resource_excluded_case_ids"]
+
+
+def test_heldout_witness_budget_also_marks_global_search_incomplete(monkeypatch):
+    import astrochart.discovery_r2 as engine
+    actual = engine._joint
+
+    def limited_holdout(record, members):
+        if record["id"] == "val-positive" and set(members) == {A, B}:
+            return None, False
+        return actual(record, members)
+
+    monkeypatch.setattr(engine, "_joint", limited_holdout)
+    val = [case("val-positive", (A, B)), case("val-negative", (A,))]
+    output = discover(training(), val)
+    assert not output["summary"]["witness_proof_search_complete"]
+    assert not output["summary"]["search_complete"]
+    assert any(record["reason"] == "R2-holdout-witness-search-capped"
+               for record in output["search"]["resource_affected_candidates"])
+
+
+def test_review_protocol_uses_real_r1_inputs_and_freezes_holdout_thresholds():
+    import importlib.util
+    from pathlib import Path
+    script = Path(__file__).parents[1] / "scripts" / "run_r2_review_experiments.py"
+    spec = importlib.util.spec_from_file_location("r2_review_experiments", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    output = module.run_review_experiments()
+    assert output["A_adversarial_copies"]["canonical_duplicates"] == 29
+    assert output["A_adversarial_copies"]["hypotheses"] == 0
+    assert not output["C_new_signature_holdout"]["split"][
+        "overlapping_positive_signatures"]
+    assert output["C_new_signature_holdout"]["target"]["found"]
+    assert output["C_new_signature_holdout"]["target"]["holdout"][
+        "status"] == "passes-prespecified-symbolic-holdout-gate"
+    assert output["D_controlled_factual_counterfactual"][
+        "modified_has_joint_proof"] is False
+    assert output["F_resource_bounds"]["witness_proof_search_complete"] is False
+    assert output["E_permutation_control"]["seed"] == 20261108
+    assert output["E_permutation_control"]["iterations"] == 1200
+    assert output["research_conclusion"]["level_2_new_semantic_relation"] is False
