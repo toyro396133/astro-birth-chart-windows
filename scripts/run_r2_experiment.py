@@ -47,7 +47,7 @@ def run_experiment() -> dict:
     holdout_charts = [
         make_chart(0, 3, 5, 9),
         make_chart(0, 3, 2, 9),
-        make_chart(1, 6, 2, 3),
+        make_chart(1, 6, 2, 6),  # held-out Venus sign absent from training
     ]
     train_charts.append(make_chart(0, 3, 5, 11, unknown_time=True))
     def encode(charts, prefix):
