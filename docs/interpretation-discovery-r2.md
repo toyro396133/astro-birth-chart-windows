@@ -1,183 +1,207 @@
-# AstroBirthChart R2 — Isolated experimental relation and structure discovery
+# AstroBirthChart — R2 research sandbox and independent audit corrections
 
-**Status:** experimental / hypotheses only. **Source:** `main` at
-`f9f30197b11a4fdf7e87f95f35279053375936a9`; original R1
-`synthesis.py` and N1 remain untouched. No release or merge.
+**Status:** isolated Draft PR #26; no merge, release, UI change or promotion.
+**Base:** `main` @ `f9f30197b11a4fdf7e87f95f35279053375936a9`.
+**Audit:** [R2-01..R2-08 CHANGES REQUIRED](https://github.com/toyro396133/astro-birth-chart-windows/pull/26#issuecomment-6716973674).
+**Boundaries:** Never modify `synthesis.py`, N1, the 96 rule JSON, astronomy or user-facing interpretation.
 
-## Why a separate engine
+## The three distinct research claims
 
-R1 already constructs deterministic, source-traceable, *predeclared*
-functional paths. This R2 module does **not** repeat R1's authored
-`TRANSITIONS` ontology or train a language model. It compares many
-independent R1 reports and tests whether otherwise unconnected axes recur
-together. Association is **not** causality, psychological diagnosis,
-empirical validation of astrology, or approval of a new interpretation rule.
+| Claim | What would establish it | Current result |
+|---|---|---|
+| 1. Recurrent symbolic feature combinations | Independent R1 witness roots within cases, repeated across more than one genuinely distinct evidence/template signature, reproducible checks | **Demonstrated only for designed synthetic patterns**, with source/proof caveats |
+| 2. Relation type *not in* the R1 ontology | Full directed-ontology comparison **plus** independently inferred meaning, direction or tested relation semantics | **Not demonstrated**; crossing R1 domains is not itself a learned relation |
+| 3. New conceptual generalization and downstream inference | Abstraction with independent semantics, held-out novel inference and explicit falsifiable targets | **Not demonstrated**; a larger frequent set is not a newly understood concept |
 
-### Data flow
+R2 output fields `semantic_relation_discovered=false` and
+`conceptual_generalization_demonstrated=false` are intentional.
+`level` is combination width minus two, *not* a semantic abstraction depth.
 
-```text
-Existing interpret_chart -> synthesize -> immutable R1 reports
-                                    |
-                                    v
-   discovery_r2.discover(train_cases, validation_cases)
-     -> strict schema/profile/time/tension checks
-     -> axis alternatives + underlying dependency roots
-     -> joint root-disjoint proof search per candidate and report
-     -> support + partial counterexamples + independence baseline
-     -> Apriori combinations (expand only if all immediate subsets recur)
-     -> compare to *observed* contiguous R1 composition paths
-     -> candidate relation / dynamic recurring-structure hierarchy
-     -> separate out-of-sample validation + full leaf-to-source traces
-     -> R2 hypothesis JSON; never fed back into R1 or N1
-```
-
-## Interface
+## API and architecture
 
 ```python
 from astrochart.discovery_r2 import discover
 
-result = discover(
-    [{"id": "synthetic-01", "synthesis": r1_result}, ...],
-    [{"id": "holdout-01", "synthesis": other_r1_result}, ...],
-    min_support=3, min_lift=1.25, min_precision=0.65,
+out = discover(
+    [{"id": "nonidentifying-case-id", "synthesis": r1_result,
+      "source_id": "optional-source-group",
+      "independent_record_id": "optional-deduplicated-source-record"}, ...],
+    [{"id": "pre-split-holdout", "synthesis": heldout_result}, ...],
+    min_support=3,
+    min_lift=1.25,
+    min_precision=0.65, # backward-compatible argument; now SYMBOLIC ratio
+    min_unique_signatures=2,
 )
 ```
 
-Use **non-identifying** case IDs; no date/place of birth is needed.
-No filesystem/network writes or installed model. Accepts *only* R1 schema 1,
-same interpretation profile and rule pack across all input cases.
-`result["schema_version"] == 1` is a *separate R2 envelope*, not an
-extension of the R1 schema. `result["hypotheses"]` contains hypothesis
-IDs, member axes, confidence-free recurrence metrics, selected full
-R1 witnesses, roots, node IDs, source URLs, review statuses, partial
-counterexample IDs, held-out measurements and parent hypothesis IDs.
+The *separate R2 envelope* keeps R1 schema 1 input unchanged. Flow:
 
-All discovered edges begin and remain in `hypothesis` state. There is
-**no approve/promote API**; approval would require a separate process and
-change review. Do not pass these records into R1/N1 as verified readings.
+1. Parse/validate R1 evidence, profile, pack version, statuses, source refs,
+   proof limits, time certainty, unresolved tensions and original rule IDs.
+2. Compute three distinct identities: unmodified raw report SHA (audit only),
+   canonical full-report **evidence** SHA (non-editorial), and per-candidate
+   selected-witness **signature** and broader rule-based **template**.
+   Decorative labels, headings, and presentation metadata do not mint
+   new evidence. With no declared record identity, identical canonical
+   evidence is excluded as a possible copy; with different explicit record
+   identities, keep separate cases but never count one evidence pattern
+   more than once for the diversity threshold. Declared identities are
+   metadata, not externally verified evidence of distinct people.
+3. For each candidate, re-run bounded, deterministic joint witness search
+   across *all* R1 available alternatives, enforcing root disjointness
+   within reports. Preserve leaf R1 node IDs, evidence keys, roots,
+   source refs, source review statuses, rule IDs, all missing-source flags.
+4. Enumerate all directed `FUNCTIONS`/`TRANSITIONS` R1 paths satisfying
+   same-domain restriction and no cycles; compute stable SHA ontology ID.
+   Classify each recurrent set as `observed-r1-path`,
+   `authored-r1-path-not-observed`, or
+   `not-derivable-as-directed-r1-path`. R1-authored but unseen paths
+   are **not** novel hypotheses; neither are existing observed paths.
+5. Recurrently mine candidate sets bottom-up via subset joins, only
+   promote to *research hypothesis listings* when distinct evidence
+   signatures and distinct rule templates meet independent gates,
+   train-only symbolic ratio and marginal-frequency lift meet frozen
+   thresholds, and no R2 witness search was truncated.
+   Otherwise keep recurrence in a distinct `recurring_but_not_diverse_patterns`
+   list with reason; never silently discard repeated but weak patterns.
+6. Evaluate an explicitly pre-split held-out cohort. Support based on
+   the same target witness signature as training is recorded under
+   `reused_signature_cases`, never as new held-out support.
+   The prespecified **toy symbolic** gate requires at least two new
+   held-out support signatures, ratio >= the frozen training threshold,
+   and complete witness search. A failed/empty/contaminated holdout is
+   reported as a failure or **unproven**, not concealed.
+7. Keep `search.candidate_enumeration_complete`,
+   `search.witness_proof_search_complete`,
+   `search.r1_input_search_complete`, and the conjunction
+   `summary.search_complete` distinct; report all affected candidates
+   and all excluded R1-limited cases. A resource-truncated search cannot
+   establish a negative proof.
 
-## Novelty, generalization and controlled falsification
+**Provenance**: status vocabulary is validated (unverified, reviewed,
+approved, conflicting, rejected). Empty source refs/statuses remain visible
+as `missing_provenance_axes`. An `unverified` source or missing source
+does not become approved by repetition, even if a holdout gate passes.
+Every R2 candidate begins and stays `hypothesis`; there is no write-back
+to the rule pack or N1.
 
-- **New pairwise relation:** undirected `unreviewed-coactivation` with
-  jointly root-disjoint evidence in at least three distinct R1 reports,
-  lift above independent baseline and enough observed symbolic precision.
-  It makes no direction/causal claim. An already observed R1 path is
-  explicitly excluded from the novel list.
-- **Higher structure:** frequent sets of three or more axes, extended
-  recursively without a fixed abstraction level count. Each accepted
-  higher pattern links to discovered subsets; its combination is an
-  *anonymous recurrent concept*, not a human-invented trait name.
-  More specific combinations are at a greater depth; pair patterns are
-  the more general common core.
-- **Evidence:** R1 `available_facts` are searched anew for each set,
-  instead of reusing a potentially incompatible axis-wide choice.
-  Only one factual witness per axis, with disjoint physical roots across
-  axes. Every selected witness carries `evidence_key`, source refs,
-  review statuses, rule IDs and original R1 node ID.
-- **Counterexamples:** when some but not all member axes appear in an
-  eligible chart, record `missing-R1-coactivation`. This is NOT a
-  label that the person lacks a psychological trait; unmatched rules
-  do not establish negative evidence about a person.
-- **Falsification and holdout:** input witnesses can be changed in
-  controlled test cases and the new R1 output mined again. Validation
-  cases are kept fully separate, do not influence training novelty or
-  thresholds, and can show partial counterexamples or dependent evidence.
-  Holdout summaries are descriptive, not calibrated likelihoods.
-- **Deduplication:** repeated identical R1 payloads count only once.
-  Identical train/validation payloads and repeated IDs are rejected.
-  Distinct signatures are **not** proof of statistically independent
-  people, especially for a small synthetic dataset.
-- **Conservative gates:** uncertain birth times, unresolved tensions and
-  incomplete R1 proof searches are excluded from recurrence estimates,
-  with explicit exclusion explanations. The R1 warning and contradiction
-  objects are preserved in exclusions; no situational explanations
-  invented. Unverified/reviewed R1 source statuses never become
-  `approved`.
-- **Resource bounds:** 512 cases per cohort, 32 input axes, 4096 candidate
-  patterns, 20000 witness proof search states. If truncated, the warning
-  declares non-exhaustiveness; a capped proof does not count as support.
+**Hypothesis identity** is `sha256([profile, source_rule_pack,
+R1 ontology digest, members, R2 version])` (truncated for display).
+Editorial changes do not change the ID; changing pack version or ontology
+does. No new non-reviewed semantics are authored to ensure a passing test.
 
-## Real R1 experiment (synthetic astronomical configurations)
+## Explicit metrics and evidence categories
 
-The script **runs the actual R1 rule interpreter and synthesis** on
-12 synthetic configurations for training, one uncertain-time exclusion,
-and 3 held-out configurations. Six training charts combine:
-Sun Aries + Moon Cancer + Mercury Virgo; six controls use distinct
-placements. Each uses varying Venus signs to avoid exact chart copies.
-Holdout includes a normal chart, a controlled Mercury displacement and
-a non-target control.
+`metrics` reports: `supporting_report_count`,
+`distinct_evidence_signature_count`, `distinct_data_template_count`,
+`declared_data_source_count`, and `source_independence_verified=false`
+separately, plus counts of missing/unverified sources. Unknown source
+independence is not silently treated as a new independent source.
+
+Also recorded: full independent support, partial-axis exposure, absent
+matching axes, fully observed but root-dependent evidence, R2 proof search
+incomplete, and entire case excluded due to R1 uncertainty/contradiction/
+resource cap. These categories must not be merged.
+
+`symbolic_coactivation_ratio = full / (full + partial)` is a descriptive
+conditional co-occurrence rate, **not predictive precision**. The numerator
+and denominator are exposed; absent/dependent/incomplete/excluded cases do
+not enter this particular denominator, but retain explicit counts.
+
+`lift_over_independent_presence` compares full independent support to a
+product of marginal axis presences. This comparison assumes a null model
+of independent axis occurrences, which is **not generally valid for the
+rule pack**. Neither metric measures personality, causality, probability
+of an attribute, or source reliability.
+
+A case-based 95% Wilson interval is included for transparent sampling
+variability **conditional on independent Bernoulli cases**; duplicated
+patterns invalidate this assumption. No population confidence claim
+should be based on this interval.
+
+## Required experiments (real R1 interpreter and synthetic chart facts)
+
+Commands:
 
 ```bash
 python -m pytest -q tests/test_discovery_r2.py
 python scripts/run_r2_experiment.py --output r2-results.json
+python scripts/run_r2_review_experiments.py --output r2-review-results.json
 python -m pytest -q
 ```
 
-The experiment prints an R1-vs-R2 comparison, the number of novel
-candidates and held-out counterexamples. The optional JSON includes
-full source traces. **Do not treat its synthetic examples as a real
-population or claim an empirically validated personality predictor.**
+R2-specific CI executes these in Linux **and** Windows, and retains both
+full JSON results as artifacts. The existing Windows offline build
+workflow is independent and must also pass before engineering acceptance.
+Both experiments are CPU-only, offline, no network/model/dependency additions.
 
-## What R1 cannot, and R2 attempts
+### Old original trial — corrected interpretation
 
-| Gate | R1 | R2 experimental |
+The same R1 data are replayed: 13 input, 12 time-eligible reports and 3
+held-out reports. Previously the same eight recurrent patterns were
+announced as 8 hypotheses (6 pairs, 2 triplets), each with **six supporting
+reports but only one selected-witness signature**, and the holdout positive
+reused its original witness pattern.
+
+**After correction:** the 8 combinations remain visible as
+`recurring_but_not_diverse_patterns`, but 0 qualify as sufficiently
+diverse research hypotheses. R1's 4 observed composition paths are
+compared against **all 26 possible authored directed paths** (14
+directed transitions), including unobserved ones. No Level 2/3 claim.
+
+### New grouped protocol (not real-world independent validation)
+
+`scripts/run_r2_review_experiments.py` freezes
+`min_support=3, min_lift=1.25, min_symbolic_ratio=0.65,
+min_unique_signatures=2, min_templates=2` before inspecting holdout.
+The train/holdout evidence signatures are explicitly checked to be
+disjoint before running the miner. All examples remain synthetically
+constructed from original R1 placement matching, not a field population.
+
+| ID | Probe | Expected interpretation |
 |---|---|---|
-| Predefined ordered functional compositions | Yes | Kept as historical baseline, not repackaged as novel |
-| New cross-domain coactivation in corpus | No | Candidate only, if disjoint and recurring |
-| Recurring combinations at several depths | Only authored transition paths | Data-driven frequent sets, no semantic label |
-| Held-out symbolic counterexamples | Not a corpus evaluator | Separate validation with partial-exposure records |
-| Root and source traceability | Yes | Reuse all original R1 leaves, with joint proof |
-| Certify personality traits, causal links or astrology validity | No | No |
-| Affect stable R1 or parallel N1 | N/A | **Never** |
+| A | 30 editorial variants of same R1 evidence | 1 eligible anonymous report, 29 canonical duplicates, 0 hypotheses |
+| B | Full R1 ontology including unseen authored paths | 26 possible directed paths, authored-but-unseen not novel |
+| C | New witness-signature holdout plus partial/absent controls | Candidate can pass **predeclared symbolic** holdout gate; external generalization still unproven |
+| D | Venus Aries -> Taurus change on a held-out witness | Triple joint proof disappears, without changing other independent facts |
+| E | 1,200 seed=20261108 independent axis-column permutations | Marginal frequencies preserved, not roots/astronomical constraints or multiple-testing correction |
+| F | Artificial `MAX_PROOF_STATES=1` | Search flagged incomplete; affected candidates recorded; no false negative |
+| G | Lift/support/ratio sensitivity grid | Counts vary or remain stable and are documented; no retuning to rescue holdout |
 
-## Integration boundary for future N1
+A/B/D/E/F/G alone are not semantic learning. Passing C demonstrates
+only an engineered generalization of symbolic coactivation over new
+**selected rule signatures**. No independently sampled external
+dataset, rule-source approval, semantic mechanism or causal target exists.
+Thus `external_generalization_proven=false` remains mandatory.
 
-N1 should keep using its current *unmodified R1 synthesis payload*.
-A future owner-approved UI could expose a separate expandable
-`r2_experiments` area clearly marked **not reviewed**, with the
-`members`, `support_cases`, `validation`, `counterexamples` and
-`source_review_statuses` fields. It must not weave R2 hypotheses into
-ordinary readings or inflate R1 weight/rule counts.
+## Review finding coverage
 
-## Limitations, open research
+| Finding | Implemented control |
+|---|---|
+| R2-01 | Independent case counts, unique evidence signatures, distinct rule templates, declared source groups |
+| R2-02 | Split by proof signatures prior to threshold selection; frozen holdout pass/fail protocol and negative controls |
+| R2-03 | Complete authored R1 directed ontology, including domain and direction |
+| R2-04 | Canonical evidence fingerprint ignoring editorial metadata; adversarial repeated-report tests |
+| R2-05 | Descriptive ratio with explicit denominators, all case categories, Wilson caveat, seeded permutation, sensitivity |
+| R2-06 | Three separate search-completeness gates, R1 cap and R2 train/holdout capped witness search |
+| R2-07 | Reviewed status vocabulary validation, explicit missing/unverified source counts and no auto-promotion |
+| R2-08 | Stable ID includes source-rule-pack version and full R1 ontology fingerprint |
 
-1. Repeated symbolic rule matches can correlate due to common rule
-   inventory or sampled configurations; dependence between whole charts
-   is not fully modeled.
-2. This is frequent-pattern induction, not genuinely learned semantic
-   relation typing, conceptual naming, causal discovery or a neural
-   representation. It does *not* invent a defensible interpretation of
-   why the axes co-occur.
-3. Absence of a rule match is not a negative trait label. Reported
-   `coactivation_precision` and lift are *descriptive toy-corpus metrics*.
-4. Novelty is only relative to *paths observed in the supplied R1
-   reports*: an authored R1 transition not instantiated in that corpus
-   might be mislabeled as newly observed. A future reviewed, explicit
-   ontology comparator is needed for stronger novelty.
-5. The sample is small, synthetic and intentionally patterned. Require
-   larger independent datasets, balanced cohorts, held-out evaluation,
-   sensitivity analyses, cross-method checking and explicit source
-   review before contemplating a product-facing claim.
-6. Candidate/pruning and witness search have finite caps. Large
-   corpora may be incomplete; warnings must be kept.
-7. R2 produces no new approved rules, changing user-feedback schema,
-   trained weights, telemetry, UI changes or Release.
+## N1 interface and unresolved limitations
 
-## Change boundaries and verification
+N1 **must continue to read only original R1 data**. R2 must remain
+a separate read-only research output, never a personality/narrative
+assertion. R1 and its original rule pack are neither changed nor trained.
 
-Changed/added in R2 only:
-- `src/astrochart/discovery_r2.py`
-- `tests/test_discovery_r2.py`
-- `scripts/run_r2_experiment.py`
-- `docs/interpretation-discovery-r2.md`
+Residual limitations: evidence signatures based on rule and underlying
+fact keys can conceal dependencies shared across different *people*;
+declared record/source IDs are not independently verified; an adversary
+with fabricated evidence records can create artificial variety. The
+small designed synthetic sample has selection bias, shared rule
+inventory and correlated placements. The permutation baseline destroys
+physical dependency constraints; Wilson intervals rely on questionable
+independence. Neither novel causal mechanisms nor newly understood
+concepts are learned. These are research blockers for Level 2 and 3,
+not unit-test defects to mask with hand-authored semantic mappings.
 
-Unmodified: `src/astrochart/synthesis.py`, `src/astrochart/narrative.py`,
-`src/astrochart/interpretation_dialog.py`, the 96 rules, astronomy,
-Windows installer, release metadata and UI.
-
-Tests include real R1 integration, novelty vs known R1 paths,
-dependent-root obstruction, alternative witness rescue, duplicate
-report obstruction, missing evidence and malformed input, dynamic
-abstraction, controlled counterfactual, heldout partial counterexample,
-uncertainty/contradictions, immutable inputs, version gate and determinism.
-CI results should be recorded **after** real runs, not anticipated.
+**No automatic approval, main merge, UI promotion or Release.**
