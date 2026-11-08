@@ -22,7 +22,7 @@ from .location_catalog import (
 from . import __version__
 from .updater import (UpdateError, latest_release, is_newer, download_release,
                       extract_release, install_directory, launch_install, launch_setup_install,
-                      is_installed_setup, SETUP_ASSET, ASSET,
+                      is_installed_setup, SETUP_ASSET, ASSET, selected_setup_download,
                       auto_updates_enabled, save_auto_updates,
                       auto_install_enabled, save_auto_install)
 from .wheel import Wheel, format_body_label
@@ -72,13 +72,25 @@ class UpdateDownloadThread(QThread):
         try:
             if self.mode == "setup":
                 folder = Path(tempfile.mkdtemp(prefix="AstroChart-Setup-"))
-                path = folder / SETUP_ASSET
+                asset, filename, selected_mode = selected_setup_download(self.release)
+                path = folder / filename
                 try:
-                    download_release(self.release, path)
+                    try:
+                        download_release(asset, path)
+                    except (UpdateError, OSError, ValueError):
+                        if selected_mode != "setup-delta":
+                            raise
+                        # Invalid or unavailable delta: use the existing full
+                        # signed installer, with the same registered-install path.
+                        path.unlink(missing_ok=True)
+                        selected_mode = "setup"
+                        asset = self.release
+                        path = folder / SETUP_ASSET
+                        download_release(asset, path)
                 except BaseException:
                     shutil.rmtree(folder, ignore_errors=True)
                     raise
-                self.result.emit((self.release.version, path, "setup", self.release.digest))
+                self.result.emit((self.release.version, path, selected_mode, asset.digest))
             else:
                 installed = install_directory()
                 with tempfile.TemporaryDirectory(prefix="AstroChart-Download-") as temp:
@@ -671,7 +683,7 @@ class MainWindow(QMainWindow):
         import shutil
         if self._prepared_update is not None:
             _, prepared, mode, _ = self._prepared_update
-            if mode == "setup":
+            if mode in ("setup", "setup-delta"):
                 shutil.rmtree(prepared.parent, ignore_errors=True)
             else:
                 shutil.rmtree(prepared, ignore_errors=True)
@@ -706,9 +718,13 @@ class MainWindow(QMainWindow):
         release, mode = value
         self._latest_update = release
         self._update_mode = mode
-        megabytes = release.size / (1024 * 1024)
+        partial = mode == "setup" and release.delta_size > 0
+        megabytes = (release.delta_size if partial else release.size) / (1024 * 1024)
+        suffix = (" · עדכון חלקי (במקום "
+                  f"{release.size / (1024 * 1024):.1f}MB)"
+                  if partial else " · חבילה מלאה")
         self.latest_update_label.setText(
-            f"גרסה אחרונה: v{release.version} · גודל הורדה: {megabytes:.1f}MB")
+            f"גרסה אחרונה: v{release.version} · הורדה: {megabytes:.1f}MB{suffix}")
         self.update_panel.show()
         self.update_details.setPlainText(
             release.notes.strip() or "לא פורסם פירוט שינויים עבור גרסה זו.")
@@ -738,7 +754,8 @@ class MainWindow(QMainWindow):
     def _on_update_downloaded(self, value):
         self._prepared_update = value
         version = value[0]
-        self.update_status.setText(f"גרסה {version} הורדה ואומתה — מוכנה להתקנה")
+        kind = "העדכון החלקי" if value[2] == "setup-delta" else "החבילה"
+        self.update_status.setText(f"גרסה {version}: {kind} הורדה ואומתה — מוכנה להתקנה")
         self.install_button.setEnabled(True)
 
     def _install_prepared(self):
@@ -749,7 +766,7 @@ class MainWindow(QMainWindow):
             self._clear_prepared_update()
             return
         try:
-            if mode == "setup":
+            if mode in ("setup", "setup-delta"):
                 launch_setup_install(prepared, install_directory(), version, digest)
             else:
                 launch_install(prepared, install_directory(), version)
