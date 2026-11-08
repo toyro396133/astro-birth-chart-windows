@@ -18,7 +18,9 @@ def verify_n2_catalog(catalog: dict, rulepack: dict,
             bool(catalog["catalog_version"]), "missing N2 version")
     _assert(isinstance(catalog.get("rule_reading_policy"), str) and
             bool(catalog["rule_reading_policy"]), "missing N2 policy")
-    _assert(all(isinstance(catalog.get(k, []), list) for k in N2_CATEGORIES),
+    _assert(all(k in catalog for k in N2_CATEGORIES),
+            "N2 mandatory category missing (empty is not absent)")
+    _assert(all(isinstance(catalog[k], list) for k in N2_CATEGORIES),
             "N2 category must be an array")
     if locked_digest is not None:
         _assert(digest(catalog) == locked_digest, "N2 locked fixture drift")
@@ -27,7 +29,7 @@ def verify_n2_catalog(catalog: dict, rulepack: dict,
     all_ids: set[str] = set()
     per_category: dict[str, set[str]] = {}
     for category in N2_CATEGORIES:
-        items = catalog.get(category, [])
+        items = catalog[category]
         ids = [x.get("id") for x in items]
         _assert(all(isinstance(x, str) and x for x in ids), "N2 missing item ID")
         _assert(len(set(ids)) == len(ids), "N2 duplicate ID in " + category)
@@ -74,7 +76,7 @@ def verify_n2_catalog(catalog: dict, rulepack: dict,
                  per_category["withheld_editorial_readings"]),
             "symbolic/withheld overlap")
     return {"catalog_version": catalog["catalog_version"], "catalog_digest": digest(catalog),
-            "category_counts": {k: len(catalog.get(k, [])) for k in N2_CATEGORIES},
+            "category_counts": {k: len(catalog[k]) for k in N2_CATEGORIES},
             "eligible_rule_ids": sorted(per_category["rule_readings"]),
             "symbolic_rule_ids": sorted(per_category["symbolic_explanations"]),
             "withheld_rule_ids": sorted(per_category["withheld_editorial_readings"])}
