@@ -241,7 +241,7 @@ def compose_narrative(synthesis: dict) -> dict:
     selected = eligible[:MAX_PROCESS_PARAGRAPHS]
 
     opening = ("זו קריאה סמלית מתוך ראיות וכללי פרשנות שמנוע R1 כבר עיבד. "
-               "הטקסט אינו אבחון אישיות מדעי, והמשקלים אינם הסתברויות. "
+               "הקריאה אינה אבחון אישיות מדעי, והמשקלים אינם הסתברויות. "
                "חיבור בין פעולות הוא אפשרות פרשנית של המודל, לא עובדה על אדם.")
     if time_mode == "estimated":
         opening += (" שעת הלידה משוערת; לא נגזרות מן הדגימה "
@@ -277,7 +277,7 @@ def compose_narrative(synthesis: dict) -> dict:
     if not processes:
         processes = [_paragraph(
             "no-process",
-            "לא נמצאה בדוח R1 שרשרת תפקודית מורכבת המגובה בראיות "
+            "לא נמצאה שרשרת תפקודית מורכבת בדוח R1 המגובה בראיות "
             "עצמאיות. היעדר מסלול כזה אינו שולל קשרים שהמנוע לא בדק.")]
     sections.append(_section("processes", "כיצד הצירים עשויים להתחבר", processes))
 
