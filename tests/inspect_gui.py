@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from PySide6.QtCore import QDate, QTime, Qt, QPoint
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFrame
+from PySide6.QtWidgets import QApplication, QFrame, QWidget
 
 from astrochart.ui import MainWindow
 from astrochart.interpretation_dialog import RuleInterpretationDialog
@@ -174,11 +174,32 @@ def main():
     assert window.wheel.chart is not None
     assert "16.09.2023" in window.warnings.text()
     snapshot(window, "hebrew-after-midnight.png")
-    # Wider display snapshot additionally checks the elastic dashboard split.
-    window.resize(1360, 860)
+    # Windows-hosted desktop is only 1024px wide. Put the real main window
+    # inside an offscreen host and let Qt fully *show and lay out* the child at
+    # 1360x860. Neither host nor child is mapped to the physical desktop.
+    # Hiding a top-level window and resizing it is insufficient: its splitter
+    # keeps stale geometry, producing deceptively wide empty screenshots.
+    window.hide()
+    host = QWidget()
+    host.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+    host.resize(1360, 860)
+    window.setParent(host, Qt.WindowType.Widget)
+    window.setGeometry(0, 0, 1360, 860)
+    host.show()
+    window.show()
+    app.processEvents()
     QTest.qWait(180)
-    assert window.wheel.width() >= 430
+    assert window.width() >= 1360 and window.height() >= 860, (
+        "Wide widget layout was clamped", window.size())
+    assert window.wheel.width() >= 430, (
+        "Offscreen wide layout did not propagate to the wheel", window.wheel.size())
     snapshot(window, "ui-wide.png")
+    from PySide6.QtGui import QImageReader
+    wide_path = ROOT / "qa-output" / "ui-wide.png"
+    decoded = QImageReader(str(wide_path)).size()
+    assert decoded.width() >= 1360 and decoded.height() >= 860, (
+        "The actual screenshot is not wide", decoded)
+
 
     report = {
         "hebrew": {
