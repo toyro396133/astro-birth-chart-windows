@@ -283,8 +283,8 @@ def test_three_different_decisions_in_one_production_model(monkeypatch):
     assert abstention["abstained_paths"] == report["abstained_processes"]
     assert "לרכיב חשיבה חסר פירוש" in abstention["semantic_text"]
     assert "אין הבחנה" in text or "אינן מציגות הבחנה" in text
-    assert ("אינן מוכיחות" in paragraphs[0]["semantic_text"] or
-            "אין מכך מסקנה" in paragraphs[0]["semantic_text"])
+    assert ("אינן מוכיחות" in compared["semantic_text"] or
+            "אין מכך מסקנה" in compared["semantic_text"])
     assert sum(p["kind"] == "process-abstention" for p in paragraphs) == 1
 
 
