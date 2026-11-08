@@ -22,6 +22,8 @@ jobs:
       PYTHONIOENCODING: utf-8
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -36,12 +38,16 @@ jobs:
         run: python -m pytest -q
       - name: N1/N2 full paired reports
         run: python scripts/n2_comparison.py
+      - name: Full N2 before-versus-after paragraphs and source traces
+        run: python scripts/n2_before_after.py
       - name: Independent JPL chart holdout
         run: python scripts/n2_holdout.py
       - name: Untouched JPL final holdout (new frozen seed)
         run: python scripts/n2_holdout.py --sealed
       - name: New N2 acceptance seed (code frozen before inspection)
         run: python scripts/n2_acceptance.py
+      - name: Independent final acceptance on a second previously unused seed
+        run: python scripts/n2_acceptance.py --final
       - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-N2-Linux-Holdout
@@ -50,4 +56,6 @@ jobs:
             qa-output/n2-holdout/
             qa-output/n2-final-holdout/
             qa-output/n2-acceptance/
+            qa-output/n2-final-acceptance/
+            qa-output/n2-before-after/
           if-no-files-found: error

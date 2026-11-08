@@ -11,6 +11,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -24,12 +26,16 @@ jobs:
         run: python -m pytest -q
       - name: Produce full N1 versus N2 examples and evidence traces
         run: python scripts/n2_comparison.py
+      - name: Full N2 before-versus-after paragraphs and source traces
+        run: python scripts/n2_before_after.py
       - name: N2 independent JPL holdout and semantic-only comparison
         run: python scripts/n2_holdout.py
       - name: N2 untouched JPL final holdout
         run: python scripts/n2_holdout.py --sealed
       - name: New N2 acceptance seed (code frozen before inspection)
         run: python scripts/n2_acceptance.py
+      - name: Independent final acceptance on a second previously unused seed
+        run: python scripts/n2_acceptance.py --final
       - name: Build offline Windows EXE (one-directory / LGPL friendly)
         run: python -m PyInstaller --noconfirm --clean astro_app.spec
       - name: Bundle independent updater worker

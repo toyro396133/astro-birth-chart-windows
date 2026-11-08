@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 import json
+import sys
 
 from n2_holdout import actual_jpl_holdout, evaluate, fixture
 from n2_comparison import produce
@@ -16,7 +17,8 @@ from astrochart.interpretation import load_rulepack
 from astrochart.semantics_n2 import load_meaning_catalog
 
 ROOT = Path(__file__).resolve().parents[1] / "qa-output" / "n2-acceptance"
-ACCEPTANCE_SEED = 2026110863  # NOT the old sealed seed (2026110827)
+ACCEPTANCE_SEED = 2026110863  # development verification after instrumentation
+FINAL_ACCEPTANCE_SEED = 2026110891  # frozen code, new untouched acceptance input
 
 
 def controls():
@@ -35,7 +37,7 @@ def controls():
     }
 
 
-def audit(reports):
+def audit(reports, *, seed):
     all_claims, all_paragraphs, processes = 0, 0, 0
     partial, complete, abstained, missing, comparisons = 0, 0, 0, 0, 0
     example_counts = []
@@ -129,7 +131,7 @@ def audit(reports):
         })
     assert len(uncovered) == 70
     return {
-        "acceptance_seed": ACCEPTANCE_SEED, "cases": len(reports),
+        "acceptance_seed": seed, "cases": len(reports),
         "source": "new JPL charts and new synthetic controls; not an empirical validation",
         "full_provenanced_claims": all_claims, "narrative_paragraphs": all_paragraphs,
         "r1_paths": processes, "fully_covered_paths": complete,
@@ -144,28 +146,32 @@ def audit(reports):
 
 
 def main():
-    charts = actual_jpl_holdout(seed=ACCEPTANCE_SEED, count=12,
-                                prefix="jpl-accept-new")
+    final = "--final" in sys.argv
+    seed = FINAL_ACCEPTANCE_SEED if final else ACCEPTANCE_SEED
+    root = ROOT.parent / ("n2-final-acceptance" if final else "n2-acceptance")
+    charts = actual_jpl_holdout(seed=seed, count=12,
+                                prefix="jpl-new-final" if final else "jpl-accept-new")
     charts.update(controls())
-    metrics = evaluate(ROOT, charts, check_pairs=False, seed=ACCEPTANCE_SEED)
+    metrics = evaluate(root, charts, check_pairs=False, seed=seed)
     reports = {name: produce(chart) for name, chart in charts.items()}
     # Unresolved polarity is intentionally an extra fixture, not a real chart.
     conflict = produce(fixture(("שמש", 16.6, None)), conflict=True)
     reports["new-opposing-fixture"] = conflict
-    (ROOT / "new-opposing-fixture-n2.txt").write_text(
+    (root / "new-opposing-fixture-n2.txt").write_text(
         conflict["n2"] + "\n", encoding="utf-8")
-    (ROOT / "new-opposing-fixture-trace.json").write_text(json.dumps({
+    (root / "new-opposing-fixture-trace.json").write_text(json.dumps({
         "semantics": conflict["semantic"], "narrative": conflict["narrative_n2"],
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    result = audit(reports)
+    result = audit(reports, seed=seed)
     assert any(c["kind"] == "unresolved-tension"
                for c in conflict["semantic"]["claims"])
-    (ROOT / "acceptance-quality.json").write_text(
+    (root / "acceptance-quality.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    (ROOT / "uncovered-rules-impact.json").write_text(
+    (root / "uncovered-rules-impact.json").write_text(
         json.dumps(result["uncovered_rule_impact"], ensure_ascii=False, indent=2),
         encoding="utf-8")
-    print("N2_NEW_ACCEPTANCE_PASS", len(reports), "cases",
+    print("N2_FINAL_ACCEPTANCE_PASS" if final else "N2_NEW_ACCEPTANCE_PASS",
+          len(reports), "cases",
           "new JPL", metrics["real_jpl_charts"],
           "paths", result["r1_paths"], "uncovered", result["uncovered_rule_count"])
 
