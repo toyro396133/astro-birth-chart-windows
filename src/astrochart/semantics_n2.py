@@ -266,10 +266,14 @@ def _process_claims(node: dict, axis_nodes: dict, readings: dict,
     slots, meanings = [], []
     for axis in path:
         group = selected[axis]
-        verified = _all_witnesses(axis_nodes[axis], "independent_facts", 1,
-                                  signals, time_mode, rule_types)
-        matched = next((hits for g, hits in verified if g == group), None)
-        if matched is None:
+        # A valid R1 path may select an alternative from available_facts,
+        # not the axis's preferred independent_facts. Verify the exact
+        # path-selected group against that R1 candidate list and RuleHits.
+        available = axis_nodes[axis].get("available_facts", [])
+        if group not in available:
+            return []
+        matched = _matching_hits(axis, group, signals, 1, time_mode, rule_types)
+        if not matched:
             return []
         primary = matched[0]
         reading = readings.get(primary["rule_id"])
