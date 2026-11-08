@@ -78,7 +78,7 @@ RulePack digest + N2 catalog digest and category/policy digests
                                    |
                                    v
            RelationCatalog catalog_digest [definition hashes
-              + controlled term registry + source registry]
+              + term_registry_hash + source_registry_hash]
                                    |
                                    v
              snapshot_id = SHA256(canonical(
@@ -91,6 +91,8 @@ RulePack digest + N2 catalog digest and category/policy digests
 ~~~
 
 הגדרות אינן מכילות snapshot_id, relation_catalog_digest או evaluation_id; בפרט השדה הישן \`compatible_snapshot\` **אסור** ונפסל על ידי additionalProperties=false. \`compatible_upstream_hash\` מבוסס רק על קלט שמעל N3: כללים מקוריים, קטלוג N2, קטגוריות ומדיניות התצוגה שלו, אונטולוגיית R1 וגרסאות הממשקים. \`term_registry_hash\` ו־\`anchor_hash\` מחושבים לפני ההגדרה; הם אינם מחזיקים הפניה חוזרת להגדרה/לקטלוג. \`definition_hash = SHA256(canonical(definition minus definition_hash))\`; \`catalog_digest = SHA256(canonical(catalog minus catalog_digest, including ordered definitions and term/source registry digests))\`; \`snapshot_id = SHA256(canonical({compatible_upstream_hash,catalog_digest,execution_contract_version}))\`. הגדר גרסאות/serialization canonical UTF-8 + Unicode NFC, sorted map keys, stable array order כמוגדר לכל שדה; reject אם נדרש sort שלא נעשה או כפילויות. אין hashing של חתימה בתוך עצמה.
+
+**רשומות מרשם תוכן:** `TermRegistry` כולל TermEntry עם term_id, הגדרה קנונית, קבוצת שקילות, aliases וחתימת בודק; רק terms מאושרים רשאים להזין Effect בפלט. `SourceReviewRegistry` כולל SourceAnchor עם anchor_hash וסטטוס עצמאי. `RelationCatalog` מכיל `term_registry_hash` ו־`source_registry_hash` בנוסף להגדרות; שני המרשמים מחושבים לפני ההגדרות ו**אינם מצביעים בחזרה** ל־RelationCatalog. החתימות שלהם מחושבות על canonical registry minus registry_hash, וכל הגדרה חייבת להצביע על אותם anchors ו־term IDs שבתמונת המרשמים. `compatible_upstream_hash` של UpstreamManifest מחושב בלי שדה compatible_upstream_hash עצמו ובלי שום רכיב N3.
 
 **קביעות מזהים:** definition_id יציב למושג, definition_revision משתנה בכל שינוי משמעות, definition_hash מזהה תוכן וביקורת. snapshot_id מזהה סט כולל של תוכן/ממשקים, אך **לא מופיע בשום אובייקט המשמש לחישובו**. chart_fingerprint נגזר מעובדות מפה מאומתות, פרופיל חישוב ו־time_mode, ללא PII; run_id ייחודי להרצה ונרשם ב־manifest גם כאשר אותה מפה מחושבת שוב. evaluation_id = SHA256(canonical({snapshot_id,chart_fingerprint,run_id,definition_hash,ordered_bindings_hash,candidate_id})); claim_id = SHA256(canonical({evaluation_id,licensed_effect_id,derived_effect_key,source_anchor_refs})); plan_id = SHA256(canonical({evaluation_id,decision,primary_reason,route_proof_hashes,reason_records,claim_ids})). identical frozen input => identical digest; run_id שונה => מזהה הערכה שונה.
 
@@ -120,6 +122,12 @@ RulePack digest + N2 catalog digest and category/policy digests
     },
     {
       "$ref": "#/$defs/N3Plan"
+    },
+    {
+      "$ref": "#/$defs/TermRegistry"
+    },
+    {
+      "$ref": "#/$defs/SourceReviewRegistry"
     }
   ],
   "$defs": {
@@ -1327,6 +1335,7 @@ RulePack digest + N2 catalog digest and category/policy digests
         "catalog_version",
         "compatible_upstream_hash",
         "term_registry_hash",
+        "source_registry_hash",
         "definitions",
         "catalog_digest"
       ],
@@ -1357,6 +1366,10 @@ RulePack digest + N2 catalog digest and category/policy digests
           }
         },
         "catalog_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_registry_hash": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
         }
@@ -1887,6 +1900,145 @@ RulePack digest + N2 catalog digest and category/policy digests
                 "maxLength": 256
               }
             }
+          }
+        }
+      }
+    },
+    "TermEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "term_id",
+        "term_kind",
+        "canonical_definition",
+        "synonym_ids",
+        "equivalence_cluster_id",
+        "review_status",
+        "reviewer_id",
+        "reviewed_at",
+        "revision"
+      ],
+      "properties": {
+        "term_id": {
+          "$ref": "#/$defs/TermId"
+        },
+        "term_kind": {
+          "enum": [
+            "scope",
+            "context",
+            "boundary",
+            "focus",
+            "concept"
+          ]
+        },
+        "canonical_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "synonym_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/TermId"
+          }
+        },
+        "equivalence_cluster_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "unverified",
+            "under_review",
+            "approved",
+            "rejected"
+          ]
+        },
+        "reviewer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "TermRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "registry_version",
+        "registry_hash",
+        "entries"
+      ],
+      "properties": {
+        "kind": {
+          "const": "TermRegistry"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "registry_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TermEntry"
+          }
+        }
+      }
+    },
+    "SourceReviewRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "registry_version",
+        "registry_hash",
+        "anchors"
+      ],
+      "properties": {
+        "kind": {
+          "const": "SourceReviewRegistry"
+        },
+        "schema_version": {
+          "const": "N3-contract-2"
+        },
+        "registry_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "registry_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceAnchor"
           }
         }
       }
