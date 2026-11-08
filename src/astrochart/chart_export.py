@@ -1,5 +1,5 @@
 """Qt-native local visual exports. No PDF dependency or network service."""
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QPoint, QRectF, Qt
 from PySide6.QtGui import QFont, QPainter, QPdfWriter, QPixmap, QPageSize
 
 
@@ -14,7 +14,7 @@ def export_wheel_png(wheel, destination, scale=3):
     try:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.scale(scale, scale)
-        wheel.render(painter)
+        wheel.render(painter, QPoint(0, 0))
     finally:
         painter.end()
     if not image.save(str(destination), "PNG"):
@@ -46,7 +46,7 @@ def export_chart_pdf(wheel, chart, destination):
             painter.save()
             painter.translate((page_w - wheel.width() * scale) / 2, 90)
             painter.scale(scale, scale)
-            wheel.render(painter)
+            wheel.render(painter, QPoint(0, 0))
             painter.restore()
             line_y = 90 + wheel.height() * scale + 22
         else:
