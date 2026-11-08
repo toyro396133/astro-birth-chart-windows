@@ -234,7 +234,7 @@ def compose_narrative_n2(semantics: dict, *,
         disclosure += (
             " לא נוצר תיאור התנהגותי מפורט לצירים "
             + _he_list(unexpanded)
-            + ", מפני שאין עדיין יחידת משמעות ייחודית מאומתת במאגר N2.")
+            + ", מפני שאין עדיין יחידת משמעות ייעודית ברמת הכלל במאגר N2.")
     if "unverified" in statuses:
         disclosure += " יש כללים שלא אומתו."
     if "reviewed" in statuses:
