@@ -28,6 +28,7 @@ from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
 from .chart_export import export_wheel_png, export_chart_pdf
+from .aspect_explorer import AspectExplorerDialog
 from .display_preferences import (
     DisplayPreferences, read_preferences, save_preferences,
     FONT_PERCENTS, ROW_HEIGHTS, SYMBOL_SIZES,
@@ -96,6 +97,7 @@ class MainWindow(QMainWindow):
         self.calc = None
         self._interpretation_chart = None
         self._active_chart = None
+        self._aspect_dialog = None
         self._active_record = None
         self._current_file = None
         self._display_settings = QSettings("AstroBirthChart", "AstroBirthChart")
@@ -437,12 +439,13 @@ class MainWindow(QMainWindow):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setDefaultSectionSize(98)
-        self.table.horizontalHeader().setFixedHeight(27)
+        self.table.horizontalHeader().setFixedHeight(24)
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(22)
+        self.table.verticalHeader().setMinimumSectionSize(18)
+        self.table.verticalHeader().setDefaultSectionSize(21)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setMinimumHeight(275)
+        self.table.setMinimumHeight(262)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -454,12 +457,24 @@ class MainWindow(QMainWindow):
         details_layout.addWidget(self.table, 1)
 
         self.aspects_title = section_title("היבטים בין הגופים")
-        details_layout.addWidget(self.aspects_title)
+        aspect_heading = QHBoxLayout()
+        aspect_heading.addWidget(self.aspects_title)
+        aspect_heading.addStretch()
+        self.aspect_explorer_button = QPushButton("חקירת היבטים")
+        self.aspect_explorer_button.setObjectName("aspectExplorerButton")
+        self.aspect_explorer_button.setFixedHeight(18)
+        self.aspect_explorer_button.setStyleSheet(
+            "QPushButton { border: none; background: transparent; "
+            "color: #2a609e; min-height: 0; padding: 0 5px; font-size: 10px; }")
+        self.aspect_explorer_button.setEnabled(False)
+        self.aspect_explorer_button.clicked.connect(self._open_aspect_explorer)
+        aspect_heading.addWidget(self.aspect_explorer_button)
+        details_layout.addLayout(aspect_heading)
         self.aspects = QTextEdit()
         self.aspects.setObjectName("aspectText")
         self.aspects.setReadOnly(True)
-        self.aspects.setMinimumHeight(47)
-        self.aspects.setMaximumHeight(66)
+        self.aspects.setMinimumHeight(34)
+        self.aspects.setMaximumHeight(54)
         details_layout.addWidget(self.aspects)
 
         details_layout.addWidget(section_title("הערות ודיוק החישוב"))
@@ -467,8 +482,8 @@ class MainWindow(QMainWindow):
         self.warning_scroll.setObjectName("warningScroll")
         self.warning_scroll.setWidgetResizable(True)
         self.warning_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.warning_scroll.setMinimumHeight(39)
-        self.warning_scroll.setMaximumHeight(61)
+        self.warning_scroll.setMinimumHeight(29)
+        self.warning_scroll.setMaximumHeight(52)
         warning_contents = QWidget()
         warning_contents.setObjectName("warningContents")
         warning_layout = QVBoxLayout(warning_contents)
@@ -528,7 +543,7 @@ class MainWindow(QMainWindow):
             ("גדול (110%)", 110), ("גדול מאוד (120%)", 120),
         ], current.font_percent)
         rows = combo("צפיפות טבלת התוצאות", [
-            ("צפופה", 22), ("רגילה", 26), ("מרווחת", 30),
+            ("צפופה", 21), ("רגילה", 26), ("מרווחת", 30),
         ], current.row_height)
         symbols = combo("גודל סמלי הגלגל", [
             ("קטנים", 14), ("רגילים", 16), ("גדולים", 18),
@@ -558,7 +573,11 @@ class MainWindow(QMainWindow):
             return
         self._active_chart = None
         self._interpretation_chart = None
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+            self._aspect_dialog = None
         self._active_record = None
+        self.aspect_explorer_button.setEnabled(False)
         self.copy_button.setEnabled(False)
         self.interpret_button.setEnabled(False)
         self.wheel.set_chart(None)
@@ -897,7 +916,11 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
 
     def _show_chart(self, chart):
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+            self._aspect_dialog = None
         self._active_chart = chart
+        self.aspect_explorer_button.setEnabled(True)
         self._interpretation_chart = chart
         self.copy_button.setEnabled(True)
         self.wheel_legend.setText("לחץ על סמל במפה כדי לבחור גוף")
@@ -939,6 +962,17 @@ class MainWindow(QMainWindow):
             f" | ציר נגדי: {chart.descendant:.3f}°")
         self.warnings.setText("\n".join(chart.warnings) + angles)
         self.wheel.set_chart(chart)
+
+    def _open_aspect_explorer(self):
+        if self._active_chart is None:
+            return
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+        dialog = AspectExplorerDialog(self._active_chart, self)
+        dialog.aspectSelected.connect(self.wheel.set_selected_aspect_pair)
+        self._aspect_dialog = dialog
+        dialog.show()
+        dialog.raise_()
 
     def _on_table_selection(self, row, column, previous_row, previous_column):
         chart = self._active_chart

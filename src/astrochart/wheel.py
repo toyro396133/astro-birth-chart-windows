@@ -28,6 +28,7 @@ class Wheel(QWidget):
         self.chart = None
         self._symbol_point_size = 16
         self.selected_body = None
+        self.selected_aspect_pair = None
         self._hit_targets = {}
         self.setMinimumSize(350, 350)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -44,14 +45,26 @@ class Wheel(QWidget):
     def set_chart(self, chart):
         self.chart = chart
         self.selected_body = None
+        self.selected_aspect_pair = None
         self._hit_targets = {}
         self.update()
 
     def set_selected_body(self, name):
         valid = bool(self.chart and any(b.name == name for b in self.chart.bodies))
         selected = name if valid else None
-        if self.selected_body != selected:
+        if self.selected_body != selected or self.selected_aspect_pair is not None:
             self.selected_body = selected
+            self.selected_aspect_pair = None
+            self.update()
+
+    def set_selected_aspect_pair(self, first, second):
+        valid = bool(self.chart and any(
+            {aspect.first, aspect.second} == {first, second}
+            for aspect in self.chart.aspects))
+        pair = frozenset((first, second)) if valid else None
+        if self.selected_aspect_pair != pair or self.selected_body is not None:
+            self.selected_body = None
+            self.selected_aspect_pair = pair
             self.update()
 
     def nearest_marker(self, point):
@@ -149,9 +162,13 @@ class Wheel(QWidget):
                 "square": "#d39a55",
                 "opposition": "#d39a55",
             }.get(aspect.kind_id, "#a7b7c9"))
-            connected = self.selected_body in (aspect.first, aspect.second)
-            color.setAlpha(220 if connected else (45 if self.selected_body else 175))
-            p.setPen(QPen(color, 1.8 if connected else 1.1))
+            connected = (
+                self.selected_aspect_pair == frozenset((aspect.first, aspect.second))
+                if self.selected_aspect_pair is not None
+                else self.selected_body in (aspect.first, aspect.second))
+            highlighted = self.selected_body is not None or self.selected_aspect_pair is not None
+            color.setAlpha(235 if connected else (45 if highlighted else 175))
+            p.setPen(QPen(color, 2.6 if connected else 1.1))
             p.drawLine(point(lookup[aspect.first].longitude, r * 0.52),
                        point(lookup[aspect.second].longitude, r * 0.52))
 

@@ -22,7 +22,7 @@ def test_display_preferences_roundtrip_and_invalid_fallback(tmp_path):
     assert read_preferences(ini(tmp_path)) == updated
     settings.setValue("display/font_percent", "9999")
     settings.setValue("display/table_row_height", "not_a_number")
-    assert read_preferences(settings) == DisplayPreferences(100, 22, 18)
+    assert read_preferences(settings) == DisplayPreferences(100, 21, 18)
     with pytest.raises(ValueError):
         save_preferences(settings, DisplayPreferences(250, 99, 0))
 
