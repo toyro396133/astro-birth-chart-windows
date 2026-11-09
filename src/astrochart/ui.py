@@ -1272,7 +1272,7 @@ class MainWindow(QMainWindow):
             elif kind == "png":
                 export_wheel_png(self.wheel, destination)
             elif kind == "pdf_tables":
-                export_chart_tables_pdf(chart, destination)
+                export_chart_tables_pdf(chart, destination, metadata=record["input"])
             else:
                 export_chart_pdf(self.wheel, chart, destination)
             self.chart_caption.setText("הייצוא הושלם במחשב")
