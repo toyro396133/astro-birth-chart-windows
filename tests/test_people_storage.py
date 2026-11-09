@@ -362,3 +362,35 @@ def test_concurrent_process_map_saves_preserve_both_and_one_primary(tmp_path):
     assert sum(entry["is_primary"] for entry in saved["maps"]) == 1
     assert all(store.read_map(person["id"], map_id) for map_id in ids)
 
+def test_store_rejects_symlinked_person_directory(tmp_path):
+    if os.name == "nt":
+        pytest.skip("POSIX symlink test; Windows junction coverage is separate")
+    store = PeopleStore(tmp_path / "people")
+    person = store.create_person("תיק אדם")
+    outside = tmp_path / "outside-person"
+    outside.mkdir()
+    store.maps_path.mkdir()
+    (store.maps_path / person["id"]).symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="קישור סמלי"):
+        store.save_map(person["id"], "לא לכתוב מחוץ למאגר", sample_record())
+    assert not list(outside.iterdir())
+
+
+def test_store_rejects_symlinked_map_payload_on_read(tmp_path):
+    if os.name == "nt":
+        pytest.skip("POSIX symlink test; Windows reparse coverage is separate")
+    store = PeopleStore(tmp_path / "people")
+    person = store.create_person("קובץ מפה")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    target = store.map_path(person["id"], entry["id"])
+    original = target.read_bytes()
+    outside = tmp_path / "outside-map.json"
+    outside.write_bytes(original)
+    target.unlink()
+    target.symlink_to(outside)
+
+    with pytest.raises(ValueError, match="קישור סמלי"):
+        store.read_map(person["id"], entry["id"])
+    assert outside.read_bytes() == original
+
