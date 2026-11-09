@@ -797,6 +797,9 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
         monkeypatch.setattr(store, "_write_version_manifest", fail_after_manifest)
     else:
         monkeypatch.setattr(store, "_write", fail_after_index)
+    # Model a process interruption: the failing process cannot run its
+    # best-effort recovery; a fresh PeopleStore must reconcile the journal.
+    monkeypatch.setattr(store, "_recover_transaction", lambda: None)
 
     with pytest.raises(OSError, match="injected after"):
         if operation == "save":
@@ -805,6 +808,7 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
             store.update_map(person["id"], entry["id"], "מפה מעודכנת", new_record)
         else:
             store.restore_map_version(person["id"], entry["id"], selected_version_id)
+    assert store.journal_path.is_file()
 
     monkeypatch.undo()
     recovered = PeopleStore(tmp_path)
