@@ -83,6 +83,10 @@ def test_duplicate_person_names_remain_separate_selectable_records(window):
         for row in range(window.people_list.count())
     }
     assert ids == {first["id"], second["id"]}
+    labels = [window.people_list.item(row).text()
+              for row in range(window.people_list.count())]
+    assert len(set(labels)) == 2
+    assert all("מזהה" in label for label in labels)
 
 
 def test_save_requires_person_selection_and_creates_map_under_that_person(window, monkeypatch):
