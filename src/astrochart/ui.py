@@ -142,7 +142,6 @@ class MainWindow(QMainWindow):
         outer = QVBoxLayout(root)
         outer.setContentsMargins(0, 0, 0, 0)
         self.page_stack = QStackedWidget(root)
-        outer.addWidget(self.page_stack)
         self.people_page = QWidget()
         self.people_page.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.chart_page = QWidget()
@@ -228,7 +227,7 @@ class MainWindow(QMainWindow):
         self.update_status = QLabel("")
         self.update_status.setObjectName("updateStatus")
         heading.addWidget(self.update_status)
-        main.addWidget(header)
+        outer.addWidget(header)
         # Updates are shown only after a metadata-only check finds a new version.
         self.update_panel = QFrame()
         self.update_panel.setObjectName("updatePanel")
@@ -255,14 +254,15 @@ class MainWindow(QMainWindow):
         self.install_button.setEnabled(False)
         self.install_button.clicked.connect(self._install_prepared)
         panel_row.addWidget(self.install_button)
-        main.addWidget(self.update_panel)
+        outer.addWidget(self.update_panel)
         self.update_panel.hide()
         self.update_details = QTextEdit()
         self.update_details.setReadOnly(True)
         self.update_details.setMaximumHeight(150)
         self.update_details.setObjectName("updateChanges")
-        main.addWidget(self.update_details)
+        outer.addWidget(self.update_details)
         self.update_details.hide()
+        outer.addWidget(self.page_stack, 1)
 
         # Clean, progressive-disclosure input card. Common fields stay visible;
         # coordinates and IANA zone remain one click away for power users.
@@ -582,7 +582,9 @@ class MainWindow(QMainWindow):
             signal.connect(self._invalidate_chart)
 
         self._build_people_page()
+        self.page_stack.currentChanged.connect(self._sync_page_header)
         self.page_stack.setCurrentWidget(self.people_page)
+        self._sync_page_header()
         self._update_person_context()
         apply_theme(self)
 
@@ -695,6 +697,12 @@ class MainWindow(QMainWindow):
         split.setSizes([360, 780])
         layout.addWidget(split, 1)
         self._refresh_people()
+
+    def _sync_page_header(self, *_):
+        """Keep chart-only context actions visible only on the chart page."""
+        chart_active = self.page_stack.currentWidget() is self.chart_page
+        self.person_context_label.setVisible(chart_active)
+        self.people_button.setVisible(chart_active)
 
     def _selected_person_id(self):
         item = self.people_list.currentItem() if hasattr(self, "people_list") else None
@@ -856,6 +864,17 @@ class MainWindow(QMainWindow):
         self.table.setRowCount(0)
         self.aspects.clear()
         self.warnings.clear()
+        # A genuinely new map starts from clean defaults, not the last chart
+        # that happened to be open in this window.
+        self.date_mode.setCurrentIndex(self.date_mode.findData("gregorian"))
+        self.day.setDate(QDate.currentDate())
+        self.hour.setTime(QTime(12, 0))
+        self.unknown.setChecked(False)
+        self.approx_hour.setChecked(False)
+        self.city.setCurrentText("ירושלים")
+        self._city_changed(self.city.currentText())
+        self.phase.setCurrentIndex(self.phase.findData("day"))
+        self._toggle_advanced(False)
         self.chart_caption.setText("מפה חדשה — הזן פרטי לידה וחשב")
         self._update_person_context()
         self.page_stack.setCurrentWidget(self.chart_page)
