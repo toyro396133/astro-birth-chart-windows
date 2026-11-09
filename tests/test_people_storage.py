@@ -138,6 +138,19 @@ def _concurrent_save_map(directory, person_id, day, city, barrier, queue):
         raise
 
 
+
+
+def _concurrent_update_map(directory, person_id, map_id, day, city, barrier, queue):
+    try:
+        barrier.wait(timeout=20)
+        updated = PeopleStore(directory).update_map(
+            person_id, map_id, f"מפה {city}", sample_record(day, city, "12:30"))
+        queue.put(("ok", updated["id"]))
+    except BaseException as exc:
+        queue.put(("error", repr(exc)))
+        raise
+
+
 def _run_two_processes(target, args):
     context = multiprocessing.get_context("spawn")
     barrier = context.Barrier(2)
@@ -567,3 +580,229 @@ def test_interrupted_update_recovers_old_payload_and_metadata_in_new_store(
     assert not list(recovered.directory.glob(".people-*.tmp"))
     assert not list(recovered.directory.glob(".people-journal-*.tmp"))
     assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
+
+
+def test_first_map_save_creates_immutable_initial_version(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("גרסה ראשונה")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    history = store.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == 1
+    first = history["versions"][0]
+    assert first["number"] == 1 and first["is_current"]
+    assert first["restored_from"] is None
+    assert history["current_version_id"] == first["id"]
+    snapshot = store._version_snapshot_path(person["id"], entry["id"], first["id"])
+    assert snapshot.is_file()
+    assert store.read_map_version(person["id"], entry["id"], first["id"]) == sample_record()
+    assert store.get_person(person["id"])["maps"][0]["id"] == entry["id"]
+
+
+def test_update_appends_immutable_version_and_identical_save_does_not_add_noise(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("גרסאות עדכון")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    first = store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    first_path = store._version_snapshot_path(person["id"], entry["id"], first["id"])
+    first_bytes = first_path.read_bytes()
+    changed = sample_record("2024-07-03", "תל אביב", "14:00")
+    store.update_map(person["id"], entry["id"], "מפה", changed)
+    history = store.list_map_versions(person["id"], entry["id"])
+    assert [item["number"] for item in history["versions"]] == [1, 2]
+    assert history["versions"][-1]["is_current"]
+    assert first_path.read_bytes() == first_bytes
+    assert store.read_map_version(person["id"], entry["id"], first["id"]) == sample_record()
+    store.update_map(person["id"], entry["id"], "מפה", changed)
+    assert len(store.list_map_versions(person["id"], entry["id"])["versions"]) == 2
+    assert store.read_map(person["id"], entry["id"]) == changed
+
+
+def test_restore_old_version_appends_new_version_without_mutating_history(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("שחזור")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    first = store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    first_path = store._version_snapshot_path(person["id"], entry["id"], first["id"])
+    first_bytes = first_path.read_bytes()
+    changed = sample_record("2024-07-03", "תל אביב", "14:00")
+    store.update_map(person["id"], entry["id"], "מפה", changed)
+    second = store.list_map_versions(person["id"], entry["id"])["versions"][1]
+    second_path = store._version_snapshot_path(person["id"], entry["id"], second["id"])
+    second_bytes = second_path.read_bytes()
+    restored = store.restore_map_version(person["id"], entry["id"], first["id"])
+    history = store.list_map_versions(person["id"], entry["id"])
+    assert restored["id"] == entry["id"]
+    assert [item["number"] for item in history["versions"]] == [1, 2, 3]
+    third = history["versions"][-1]
+    assert third["is_current"] and third["restored_from"] == first["id"]
+    assert store.read_map(person["id"], entry["id"]) == sample_record()
+    assert store.read_map_version(person["id"], entry["id"], first["id"]) == sample_record()
+    assert first_path.read_bytes() == first_bytes and second_path.read_bytes() == second_bytes
+    saved_person = store.get_person(person["id"])
+    assert saved_person["id"] == person["id"]
+    assert [item["id"] for item in saved_person["maps"]] == [entry["id"]]
+    assert sum(item["is_primary"] for item in saved_person["maps"]) == 1
+
+
+def test_legacy_map_is_lazily_migrated_as_version_one_without_payload_change(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("מפה ישנה")
+    entry = store.save_map(person["id"], "מפה ותיקה", sample_record())
+    original_payload = store.map_path(person["id"], entry["id"]).read_bytes()
+    store._version_manifest_path(person["id"], entry["id"]).unlink()
+    version_directory = store._version_directory(person["id"], entry["id"])
+    if version_directory.exists():
+        version_directory.rmdir()
+    assert store.read_map(person["id"], entry["id"]) == sample_record()
+    history = store.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == 1 and history["versions"][0]["number"] == 1
+    assert store.map_path(person["id"], entry["id"]).read_bytes() == original_payload
+    assert store.get_person(person["id"])["maps"][0]["id"] == entry["id"]
+
+
+def test_corrupt_or_missing_version_metadata_fails_closed_without_overwrite(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("היסטוריה פגומה")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    manifest_path = store._version_manifest_path(person["id"], entry["id"])
+    original = manifest_path.read_bytes()
+    manifest_path.write_text("{broken", encoding="utf-8")
+    with pytest.raises(ValueError, match="היסטוריית הגרסאות"):
+        store.list_map_versions(person["id"], entry["id"])
+    assert manifest_path.read_text(encoding="utf-8") == "{broken"
+    manifest_path.write_bytes(original)
+    first = store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    store._version_snapshot_path(person["id"], entry["id"], first["id"]).unlink()
+    with pytest.raises((OSError, ValueError)):
+        store.list_map_versions(person["id"], entry["id"])
+    assert manifest_path.is_file()
+
+
+@pytest.mark.parametrize("operation", ["save", "update"])
+@pytest.mark.parametrize("phase", ["snapshot", "payload", "manifest", "index"])
+def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch, operation, phase):
+    store = PeopleStore(tmp_path)
+    person = store.create_person(f"כשל {operation} {phase}")
+    original_record = sample_record()
+    entry = store.save_map(person["id"], "מפה מקורית", original_record) if operation == "update" else None
+    if entry:
+        store.list_map_versions(person["id"], entry["id"])
+    new_record = sample_record("2024-07-03", "תל אביב", "14:00")
+    real_snapshot = store._write_version_snapshot
+    real_save = store._save_record
+    real_manifest = store._write_version_manifest
+    real_write = store._write
+    target = store.map_path(person["id"], entry["id"]) if entry else None
+    manifest_path = store._version_manifest_path(person["id"], entry["id"]) if entry else None
+    injected = {"done": False}
+
+    def fail_after_snapshot(*args, **kwargs):
+        result = real_snapshot(*args, **kwargs)
+        if not injected["done"]:
+            injected["done"] = True
+            raise OSError("injected after snapshot")
+        return result
+
+    def fail_after_payload(path, record):
+        result = real_save(path, record)
+        if phase == "payload" and path == target and not injected["done"]:
+            injected["done"] = True
+            raise OSError("injected after payload")
+        return result
+
+    def fail_after_manifest(pid, mid, manifest):
+        result = real_manifest(pid, mid, manifest)
+        if phase == "manifest" and (manifest_path is None or store._version_manifest_path(pid, mid) == manifest_path) and not injected["done"]:
+            injected["done"] = True
+            raise OSError("injected after manifest")
+        return result
+
+    def fail_after_index(document):
+        result = real_write(document)
+        if phase == "index" and not injected["done"]:
+            injected["done"] = True
+            raise OSError("injected after index")
+        return result
+
+    if phase == "snapshot":
+        monkeypatch.setattr(store, "_write_version_snapshot", fail_after_snapshot)
+    elif phase == "payload":
+        monkeypatch.setattr(store, "_save_record", fail_after_payload)
+    elif phase == "manifest":
+        monkeypatch.setattr(store, "_write_version_manifest", fail_after_manifest)
+    else:
+        monkeypatch.setattr(store, "_write", fail_after_index)
+
+    with pytest.raises(OSError, match="injected after"):
+        if operation == "save":
+            store.save_map(person["id"], "מפה חדשה", new_record)
+        else:
+            store.update_map(person["id"], entry["id"], "מפה מעודכנת", new_record)
+
+    monkeypatch.undo()
+    recovered = PeopleStore(tmp_path)
+    stored_person = next(item for item in recovered.list_people() if item["id"] == person["id"])
+    if phase == "index":
+        assert len(stored_person["maps"]) == 1
+        map_id = stored_person["maps"][0]["id"] if operation == "save" else entry["id"]
+        assert recovered.read_map(person["id"], map_id) == new_record
+        assert recovered.list_map_versions(person["id"], map_id)["versions"][-1]["is_current"]
+    elif operation == "save":
+        assert stored_person["maps"] == []
+        assert not list(recovered.maps_path.rglob("*.astrochart.json"))
+    else:
+        assert recovered.read_map(person["id"], entry["id"]) == original_record
+        history = recovered.list_map_versions(person["id"], entry["id"])
+        assert len(history["versions"]) == 1 and history["versions"][0]["is_current"]
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.rglob(".astrochart-*.tmp"))
+    if operation == "save" and phase != "index":
+        assert not list(recovered.maps_path.rglob("*.versions.json"))
+        assert not list(recovered.maps_path.rglob("*.versions"))
+
+
+def test_interrupted_version_update_recovers_from_journal_in_fresh_store(tmp_path, monkeypatch):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("עדכון גרסה שנקטע")
+    entry = store.save_map(person["id"], "מפה מקורית", sample_record())
+    original_record = store.read_map(person["id"], entry["id"])
+    original_history = store.list_map_versions(person["id"], entry["id"])
+    original_manifest = store._version_manifest_path(person["id"], entry["id"]).read_bytes()
+    monkeypatch.setattr(
+        store, "_write",
+        lambda _document: (_ for _ in ()).throw(OSError("simulated crash before index commit")))
+    monkeypatch.setattr(store, "_recover_transaction", lambda: None)
+    with pytest.raises(OSError, match="simulated crash"):
+        store.update_map(
+            person["id"], entry["id"], "גרסה חדשה",
+            sample_record("2024-07-03", "תל אביב", "14:00"))
+    assert store.journal_path.is_file()
+    monkeypatch.undo()
+    recovered = PeopleStore(tmp_path)
+    assert recovered.read_map(person["id"], entry["id"]) == original_record
+    assert recovered._version_manifest_path(person["id"], entry["id"]).read_bytes() == original_manifest
+    history = recovered.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == len(original_history["versions"])
+    assert history["versions"][-1]["is_current"]
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.rglob(".astrochart-*.tmp"))
+
+
+def test_concurrent_updates_to_same_map_append_serial_versions(tmp_path):
+    directory = str(tmp_path / "people")
+    store = PeopleStore(directory)
+    person = store.create_person("עדכונים מקבילים")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    ids = _run_two_processes(
+        _concurrent_update_map,
+        (
+            (directory, person["id"], entry["id"], "2024-07-03", "תל אביב"),
+            (directory, person["id"], entry["id"], "2024-07-04", "חיפה"),
+        ),
+    )
+    history = store.list_map_versions(person["id"], entry["id"])
+    assert [item["number"] for item in history["versions"]] == [1, 2, 3]
+    assert history["versions"][-1]["is_current"]
+    assert len({item["id"] for item in history["versions"]}) == 3
+    assert store.read_map(person["id"], entry["id"]) == store.read_map_version(
+        person["id"], entry["id"], history["current_version_id"])

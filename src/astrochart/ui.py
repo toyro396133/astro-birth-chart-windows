@@ -690,6 +690,12 @@ class MainWindow(QMainWindow):
         self.open_person_map_button = QPushButton("פתח מפה")
         self.open_person_map_button.clicked.connect(self._open_selected_person_map)
         actions.addWidget(self.open_person_map_button)
+        self.map_version_history_button = QPushButton("היסטוריית גרסאות")
+        self.map_version_history_button.setAccessibleName("היסטוריית גרסאות של המפה")
+        self.map_version_history_button.setToolTip(
+            "צפייה בגרסאות שמורות ושחזור גרסה קודמת בלי למחוק היסטוריה")
+        self.map_version_history_button.clicked.connect(self._show_map_version_history)
+        actions.addWidget(self.map_version_history_button)
         self.primary_person_map_button = QPushButton("קבע כמפה ראשית")
         self.primary_person_map_button.clicked.connect(self._set_primary_person_map)
         actions.addWidget(self.primary_person_map_button)
@@ -805,6 +811,7 @@ class MainWindow(QMainWindow):
         self.edit_person_button.setEnabled(has_person)
         self.new_chart_button.setEnabled(has_person)
         self.open_person_map_button.setEnabled(has_map)
+        self.map_version_history_button.setEnabled(has_map)
         self.primary_person_map_button.setEnabled(has_map)
 
     def _person_form(self, title, name="", notes="", exclude_person_id=None):
@@ -1036,6 +1043,151 @@ class MainWindow(QMainWindow):
             self._refresh_people(person_id)
         except Exception as exc:
             QMessageBox.warning(self, "מפה ראשית", str(exc))
+
+    def _show_map_version_history(self):
+        person_id = self._selected_person_id()
+        map_id = self._selected_person_map_id()
+        if not person_id or not map_id:
+            return
+        try:
+            history = self._people_store.list_map_versions(person_id, map_id)
+        except Exception as exc:
+            QMessageBox.warning(self, "היסטוריית גרסאות", str(exc))
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("היסטוריית גרסאות מפה")
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        dialog.setMinimumSize(590, 360)
+        layout = QVBoxLayout(dialog)
+        description = QLabel(
+            "כל גרסה נשמרת בנפרד. שחזור יוצר גרסה חדשה ואינו מוחק גרסאות קודמות.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        table = QTableWidget(0, 4)
+        table.setObjectName("mapVersionHistoryTable")
+        table.setAccessibleName("גרסאות שמורות של המפה")
+        table.setHorizontalHeaderLabels(["גרסה", "תאריך ושעה", "מקור", "מצב"])
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setAlternatingRowColors(True)
+        layout.addWidget(table, 1)
+
+        buttons = QHBoxLayout()
+        preview_button = QPushButton("פתח גרסה")
+        preview_button.setObjectName("openMapVersionButton")
+        preview_button.setAccessibleDescription(
+            "פתיחת תוכן הגרסה בחלון המפה; שמירה לאחר מכן תיצור גרסה חדשה")
+        restore_button = QPushButton("שחזר גרסה")
+        restore_button.setObjectName("restoreMapVersionButton")
+        restore_button.setAccessibleDescription(
+            "שחזור יוצר גרסה חדשה ואינו מוחק את ההיסטוריה")
+        close_button = QPushButton("סגור")
+        buttons.addWidget(preview_button)
+        buttons.addWidget(restore_button)
+        buttons.addStretch(1)
+        buttons.addWidget(close_button)
+        layout.addLayout(buttons)
+
+        def selected_version():
+            row = table.currentRow()
+            item = table.item(row, 0) if row >= 0 else None
+            return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+        def selected_is_current():
+            version_id = selected_version()
+            return any(
+                version["id"] == version_id and version["is_current"]
+                for version in history["versions"]
+            )
+
+        def update_buttons():
+            has_selection = selected_version() is not None
+            preview_button.setEnabled(has_selection)
+            restore_button.setEnabled(has_selection and not selected_is_current())
+
+        def populate(select_version_id=None):
+            nonlocal history
+            history = self._people_store.list_map_versions(person_id, map_id)
+            number_by_id = {item["id"]: item["number"] for item in history["versions"]}
+            table.setRowCount(0)
+            selected_row = 0
+            for row, version in enumerate(history["versions"]):
+                table.insertRow(row)
+                source = (
+                    f'שוחזרה מגרסה {number_by_id.get(version["restored_from"], "?")}'
+                    if version["restored_from"] else "שמירה"
+                )
+                values = [
+                    f'גרסה {version["number"]}',
+                    version["created_at"],
+                    source,
+                    "נוכחית" if version["is_current"] else "קודמת",
+                ]
+                for column, value in enumerate(values):
+                    cell = QTableWidgetItem(value)
+                    if column == 0:
+                        cell.setData(Qt.ItemDataRole.UserRole, version["id"])
+                    table.setItem(row, column, cell)
+                if version["id"] == (select_version_id or history["current_version_id"]):
+                    selected_row = row
+            if table.rowCount():
+                table.selectRow(selected_row)
+            update_buttons()
+
+        def preview():
+            version_id = selected_version()
+            if not version_id:
+                return
+            try:
+                record = self._people_store.read_map_version(person_id, map_id, version_id)
+                self._restore_input(record["input"])
+                self._calculate()
+                if self._active_record is None:
+                    raise ValueError("חישוב מחדש של גרסת המפה נכשל")
+                self._active_person_id = person_id
+                self._active_map_id = map_id
+                self._current_file = str(self._people_store.map_path(person_id, map_id))
+                self._update_person_context()
+                version = next(item for item in history["versions"] if item["id"] == version_id)
+                self.chart_caption.setText(
+                    f'נפתחה תצוגת גרסה {version["number"]}; שמירה תיצור גרסה חדשה')
+                self.page_stack.setCurrentWidget(self.chart_page)
+                dialog.accept()
+            except Exception as exc:
+                QMessageBox.warning(self, "פתיחת גרסת מפה", str(exc))
+
+        def restore():
+            version_id = selected_version()
+            if not version_id or selected_is_current():
+                return
+            answer = QMessageBox.question(
+                dialog,
+                "שחזור גרסת מפה",
+                "השחזור יהפוך את תוכן הגרסה שנבחרה לגרסה הנוכחית באמצעות יצירת גרסה חדשה. "
+                "כל הגרסאות הקודמות יישארו שמורות. להמשיך?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            try:
+                self._people_store.restore_map_version(person_id, map_id, version_id)
+                self._refresh_people(person_id)
+                populate()
+            except Exception as exc:
+                QMessageBox.warning(self, "שחזור גרסת מפה", str(exc))
+
+        table.itemSelectionChanged.connect(update_buttons)
+        preview_button.clicked.connect(preview)
+        restore_button.clicked.connect(restore)
+        close_button.clicked.connect(dialog.reject)
+        populate()
+        dialog.exec()
 
     def _apply_display_preferences(self, preferences):
         """Adjust layout only; the computed astronomical chart remains unchanged."""

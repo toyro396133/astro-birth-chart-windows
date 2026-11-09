@@ -348,3 +348,108 @@ def test_edit_similarity_check_excludes_current_person_but_finds_other_duplicate
     assert window._people_store.get_person(first["id"])["name"] == "רות לוי"
     assert window._people_store.get_person(second["id"])["name"] == "רות לוי"
 
+
+
+def test_map_version_history_dialog_lists_versions_and_marks_current(window, monkeypatch):
+    person = window._people_store.create_person("היסטוריית מפה")
+    entry = window._people_store.save_map(person["id"], "מפה", sample_record())
+    changed = make_record({
+        "date_mode": "gregorian", "civil_date": "2024-07-03",
+        "clock": "14:00", "gregorian_date": "2024-07-03",
+        "hebrew_year": 5784, "hebrew_month": 10, "hebrew_day": 27,
+        "phase": "day", "unknown_time": False, "estimated_time": False,
+        "city": "תל אביב", "latitude": 32.0853, "longitude": 34.7818,
+        "zone": "Asia/Jerusalem",
+    }, ui.__version__)
+    window._people_store.update_map(person["id"], entry["id"], "מפה", changed)
+    window._refresh_people(person["id"])
+    window.people_maps.selectRow(0)
+    observed = {}
+
+    def inspect_dialog(dialog):
+        table = dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable")
+        restore = dialog.findChild(ui.QPushButton, "restoreMapVersionButton")
+        preview = dialog.findChild(ui.QPushButton, "openMapVersionButton")
+        observed["rows"] = table.rowCount()
+        observed["labels"] = [table.item(row, 0).text() for row in range(table.rowCount())]
+        observed["states"] = [table.item(row, 3).text() for row in range(table.rowCount())]
+        observed["restore_enabled"] = restore.isEnabled()
+        observed["preview_enabled"] = preview.isEnabled()
+        return ui.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(ui.QDialog, "exec", inspect_dialog)
+    window._show_map_version_history()
+    assert observed["rows"] == 2
+    assert observed["labels"] == ["גרסה 1", "גרסה 2"]
+    assert observed["states"] == ["קודמת", "נוכחית"]
+    assert observed["restore_enabled"] is False
+    assert observed["preview_enabled"] is True
+
+
+def test_map_version_restore_confirmation_cancel_keeps_current_version(window, monkeypatch):
+    person = window._people_store.create_person("ביטול שחזור")
+    entry = window._people_store.save_map(person["id"], "מפה", sample_record())
+    window._people_store.update_map(
+        person["id"], entry["id"], "מפה",
+        make_record({
+            "date_mode": "gregorian", "civil_date": "2024-07-03",
+            "clock": "14:00", "gregorian_date": "2024-07-03",
+            "hebrew_year": 5784, "hebrew_month": 10, "hebrew_day": 27,
+            "phase": "day", "unknown_time": False, "estimated_time": False,
+            "city": "תל אביב", "latitude": 32.0853, "longitude": 34.7818,
+            "zone": "Asia/Jerusalem",
+        }, ui.__version__))
+    current = window._people_store.read_map(person["id"], entry["id"])
+    monkeypatch.setattr(ui.QMessageBox, "question",
+                        lambda *args: ui.QMessageBox.StandardButton.No)
+
+    def cancel_restore(dialog):
+        dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable").selectRow(0)
+        dialog.findChild(ui.QPushButton, "restoreMapVersionButton").click()
+        return ui.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(ui.QDialog, "exec", cancel_restore)
+    window._refresh_people(person["id"])
+    window.people_maps.selectRow(0)
+    window._show_map_version_history()
+    assert window._people_store.read_map(person["id"], entry["id"]) == current
+    history = window._people_store.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == 2 and history["versions"][-1]["is_current"]
+
+
+def test_map_version_restore_creates_new_version_and_preserves_map_link(window, monkeypatch):
+    person = window._people_store.create_person("שחזור בממשק")
+    entry = window._people_store.save_map(person["id"], "מפה", sample_record())
+    first = window._people_store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    changed = make_record({
+        "date_mode": "gregorian", "civil_date": "2024-07-03",
+        "clock": "14:00", "gregorian_date": "2024-07-03",
+        "hebrew_year": 5784, "hebrew_month": 10, "hebrew_day": 27,
+        "phase": "day", "unknown_time": False, "estimated_time": False,
+        "city": "תל אביב", "latitude": 32.0853, "longitude": 34.7818,
+        "zone": "Asia/Jerusalem",
+    }, ui.__version__)
+    window._people_store.update_map(person["id"], entry["id"], "מפה", changed)
+    monkeypatch.setattr(ui.QMessageBox, "question",
+                        lambda *args: ui.QMessageBox.StandardButton.Yes)
+
+    def restore_first(dialog):
+        table = dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable")
+        table.selectRow(0)
+        dialog.findChild(ui.QPushButton, "restoreMapVersionButton").click()
+        history_table = dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable")
+        assert history_table.rowCount() == 3
+        assert history_table.item(2, 3).text() == "נוכחית"
+        return ui.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(ui.QDialog, "exec", restore_first)
+    window._refresh_people(person["id"])
+    window.people_maps.selectRow(0)
+    window._show_map_version_history()
+    history = window._people_store.list_map_versions(person["id"], entry["id"])
+    assert [item["number"] for item in history["versions"]] == [1, 2, 3]
+    assert history["versions"][-1]["restored_from"] == first["id"]
+    assert window._people_store.read_map(person["id"], entry["id"]) == sample_record()
+    saved_person = window._people_store.get_person(person["id"])
+    assert saved_person["id"] == person["id"]
+    assert saved_person["maps"][0]["id"] == entry["id"]

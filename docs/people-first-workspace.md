@@ -74,3 +74,30 @@ Matching is intentionally conservative and local-only (Python standard library; 
 - The warning lists up to four matching people with their names and short ID hints; it always explains that another person can still be saved.
 
 No automatic merge, deduplication, ID mutation, map reassignment, or storage schema change is performed.
+
+
+## Map version history — implementation 3
+
+The identity hierarchy is **Person ID → Map ID → immutable Map Versions**. Person and Map IDs remain stable. Updating or restoring a map never creates a new logical map, changes its person relationship, or changes its primary-map flag.
+
+### Storage layout and compatibility
+
+- The existing schema-1 `.astrochart.json` file remains the current payload at `maps/<person-id>/<map-id>.astrochart.json`.
+- Immutable snapshots are stored at `maps/<person-id>/<map-id>.versions/<version-id>.astrochart.json`.
+- A per-map manifest at `maps/<person-id>/<map-id>.versions.json` records ordered version IDs/numbers, UTC creation timestamps, the current version ID, and an optional `restored_from` link.
+- The people index remains schema 1 and the chart record remains schema 1. No existing JSON chart file is rewritten as part of migration.
+- A legacy map without a manifest is treated as version 1 on first history access or first update. The current payload is copied into the first immutable snapshot; the original current file and person/map metadata remain in place. The migration uses the same durable transaction journal. If a version directory already contains snapshots but its manifest is missing, the store fails closed and requires recovery rather than guessing.
+
+### Transaction and recovery
+
+A version-changing operation uses a schema-2 journal while retaining schema-1 journal recovery for transactions written by earlier application builds. The commit order is: durable journal → durable immutable snapshot → durable current payload → durable version manifest → durable people index (commit point) → journal removal. Windows replacements retain the approved `MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)` path; POSIX replacements/unlinks flush the containing directory and propagate errors. Thread/process locking and path/reparse-point validation cover the complete operation. Recovery rolls back to the old current payload/manifest when the index commit did not occur, or completes the new snapshot/payload/manifest when it did. Older snapshots are never overwritten or removed.
+
+### Version and restore policy
+
+- The first saved map creates version 1.
+- A changed validated chart record creates the next monotonically numbered version with a new UUID-derived version ID and UTC timestamp.
+- A save whose validated record is exactly equal to the current record creates no extra version. A map display-name-only edit updates metadata without creating a chart-content version.
+- Restoring a non-current version appends a new version containing the selected snapshot and records `restored_from`; it never moves the current pointer backward or deletes/rewrites prior snapshots. Restoring the already-current version is a no-op.
+- Version history is read-only. There is no delete-history action. The Hebrew RTL history dialog labels each version and date, marks the current version, allows opening a historical snapshot for inspection, and confirms restore. Saving after opening a historical version creates a new current version rather than mutating the opened snapshot.
+
+The per-map version manifest has its own format/schema version (1); the people index and `.astrochart.json` schemas are unchanged.
