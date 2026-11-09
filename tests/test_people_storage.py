@@ -818,8 +818,16 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
         expected_versions = {"save": 1, "update": 2, "restore": 3}[operation]
         assert len(history["versions"]) == expected_versions
         assert history["versions"][-1]["is_current"]
+        assert stored_person["id"] == person["id"]
+        assert stored_person["maps"][0]["id"] == map_id
         if operation == "restore":
             assert history["versions"][-1]["restored_from"] == selected_version_id
+            restored_metadata = stored_person["maps"][0]
+            assert restored_metadata["civil_date"] == new_record["input"]["civil_date"]
+            assert restored_metadata["city"] == new_record["input"]["city"]
+            assert restored_metadata["clock"] == new_record["input"]["clock"]
+            assert restored_metadata["unknown_time"] == new_record["input"]["unknown_time"]
+            assert restored_metadata["is_primary"] == original_metadata["is_primary"]
         assert sum(item["is_primary"] for item in stored_person["maps"]) == 1
     elif operation == "save":
         assert stored_person["maps"] == []
@@ -828,7 +836,8 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
         assert not list(recovered.maps_path.rglob("*.versions"))
     else:
         assert recovered.read_map(person["id"], entry["id"]) == original_record
-        assert recovered.get_person(person["id"])["maps"][0] == original_metadata
+        assert stored_person["id"] == person["id"]
+        assert stored_person["maps"][0] == original_metadata
         assert recovered._version_manifest_path(person["id"], entry["id"]).read_bytes() == original_manifest_bytes
         history = recovered.list_map_versions(person["id"], entry["id"])
         expected_versions = 1 if operation == "update" else 2
