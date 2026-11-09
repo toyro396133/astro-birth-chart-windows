@@ -433,6 +433,7 @@ def test_windows_replace_uses_movefileex_write_through_flags(tmp_path, monkeypat
         store._replace_file(source, destination, platform="nt")
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX directory fsync failure injection; Windows MoveFileExW is tested separately")
 @pytest.mark.parametrize("phase", ["journal", "payload", "index"])
 def test_save_map_directory_fsync_eio_never_reports_success(tmp_path, monkeypatch, phase):
     store = PeopleStore(tmp_path / "people")
@@ -475,6 +476,7 @@ def test_save_map_directory_fsync_eio_never_reports_success(tmp_path, monkeypatc
     assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX directory fsync failure injection; Windows MoveFileExW is tested separately")
 @pytest.mark.parametrize("phase", ["journal", "payload", "index"])
 def test_update_map_directory_fsync_eio_keeps_payload_and_metadata_consistent(
         tmp_path, monkeypatch, phase):
