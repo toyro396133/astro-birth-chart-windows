@@ -73,6 +73,26 @@ def test_create_person_and_select_existing_person(window, monkeypatch):
     assert "דוד כהן" in window.person_context_label.text()
 
 
+def test_new_chart_for_person_resets_previous_chart_inputs(window):
+    person = window._people_store.create_person("בדיקת איפוס")
+    window._new_chart_for_person(person["id"])
+    window.day.setDate(ui.QDate(1990, 4, 5))
+    window.hour.setTime(ui.QTime(18, 45))
+    window.city.setCurrentText("תל אביב")
+    window.unknown.setChecked(True)
+    window.approx_hour.setChecked(True)
+    window._new_chart_for_person(person["id"])
+
+    assert window.day.date() == ui.QDate.currentDate()
+    assert window.hour.text() == "12:00"
+    assert window.city.currentText() == "ירושלים"
+    assert window.phase.currentData() == "day"
+    assert window.date_mode.currentData() == "gregorian"
+    assert not window.unknown.isChecked()
+    assert not window.approx_hour.isChecked()
+    assert window._active_record is None
+
+
 def test_duplicate_person_names_remain_separate_selectable_records(window):
     first = window._people_store.create_person("יעל")
     second = window._people_store.create_person("יעל")
@@ -134,6 +154,26 @@ def test_legacy_chart_save_is_cancelled_when_person_selection_is_cancelled(
     monkeypatch.setattr(ui.QInputDialog, "getItem", lambda *args: ("", False))
     window._save_chart()
     assert window._people_store.get_person(person["id"])["maps"] == []
+
+
+def test_legacy_chart_can_be_assigned_to_a_new_person_before_save(
+        window, monkeypatch):
+    existing = window._people_store.create_person("אדם קיים")
+    set_current_chart(window)
+    window._active_person_id = None
+    monkeypatch.setattr(
+        ui.QInputDialog, "getItem",
+        lambda parent, title, label, items, current, editable: (items[-1], True))
+    monkeypatch.setattr(window, "_person_form", lambda *args: ("אדם חדש", ""))
+    monkeypatch.setattr(ui.QInputDialog, "getText",
+                        lambda *args: ("מפה ראשונה", True))
+
+    window._save_chart()
+    people = window._people_store.list_people()
+    created = next(person for person in people if person["name"] == "אדם חדש")
+    assert created["id"] != existing["id"]
+    assert len(created["maps"]) == 1
+    assert created["maps"][0]["name"] == "מפה ראשונה"
 
 
 def test_legacy_chart_can_be_assigned_to_an_existing_person_before_save(
