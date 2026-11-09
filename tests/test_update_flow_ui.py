@@ -263,17 +263,22 @@ def test_mixed_calendar_ui_can_choose_ambiguous_date_and_restore(window):
     assert window._capture_input() == values
 
 
-def test_pdf_map_only_menu_never_passes_report_flag(window, monkeypatch, tmp_path):
-    from astrochart.domain import BodyPosition, Chart
+def test_tables_pdf_menu_exports_positions_and_aspects_not_wheel(window, monkeypatch, tmp_path):
+    from astrochart.domain import BodyPosition, Chart, Aspect
     from astrochart.chart_storage import make_record
-    chart = Chart([BodyPosition("שמש", 12, False)], [], 20, 100, False, [])
+    chart = Chart([BodyPosition("שמש", 12, False)],
+                  [Aspect("שמש", "ירח", "ריבוע", 90, 1)], 20, 100, False, [])
     window._active_chart = chart
-    window._active_record = make_record(window._capture_input(), "0.6.0")
-    target = tmp_path / "wheel.pdf"
+    window._active_record = make_record(window._capture_input(), "0.6.2")
+    target = tmp_path / "tables.pdf"
     monkeypatch.setattr(ui.QFileDialog, "getSaveFileName",
                         lambda *_: (str(target), "PDF (*.pdf)"))
     calls = []
+    monkeypatch.setattr(ui, "export_chart_tables_pdf",
+                        lambda *args: calls.append(args))
     monkeypatch.setattr(ui, "export_chart_pdf",
-                        lambda *args, **kwargs: calls.append(kwargs))
-    window._export_chart("pdf_wheel")
-    assert calls == [{"include_report": False}]
+                        lambda *args, **kw: pytest.fail("wheel/report exporter should not run"))
+    window._export_chart("pdf_tables")
+    assert calls == [(chart, target)]
+    assert any("טבלת מזלות והיבטים" in action.text()
+               for action in window.file_menu.actions())
