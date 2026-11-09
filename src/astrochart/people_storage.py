@@ -236,10 +236,14 @@ class PeopleStore:
         if not self._lexists(self.directory):
             self.directory.parent.mkdir(parents=True, exist_ok=True)
             self._assert_safe_path(self.directory, kind="dir")
+            created_root = False
             try:
                 self.directory.mkdir()
+                created_root = True
             except FileExistsError:
                 pass
+            if created_root:
+                self._fsync_directory(self.directory.parent)
             self._assert_safe_path(self.directory, kind="dir")
 
         relative = path.relative_to(self.directory)
@@ -248,25 +252,66 @@ class PeopleStore:
             current = current / part
             self._assert_safe_path(current, kind="dir")
             if not self._lexists(current):
+                created_child = False
                 try:
                     current.mkdir()
+                    created_child = True
                 except FileExistsError:
                     pass
+                if created_child:
+                    self._fsync_directory(current.parent)
             self._assert_safe_path(current, kind="dir")
+
+    MOVEFILE_REPLACE_EXISTING = 0x00000001
+    MOVEFILE_WRITE_THROUGH = 0x00000008
+
+    @staticmethod
+    def _move_file_ex_w(source, destination, flags: int) -> None:
+        """Call the Windows MoveFileExW API and preserve its failure code."""
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        move_file_ex = kernel32.MoveFileExW
+        move_file_ex.argtypes = (
+            wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD)
+        move_file_ex.restype = wintypes.BOOL
+        if not move_file_ex(str(source), str(destination), flags):
+            error = ctypes.get_last_error()
+            raise OSError(error, ctypes.FormatError(error), str(destination))
+
+    def _replace_file(self, source, destination, *, platform=None) -> None:
+        """Replace a file durably before returning.
+
+        Windows uses MOVEFILE_WRITE_THROUGH for the rename itself. POSIX
+        flushes the containing directory after os.replace; any fsync error
+        propagates, including EIO/ENOSPC and filesystems that reject directory
+        fsync. There is deliberately no unsafe best-effort fallback.
+        """
+        selected_platform = os.name if platform is None else platform
+        if selected_platform == "nt":
+            flags = self.MOVEFILE_REPLACE_EXISTING | self.MOVEFILE_WRITE_THROUGH
+            self._move_file_ex_w(source, destination, flags)
+            return
+        os.replace(source, destination)
+        self._fsync_directory(Path(destination).parent)
 
     @staticmethod
     def _fsync_directory(path: Path) -> None:
+        # Windows critical replacements use MoveFileExW(WRITE_THROUGH). A
+        # journal that reappears after an unflushed unlink is harmless: both
+        # payload and index were made durable before the journal was removed,
+        # and recovery is idempotent.
         if os.name == "nt":
             return
+        flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+        descriptor = os.open(path, flags)
         try:
-            descriptor = os.open(path, os.O_RDONLY)
-            try:
-                os.fsync(descriptor)
-            finally:
-                os.close(descriptor)
-        except OSError:
-            # Some filesystems do not support fsync on directories.
-            pass
+            # Fail closed. EIO/ENOSPC and unsupported-directory-fsync errors
+            # are not swallowed because no equivalent fallback is guaranteed.
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
 
     @contextmanager
     def _locked(self):
@@ -320,8 +365,7 @@ class PeopleStore:
                 stream.flush()
                 os.fsync(stream.fileno())
             self._assert_safe_path(path, kind="file")
-            os.replace(temporary, path)
-            self._fsync_directory(path.parent)
+            self._replace_file(temporary, path)
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
@@ -330,7 +374,15 @@ class PeopleStore:
         self._assert_safe_path(path, kind="file")
         if self._lexists(path):
             path.unlink()
+            # On POSIX this fsyncs the parent after unlink. On Windows a
+            # stale journal may reappear after a crash, but it is safe because
+            # the payload and index replacements were already write-through.
             self._fsync_directory(path.parent)
+
+    def _save_record(self, path: Path, record: dict) -> None:
+        self._assert_safe_path(path, kind="file")
+        self._ensure_directory(path.parent)
+        save_record(path, record, replace_func=self._replace_file)
 
     def _read_index_document(self) -> tuple[bool, dict | None]:
         self._assert_safe_path(self.index_path, kind="file")
@@ -462,9 +514,9 @@ class PeopleStore:
             try:
                 current_record = read_record(target)
                 if current_record != new_record:
-                    save_record(target, new_record)
+                    self._save_record(target, new_record)
             except (OSError, ValueError):
-                save_record(target, new_record)
+                self._save_record(target, new_record)
             self._fsync_directory(target.parent)
         elif current_exists == journal["old_index_exists"] and (
             (not current_exists) or current_index == old_index
@@ -475,8 +527,7 @@ class PeopleStore:
                 self._remove_file(target)
             else:
                 self._ensure_directory(target.parent)
-                save_record(target, old_record)
-                self._fsync_directory(target.parent)
+                self._save_record(target, old_record)
         else:
             raise ValueError(
                 "נמצא שינוי חיצוני המתנגש ביומן ההתאוששות. "
@@ -507,11 +558,9 @@ class PeopleStore:
         self._atomic_write_text(self.journal_path, payload, ".people-journal-")
         try:
             self._ensure_directory(target.parent)
-            save_record(target, new_record)
-            self._fsync_directory(target.parent)
+            self._save_record(target, new_record)
             self._write(new_index)
             self._remove_file(self.journal_path)
-            self._fsync_directory(self.directory)
         except Exception:
             # Best-effort immediate recovery. If the filesystem remains
             # unavailable, the durable journal is retained for the next read.

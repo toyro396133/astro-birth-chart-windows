@@ -126,7 +126,7 @@ def validate_record(record):
     return record
 
 
-def save_record(path, record):
+def save_record(path, record, *, replace_func=None):
     validate_record(record)
     target = Path(path)
     payload = json.dumps(record, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
@@ -139,7 +139,10 @@ def save_record(path, record):
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, target)
+        if replace_func is None:
+            os.replace(temporary, target)
+        else:
+            replace_func(temporary, target)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)

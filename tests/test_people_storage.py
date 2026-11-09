@@ -1,3 +1,4 @@
+import errno
 import json
 import multiprocessing
 import os
@@ -394,3 +395,159 @@ def test_store_rejects_symlinked_map_payload_on_read(tmp_path):
         store.read_map(person["id"], entry["id"])
     assert outside.read_bytes() == original
 
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX directory fsync behavior")
+def test_posix_directory_fsync_propagates_eio(tmp_path, monkeypatch):
+    def fail_fsync(_descriptor):
+        raise OSError(errno.EIO, "simulated directory fsync EIO")
+
+    monkeypatch.setattr(people_storage.os, "fsync", fail_fsync)
+    with pytest.raises(OSError) as error:
+        PeopleStore._fsync_directory(tmp_path)
+    assert error.value.errno == errno.EIO
+
+
+def test_windows_replace_uses_movefileex_write_through_flags(tmp_path, monkeypatch):
+    store = PeopleStore(tmp_path / "people")
+    source = tmp_path / "staged.tmp"
+    destination = tmp_path / "target.json"
+    source.write_text("staged", encoding="utf-8")
+    calls = []
+
+    monkeypatch.setattr(
+        store, "_move_file_ex_w",
+        lambda src, dst, flags: calls.append((str(src), str(dst), flags)))
+    store._replace_file(source, destination, platform="nt")
+
+    assert calls == [(
+        str(source), str(destination),
+        PeopleStore.MOVEFILE_REPLACE_EXISTING | PeopleStore.MOVEFILE_WRITE_THROUGH,
+    )]
+
+    def fail_move(_src, _dst, _flags):
+        raise OSError(5, "simulated MoveFileExW failure")
+
+    monkeypatch.setattr(store, "_move_file_ex_w", fail_move)
+    with pytest.raises(OSError, match="MoveFileExW"):
+        store._replace_file(source, destination, platform="nt")
+
+
+@pytest.mark.parametrize("phase", ["journal", "payload", "index"])
+def test_save_map_directory_fsync_eio_never_reports_success(tmp_path, monkeypatch, phase):
+    store = PeopleStore(tmp_path / "people")
+    person = store.create_person("בדיקת EIO בשמירה")
+    map_directory = store.maps_path / person["id"]
+    store._ensure_directory(map_directory)
+    real_fsync = store._fsync_directory
+    root_calls = 0
+
+    def injected(path):
+        nonlocal root_calls
+        path = Path(path)
+        if path == store.directory:
+            root_calls += 1
+            if phase == "journal" and root_calls == 1:
+                raise OSError(errno.EIO, "directory fsync EIO after journal replace")
+            if phase == "index" and root_calls == 2:
+                raise OSError(errno.EIO, "directory fsync EIO after index replace")
+        if phase == "payload" and path == map_directory:
+            raise OSError(errno.EIO, "directory fsync EIO after payload replace")
+        return real_fsync(path)
+
+    monkeypatch.setattr(store, "_fsync_directory", injected)
+    with pytest.raises(OSError, match="directory fsync EIO"):
+        store.save_map(person["id"], "מפה", sample_record())
+
+    monkeypatch.undo()
+    recovered = PeopleStore(tmp_path / "people")
+    saved_person = recovered.get_person(person["id"])
+    if phase == "index":
+        assert len(saved_person["maps"]) == 1
+        entry = saved_person["maps"][0]
+        assert recovered.read_map(person["id"], entry["id"]) == sample_record()
+    else:
+        assert saved_person["maps"] == []
+        assert not list(recovered.maps_path.rglob("*.astrochart.json"))
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.glob(".people-*.tmp"))
+    assert not list(recovered.directory.glob(".people-journal-*.tmp"))
+    assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
+
+
+@pytest.mark.parametrize("phase", ["journal", "payload", "index"])
+def test_update_map_directory_fsync_eio_keeps_payload_and_metadata_consistent(
+        tmp_path, monkeypatch, phase):
+    store = PeopleStore(tmp_path / "people")
+    person = store.create_person("בדיקת EIO בעדכון")
+    original = store.save_map(person["id"], "מפה מקורית", sample_record())
+    original_record = store.read_map(person["id"], original["id"])
+    original_metadata = store.get_person(person["id"])["maps"][0]
+    map_directory = store.maps_path / person["id"]
+    real_fsync = store._fsync_directory
+    root_calls = 0
+
+    def injected(path):
+        nonlocal root_calls
+        path = Path(path)
+        if path == store.directory:
+            root_calls += 1
+            if phase == "journal" and root_calls == 1:
+                raise OSError(errno.EIO, "directory fsync EIO after journal replace")
+            if phase == "index" and root_calls == 2:
+                raise OSError(errno.EIO, "directory fsync EIO after index replace")
+        if phase == "payload" and path == map_directory:
+            raise OSError(errno.EIO, "directory fsync EIO after payload replace")
+        return real_fsync(path)
+
+    monkeypatch.setattr(store, "_fsync_directory", injected)
+    with pytest.raises(OSError, match="directory fsync EIO"):
+        store.update_map(
+            person["id"], original["id"], "שם חדש",
+            sample_record("2024-07-03", "תל אביב", "14:00"))
+
+    monkeypatch.undo()
+    recovered = PeopleStore(tmp_path / "people")
+    current_record = recovered.read_map(person["id"], original["id"])
+    current_metadata = recovered.get_person(person["id"])["maps"][0]
+    if phase == "index":
+        assert current_record == sample_record("2024-07-03", "תל אביב", "14:00")
+        assert current_metadata["name"] == "שם חדש"
+    else:
+        assert current_record == original_record
+        assert current_metadata == original_metadata
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.glob(".people-*.tmp"))
+    assert not list(recovered.directory.glob(".people-journal-*.tmp"))
+    assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
+
+
+def test_interrupted_update_recovers_old_payload_and_metadata_in_new_store(
+        tmp_path, monkeypatch):
+    store = PeopleStore(tmp_path / "people")
+    person = store.create_person("עדכון שנקטע")
+    original = store.save_map(person["id"], "מפה מקורית", sample_record())
+    old_record = store.read_map(person["id"], original["id"])
+    old_metadata = store.get_person(person["id"])["maps"][0]
+
+    monkeypatch.setattr(
+        store, "_write",
+        lambda _document: (_ for _ in ()).throw(OSError("simulated interrupted index commit")))
+    monkeypatch.setattr(store, "_recover_transaction", lambda: None)
+
+    with pytest.raises(OSError, match="interrupted index commit"):
+        store.update_map(
+            person["id"], original["id"], "מפה חדשה",
+            sample_record("2024-07-03", "תל אביב", "14:00"))
+
+    assert store.journal_path.is_file()
+    assert store.read_map(person["id"], original["id"])["input"]["city"] == "תל אביב"
+    monkeypatch.undo()
+
+    recovered = PeopleStore(tmp_path / "people")
+    assert recovered.read_map(person["id"], original["id"]) == old_record
+    assert recovered.get_person(person["id"])["maps"][0] == old_metadata
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.glob(".people-*.tmp"))
+    assert not list(recovered.directory.glob(".people-journal-*.tmp"))
+    assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
