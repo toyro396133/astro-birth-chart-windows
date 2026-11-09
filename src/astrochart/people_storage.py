@@ -535,7 +535,12 @@ class PeopleStore:
                 self._remove_file(target)
             else:
                 self._ensure_directory(target.parent)
-                self._save_record(target, old_record)
+                try:
+                    current_record = read_record(target)
+                except (OSError, ValueError):
+                    current_record = None
+                if current_record != old_record:
+                    self._save_record(target, old_record)
         else:
             raise ValueError(
                 "נמצא שינוי חיצוני המתנגש ביומן ההתאוששות. "
@@ -769,7 +774,12 @@ class PeopleStore:
                 self._remove_file(target)
             else:
                 self._ensure_directory(target.parent)
-                self._save_record(target, old_record)
+                try:
+                    current_record = read_record(target)
+                except (OSError, ValueError):
+                    current_record = None
+                if current_record != old_record:
+                    self._save_record(target, old_record)
             if journal["old_manifest_exists"]:
                 self._write_version_manifest(person_id, map_id, old_manifest)
             else:
@@ -843,7 +853,8 @@ class PeopleStore:
         self._atomic_write_text(self.journal_path, payload, ".people-journal-")
         try:
             self._ensure_directory(target.parent)
-            self._save_record(target, new_record)
+            if old_record != new_record or not self._lexists(target):
+                self._save_record(target, new_record)
             self._write(new_index)
             self._remove_file(self.journal_path)
         except Exception:

@@ -824,3 +824,74 @@ def test_name_only_edit_updates_metadata_without_creating_chart_version(tmp_path
     assert updated["name"] == "שם חדש"
     assert len(after["versions"]) == len(before["versions"]) == 1
     assert after["current_version_id"] == before["current_version_id"]
+
+
+def test_legacy_metadata_only_update_keeps_original_payload_bytes(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("עדכון מפה ותיקה")
+    entry = store.save_map(person["id"], "שם ישן", sample_record())
+    payload_path = store.map_path(person["id"], entry["id"])
+    original = payload_path.read_bytes()
+    store._version_manifest_path(person["id"], entry["id"]).unlink()
+    version_directory = store._version_directory(person["id"], entry["id"])
+    for snapshot in version_directory.iterdir():
+        snapshot.unlink()
+    version_directory.rmdir()
+
+    updated = store.update_map(person["id"], entry["id"], "שם חדש", sample_record())
+    assert updated["name"] == "שם חדש"
+    assert payload_path.read_bytes() == original
+    assert len(store.list_map_versions(person["id"], entry["id"])["versions"]) == 1
+
+
+def test_missing_manifest_with_orphan_snapshots_fails_closed(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("snapshot ללא manifest")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    version = store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    snapshot = store._version_snapshot_path(person["id"], entry["id"], version["id"])
+    original = snapshot.read_bytes()
+    store._version_manifest_path(person["id"], entry["id"]).unlink()
+
+    with pytest.raises(ValueError, match="snapshots ללא אינדקס"):
+        store.list_map_versions(person["id"], entry["id"])
+    assert snapshot.read_bytes() == original
+
+
+@pytest.mark.parametrize("operation", ["save", "update"])
+def test_interrupted_durable_version_journal_recovers_before_payload_change(
+        tmp_path, monkeypatch, operation):
+    store = PeopleStore(tmp_path)
+    person = store.create_person(f"יומן שנקטע {operation}")
+    entry = store.save_map(person["id"], "מפה", sample_record()) if operation == "update" else None
+    if entry:
+        original = store.read_map(person["id"], entry["id"])
+        store.list_map_versions(person["id"], entry["id"])
+    real_atomic = store._atomic_write_text
+
+    def interrupt_after_journal(path, payload, prefix):
+        result = real_atomic(path, payload, prefix)
+        if path == store.journal_path:
+            raise OSError("interrupted after durable journal")
+        return result
+
+    monkeypatch.setattr(store, "_atomic_write_text", interrupt_after_journal)
+    with pytest.raises(OSError, match="durable journal"):
+        if operation == "save":
+            store.save_map(person["id"], "מפה חדשה", sample_record("2024-07-03"))
+        else:
+            store.update_map(
+                person["id"], entry["id"], "מפה חדשה",
+                sample_record("2024-07-03", "תל אביב", "14:00"))
+    assert store.journal_path.is_file()
+    monkeypatch.undo()
+
+    recovered = PeopleStore(tmp_path)
+    saved_person = next(item for item in recovered.list_people() if item["id"] == person["id"])
+    if operation == "save":
+        assert saved_person["maps"] == []
+    else:
+        assert recovered.read_map(person["id"], entry["id"]) == original
+        assert len(recovered.list_map_versions(person["id"], entry["id"])["versions"]) == 1
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.rglob(".astrochart-*.tmp"))

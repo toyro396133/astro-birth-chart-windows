@@ -453,3 +453,46 @@ def test_map_version_restore_creates_new_version_and_preserves_map_link(window, 
     saved_person = window._people_store.get_person(person["id"])
     assert saved_person["id"] == person["id"]
     assert saved_person["maps"][0]["id"] == entry["id"]
+
+
+def test_opening_historical_version_previews_without_changing_current_payload(window, monkeypatch):
+    person = window._people_store.create_person("תצוגת גרסה")
+    entry = window._people_store.save_map(person["id"], "מפה", sample_record())
+    first = window._people_store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    changed = make_record({
+        "date_mode": "gregorian", "civil_date": "2024-07-03",
+        "clock": "14:00", "gregorian_date": "2024-07-03",
+        "hebrew_year": 5784, "hebrew_month": 10, "hebrew_day": 27,
+        "phase": "day", "unknown_time": False, "estimated_time": False,
+        "city": "תל אביב", "latitude": 32.0853, "longitude": 34.7818,
+        "zone": "Asia/Jerusalem",
+    }, ui.__version__)
+    window._people_store.update_map(person["id"], entry["id"], "מפה", changed)
+    original_current = window._people_store.read_map(person["id"], entry["id"])
+
+    def calculate_preview():
+        window._active_record = sample_record()
+        window._active_chart = object()
+
+    monkeypatch.setattr(window, "_calculate", calculate_preview)
+
+    def open_first_version(dialog):
+        table = dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable")
+        table.setCurrentCell(0, 0)
+        dialog.findChild(ui.QPushButton, "openMapVersionButton").click()
+        return ui.QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(ui.QDialog, "exec", open_first_version)
+    window._refresh_people(person["id"])
+    window.people_maps.setCurrentCell(0, 0)
+    window._show_map_version_history()
+
+    assert window._active_person_id == person["id"]
+    assert window._active_map_id == entry["id"]
+    assert window.page_stack.currentWidget() is window.chart_page
+    assert "גרסה 1" in window.chart_caption.text()
+    assert window._people_store.read_map(person["id"], entry["id"]) == original_current
+    history = window._people_store.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == 2
+    assert history["versions"][-1]["is_current"]
+    assert history["versions"][0]["id"] == first["id"]
