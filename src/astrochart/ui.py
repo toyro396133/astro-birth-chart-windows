@@ -726,6 +726,8 @@ class MainWindow(QMainWindow):
             self.people_list.addItem(recovery_item)
             self.people_list.blockSignals(False)
             self.people_list.setEnabled(False)
+            self.people_maps.setRowCount(0)
+            self.people_maps.setEnabled(False)
             self.new_person_button.setEnabled(False)
             self.new_chart_button.setEnabled(False)
             self.people_count_label.setText("נדרשת התאוששות נתונים")
@@ -736,6 +738,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "טעינת אנשים — נדרשת התאוששות", str(exc))
             return
         self.people_list.setEnabled(True)
+        self.people_maps.setEnabled(True)
         self.new_person_button.setEnabled(True)
         query = self.people_search.text().strip().casefold()
         visible = [person for person in self._people_cache
