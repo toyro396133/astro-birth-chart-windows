@@ -719,7 +719,24 @@ class MainWindow(QMainWindow):
             self._people_cache = self._people_store.list_people()
         except Exception as exc:
             self._people_cache = []
-            QMessageBox.warning(self, "טעינת אנשים", str(exc))
+            self.people_list.blockSignals(True)
+            self.people_list.clear()
+            recovery_item = QListWidgetItem("מאגר האנשים אינו זמין — נדרש שחזור נתונים")
+            recovery_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.people_list.addItem(recovery_item)
+            self.people_list.blockSignals(False)
+            self.people_list.setEnabled(False)
+            self.new_person_button.setEnabled(False)
+            self.new_chart_button.setEnabled(False)
+            self.people_count_label.setText("נדרשת התאוששות נתונים")
+            self.person_name_label.setText("המאגר אינו זמין")
+            self.person_notes_label.setText(
+                "קובצי המפות המקוריים נשמרו. אין ליצור או לשמור מפות עד לשחזור האינדקס.")
+            self.person_map_count_label.setText("המפות אינן מוצגות כדי למנוע אובדן נתונים")
+            QMessageBox.warning(self, "טעינת אנשים — נדרשת התאוששות", str(exc))
+            return
+        self.people_list.setEnabled(True)
+        self.new_person_button.setEnabled(True)
         query = self.people_search.text().strip().casefold()
         visible = [person for person in self._people_cache
                    if not query or query in person["name"].casefold()
@@ -903,7 +920,12 @@ class MainWindow(QMainWindow):
             person = self._people_store.create_person(*values)
             self._refresh_people(person["id"])
             return person["id"]
-        labels = [f'{person["name"]} · מזהה {person["id"][:8]}' for person in people]
+        person_ids_by_label = {}
+        labels = []
+        for person in people:
+            label = f'{person["name"]} · מזהה {person["id"]}'
+            labels.append(label)
+            person_ids_by_label[label] = person["id"]
         create_label = "＋ יצירת אדם חדש"
         labels.append(create_label)
         selected, accepted = QInputDialog.getItem(
@@ -917,8 +939,7 @@ class MainWindow(QMainWindow):
             person = self._people_store.create_person(*values)
             self._refresh_people(person["id"])
             return person["id"]
-        index = labels.index(selected)
-        return people[index]["id"]
+        return person_ids_by_label.get(selected)
 
     def _open_selected_person_map(self):
         person_id = self._selected_person_id()
