@@ -199,7 +199,7 @@ class PeopleStore:
     def update_person(self, person_id: str, name: str, notes: str = "") -> dict:
         person_id = _valid_id(person_id, "אדם")
         name = _valid_text(name, "שם אדם", 120, required=True)
-        notes = _valid_text(notes, "הערות", 4000)
+        notes = _valid_text(notes, "הערות", 4000, multiline=True)
         document = self._read()
         person = next((item for item in document["people"] if item["id"] == person_id), None)
         if person is None:
