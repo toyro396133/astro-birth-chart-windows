@@ -422,7 +422,7 @@ class PeopleStore:
             self._cleanup_temporary_files()
             return
         try:
-            if self.journal_path.stat().st_size > MAX_INDEX_BYTES + 2 * 262144:
+            if self.journal_path.stat().st_size > MAX_INDEX_BYTES + 2 * 262144 + 65536:
                 raise ValueError("יומן ההתאוששות גדול מדי")
             journal = json.loads(self.journal_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -435,7 +435,9 @@ class PeopleStore:
         }
         if not isinstance(journal, dict) or set(journal) != expected:
             raise ValueError("מבנה יומן ההתאוששות אינו מוכר; הנתונים נשמרו")
-        if journal["format"] != self.JOURNAL_FORMAT or journal["schema_version"] != self.JOURNAL_SCHEMA:
+        if (journal["format"] != self.JOURNAL_FORMAT
+                or type(journal["schema_version"]) is not int
+                or journal["schema_version"] != self.JOURNAL_SCHEMA):
             raise ValueError("גרסת יומן ההתאוששות אינה נתמכת; הנתונים נשמרו")
         person_id = _valid_id(journal["person_id"], "אדם")
         map_id = _valid_id(journal["map_id"], "מפה")
@@ -497,8 +499,10 @@ class PeopleStore:
             "new_record": new_record,
         }
         payload = json.dumps(journal, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-        self._atomic_write_text(self.journal_path, payload, ".people-journal-")
+        if len(payload.encode("utf-8")) > MAX_INDEX_BYTES + 2 * 262144 + 65536:
+            raise ValueError("יומן ההתאוששות גדול מדי")
         target = self.map_path(person_id, map_id)
+        self._atomic_write_text(self.journal_path, payload, ".people-journal-")
         try:
             self._ensure_directory(target.parent)
             save_record(target, new_record)
