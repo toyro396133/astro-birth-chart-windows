@@ -1136,7 +1136,7 @@ class MainWindow(QMainWindow):
                 if version["id"] == (select_version_id or history["current_version_id"]):
                     selected_row = row
             if table.rowCount():
-                table.selectRow(selected_row)
+                table.setCurrentCell(selected_row, 0)
             update_buttons()
 
         def preview():

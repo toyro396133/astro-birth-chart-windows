@@ -812,3 +812,15 @@ def test_concurrent_updates_to_same_map_append_serial_versions(tmp_path):
     assert len({item["id"] for item in history["versions"]}) == 3
     assert store.read_map(person["id"], entry["id"]) == store.read_map_version(
         person["id"], entry["id"], history["current_version_id"])
+
+
+def test_name_only_edit_updates_metadata_without_creating_chart_version(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("שינוי שם מפה")
+    entry = store.save_map(person["id"], "שם ישן", sample_record())
+    before = store.list_map_versions(person["id"], entry["id"])
+    updated = store.update_map(person["id"], entry["id"], "שם חדש", sample_record())
+    after = store.list_map_versions(person["id"], entry["id"])
+    assert updated["name"] == "שם חדש"
+    assert len(after["versions"]) == len(before["versions"]) == 1
+    assert after["current_version_id"] == before["current_version_id"]

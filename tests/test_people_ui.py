@@ -363,7 +363,7 @@ def test_map_version_history_dialog_lists_versions_and_marks_current(window, mon
     }, ui.__version__)
     window._people_store.update_map(person["id"], entry["id"], "מפה", changed)
     window._refresh_people(person["id"])
-    window.people_maps.selectRow(0)
+    window.people_maps.setCurrentCell(0, 0)
     observed = {}
 
     def inspect_dialog(dialog):
@@ -410,7 +410,7 @@ def test_map_version_restore_confirmation_cancel_keeps_current_version(window, m
 
     monkeypatch.setattr(ui.QDialog, "exec", cancel_restore)
     window._refresh_people(person["id"])
-    window.people_maps.selectRow(0)
+    window.people_maps.setCurrentCell(0, 0)
     window._show_map_version_history()
     assert window._people_store.read_map(person["id"], entry["id"]) == current
     history = window._people_store.list_map_versions(person["id"], entry["id"])
@@ -435,7 +435,7 @@ def test_map_version_restore_creates_new_version_and_preserves_map_link(window, 
 
     def restore_first(dialog):
         table = dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable")
-        table.selectRow(0)
+        table.setCurrentCell(0, 0)
         dialog.findChild(ui.QPushButton, "restoreMapVersionButton").click()
         history_table = dialog.findChild(ui.QTableWidget, "mapVersionHistoryTable")
         assert history_table.rowCount() == 3
@@ -444,7 +444,7 @@ def test_map_version_restore_creates_new_version_and_preserves_map_link(window, 
 
     monkeypatch.setattr(ui.QDialog, "exec", restore_first)
     window._refresh_people(person["id"])
-    window.people_maps.selectRow(0)
+    window.people_maps.setCurrentCell(0, 0)
     window._show_map_version_history()
     history = window._people_store.list_map_versions(person["id"], entry["id"])
     assert [item["number"] for item in history["versions"]] == [1, 2, 3]
