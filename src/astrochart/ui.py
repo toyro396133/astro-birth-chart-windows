@@ -608,6 +608,11 @@ class MainWindow(QMainWindow):
         self.new_person_button.setObjectName("calculateButton")
         self.new_person_button.clicked.connect(self._create_person)
         header_row.addWidget(self.new_person_button)
+        self.open_legacy_button = QPushButton("פתח מפה קיימת...")
+        self.open_legacy_button.setToolTip(
+            "פתיחת קובץ מפה מקומי ישן; לפני שמירה מחדש יש לשייך אותו לאדם")
+        self.open_legacy_button.clicked.connect(self._open_chart)
+        header_row.addWidget(self.open_legacy_button)
         layout.addWidget(header)
 
         toolbar = QHBoxLayout()
@@ -834,6 +839,8 @@ class MainWindow(QMainWindow):
         self._active_chart = None
         self._interpretation_chart = None
         self._active_record = None
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
         self._aspect_dialog = None
         self.wheel.set_chart(None)
         self.table.setRowCount(0)
@@ -842,6 +849,7 @@ class MainWindow(QMainWindow):
         self.chart_caption.setText("מפה חדשה — הזן פרטי לידה וחשב")
         self._update_person_context()
         self.page_stack.setCurrentWidget(self.chart_page)
+        self.setWindowTitle(f'AstroBirthChart — {person["name"]}')
 
     def _show_people_page(self):
         self._refresh_people(select_person_id=self._active_person_id)
