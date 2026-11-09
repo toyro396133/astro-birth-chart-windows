@@ -1,9 +1,11 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 import astrochart.ui as ui
+import astrochart.people_storage as people_storage
 from astrochart.chart_storage import make_record, save_record
 from astrochart.domain import BodyPosition, Chart
 from astrochart.people_storage import PeopleStore
@@ -210,3 +212,55 @@ def test_opening_a_person_map_restores_its_stable_relationship(window, monkeypat
     assert window._active_person_id == person["id"]
     assert window._active_map_id == entry["id"]
     assert window.page_stack.currentWidget() is window.chart_page
+
+def test_person_chooser_uses_full_ids_when_short_prefixes_collide(window, monkeypatch):
+    generated_ids = iter([
+        "12345678aaaaaaaaaaaaaaaaaaaaaaaa",
+        "12345678bbbbbbbbbbbbbbbbbbbbbbbb",
+    ])
+    monkeypatch.setattr(
+        people_storage.uuid, "uuid4",
+        lambda: SimpleNamespace(hex=next(generated_ids)))
+    monkeypatch.setattr(
+        people_storage, "_now",
+        lambda: "2026-11-09T00:00:00+00:00")
+    first = window._people_store.create_person("שם זהה")
+    second = window._people_store.create_person("שם זהה")
+    seen_labels = []
+
+    def choose_second(_parent, _title, _prompt, labels, _current, _editable):
+        seen_labels.extend(labels)
+        return labels[1], True
+
+    monkeypatch.setattr(ui.QInputDialog, "getItem", choose_second)
+    selected_id = window._choose_person_for_save()
+
+    assert first["id"][:8] == second["id"][:8]
+    assert selected_id == second["id"]
+    assert len(set(seen_labels[:-1])) == 2
+    assert second["id"] in seen_labels[1]
+
+
+def test_missing_people_index_displays_recovery_state_instead_of_empty_state(
+        window, monkeypatch):
+    person = window._people_store.create_person("אדם עם מפה")
+    entry = window._people_store.save_map(person["id"], "מפה שמורה", sample_record())
+    payload = window._people_store.map_path(person["id"], entry["id"])
+    original = payload.read_bytes()
+    window._people_store.index_path.unlink()
+    warnings = []
+    monkeypatch.setattr(
+        ui.QMessageBox, "warning",
+        lambda *args: warnings.append(args[-1]))
+
+    window._refresh_people()
+
+    assert window.people_list.count() == 1
+    assert "נדרש שחזור נתונים" in window.people_list.item(0).text()
+    assert not window.people_list.isEnabled()
+    assert not window.new_person_button.isEnabled()
+    assert not window.new_chart_button.isEnabled()
+    assert "נדרשת התאוששות" in window.people_count_label.text()
+    assert warnings and "קובץ האנשים חסר" in warnings[0]
+    assert payload.read_bytes() == original
+
