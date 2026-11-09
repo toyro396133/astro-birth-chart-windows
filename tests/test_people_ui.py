@@ -269,3 +269,82 @@ def test_missing_people_index_displays_recovery_state_instead_of_empty_state(
     assert warnings and "קובץ האנשים חסר" in warnings[0]
     assert payload.read_bytes() == original
 
+def test_person_form_updates_inline_warning_for_fuzzy_match(window, monkeypatch):
+    window._people_store.create_person("דוד כהן")
+    observed = {}
+
+    def inspect_dialog(dialog):
+        name_edit = dialog.findChild(ui.QLineEdit, "personNameEdit")
+        warning = dialog.findChild(ui.QLabel, "personSimilarityWarning")
+        save = dialog.findChild(ui.QPushButton, "personFormSaveButton")
+        name_edit.setText("שם אחר")
+        assert warning.isHidden()
+        name_edit.setText("דוד כוהן")
+        observed["warning"] = warning.text()
+        observed["visible"] = not warning.isHidden()
+        observed["save_enabled"] = save.isEnabled()
+        return ui.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(ui.QDialog, "exec", inspect_dialog)
+    assert window._person_form("אדם חדש") is None
+    assert observed["visible"]
+    assert "שם דומה" in observed["warning"]
+    assert "דוד כהן" in observed["warning"]
+    assert observed["save_enabled"]
+
+
+def test_exact_duplicate_warning_does_not_block_creating_a_second_person(
+        window, monkeypatch):
+    first = window._people_store.create_person("יעל כהן")
+    observed = {}
+
+    def accept_duplicate(dialog):
+        name_edit = dialog.findChild(ui.QLineEdit, "personNameEdit")
+        warning = dialog.findChild(ui.QLabel, "personSimilarityWarning")
+        save = dialog.findChild(ui.QPushButton, "personFormSaveButton")
+        name_edit.setText("יעל כהן")
+        observed["warning"] = warning.text()
+        observed["visible"] = not warning.isHidden()
+        observed["save_enabled"] = save.isEnabled()
+        return ui.QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(ui.QDialog, "exec", accept_duplicate)
+    window._create_person()
+
+    people = window._people_store.list_people()
+    assert len(people) == 2
+    assert people[0]["id"] != people[1]["id"]
+    assert {person["name"] for person in people} == {"יעל כהן"}
+    assert observed["visible"] and "שם זהה" in observed["warning"]
+    assert first["id"] in {person["id"] for person in people}
+    assert observed["save_enabled"]
+
+
+def test_edit_similarity_check_excludes_current_person_but_finds_other_duplicate(
+        window, monkeypatch):
+    first = window._people_store.create_person("רות לוי")
+    second = window._people_store.create_person("רות לוי")
+    window._refresh_people(first["id"])
+    observed = {}
+
+    def inspect_edit(dialog):
+        name_edit = dialog.findChild(ui.QLineEdit, "personNameEdit")
+        warning = dialog.findChild(ui.QLabel, "personSimilarityWarning")
+        save = dialog.findChild(ui.QPushButton, "personFormSaveButton")
+        assert name_edit.text() == "רות לוי"
+        observed["warning"] = warning.text()
+        observed["visible"] = not warning.isHidden()
+        observed["save_enabled"] = save.isEnabled()
+        return ui.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(ui.QDialog, "exec", inspect_edit)
+    window._edit_person()
+
+    assert observed["visible"]
+    assert "רות לוי" in observed["warning"]
+    assert second["id"][:8] in observed["warning"]
+    assert first["id"][:8] not in observed["warning"]
+    assert observed["save_enabled"]
+    assert window._people_store.get_person(first["id"])["name"] == "רות לוי"
+    assert window._people_store.get_person(second["id"])["name"] == "רות לוי"
+

@@ -31,6 +31,7 @@ from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
 from .people_storage import PeopleStore
+from .person_matching import find_similar_people
 from .chart_export import export_wheel_png, export_chart_pdf
 from .chart_tables_pdf import export_chart_tables_pdf
 from .aspect_explorer import AspectExplorerDialog
@@ -806,16 +807,73 @@ class MainWindow(QMainWindow):
         self.open_person_map_button.setEnabled(has_map)
         self.primary_person_map_button.setEnabled(has_map)
 
-    def _person_form(self, title, name="", notes=""):
+    def _person_form(self, title, name="", notes="", exclude_person_id=None):
         dialog = QDialog(self)
         dialog.setWindowTitle(title)
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         layout = QVBoxLayout(dialog)
         layout.addWidget(QLabel("שם האדם"))
         name_edit = QLineEdit(name)
+        name_edit.setObjectName("personNameEdit")
         name_edit.setAccessibleName("שם האדם")
         name_edit.setMaxLength(120)
         layout.addWidget(name_edit)
+
+        similarity_warning = QLabel("")
+        similarity_warning.setObjectName("personSimilarityWarning")
+        similarity_warning.setAccessibleName("אזהרת שם זהה או דומה")
+        similarity_warning.setAccessibleDescription(
+            "האזהרה אינפורמטיבית בלבד. אפשר לשמור אדם נוסף גם אם השם זהה.")
+        similarity_warning.setTextFormat(Qt.TextFormat.PlainText)
+        similarity_warning.setWordWrap(True)
+        similarity_warning.setStyleSheet(
+            "QLabel#personSimilarityWarning { color: #805400; "
+            "background: #fff4d6; border: 1px solid #e4c36d; "
+            "border-radius: 6px; padding: 7px; }")
+        similarity_warning.hide()
+        layout.addWidget(similarity_warning)
+
+        try:
+            existing_people = self._people_store.list_people()
+            lookup_available = True
+        except Exception:
+            existing_people = []
+            lookup_available = False
+
+        def refresh_similarity_warning(value):
+            if not value.strip():
+                similarity_warning.clear()
+                similarity_warning.hide()
+                return
+            if not lookup_available:
+                similarity_warning.setText(
+                    "בדיקת שמות דומים אינה זמינה כרגע. אפשר להמשיך, "
+                    "אך שמירת האדם עדיין כפופה לתקינות מאגר הנתונים.")
+                similarity_warning.show()
+                return
+            matches = find_similar_people(
+                value, existing_people, exclude_person_id=exclude_person_id)
+            if not matches:
+                similarity_warning.clear()
+                similarity_warning.hide()
+                return
+            descriptions = []
+            for match in matches[:4]:
+                kind = ("שם זהה" if match["exact"]
+                        else f'שם דומה ({round(match["score"] * 100)}%)')
+                descriptions.append(
+                    f'{match["name"]} · {kind} · מזהה {str(match["person_id"])[:8]}')
+            if len(matches) > 4:
+                descriptions.append(f'ועוד {len(matches) - 4} אנשים')
+            similarity_warning.setText(
+                "נמצאו אנשים בעלי שם זהה או דומה:\n"
+                + "\n".join(descriptions)
+                + "\nאפשר לשמור אדם נוסף; האזהרה אינה חוסמת שמירה.")
+            similarity_warning.show()
+
+        name_edit.textChanged.connect(refresh_similarity_warning)
+        refresh_similarity_warning(name_edit.text())
+
         layout.addWidget(QLabel("הערות (לא חובה)"))
         notes_edit = QTextEdit()
         notes_edit.setPlainText(notes)
@@ -824,9 +882,12 @@ class MainWindow(QMainWindow):
         layout.addWidget(notes_edit)
         buttons = QHBoxLayout()
         save = QPushButton("שמור")
-        cancel = QPushButton("ביטול")
+        save.setObjectName("personFormSaveButton")
         save.setDefault(True)
+        save.setAccessibleDescription("שמירת אדם; אזהרת דמיון אינה מונעת שמירה")
         save.clicked.connect(dialog.accept)
+        cancel = QPushButton("ביטול")
+        cancel.setObjectName("personFormCancelButton")
         cancel.clicked.connect(dialog.reject)
         buttons.addStretch(1)
         buttons.addWidget(save)
@@ -851,7 +912,7 @@ class MainWindow(QMainWindow):
         person = self._people_store.get_person(person_id) if person_id else None
         if person is None:
             return
-        values = self._person_form("עריכת פרטי אדם", person["name"], person["notes"])
+        values = self._person_form("עריכת פרטי אדם", person["name"], person["notes"], person_id)
         if values is None:
             return
         try:

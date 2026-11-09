@@ -62,3 +62,15 @@ All PeopleStore reads and mutations are serialized with a per-store process lock
 
 The store rejects symbolic links and Windows reparse points/junctions at the store root, index, maps directory, person directory and map payload, and verifies canonical containment beneath the configured store root. If people.json is missing while map payloads still exist, the application enters an explicit recovery-required state; it does not show an empty store or rewrite/delete the original map files.
 
+## Similar-name warnings — implementation 2
+
+The person create/edit dialog checks the typed name against the current local people index and shows an inline Hebrew warning. The warning is informational only: the Save button remains enabled, identical names remain separate records with their original stable IDs, and no person is merged or reassigned. Editing excludes the current person's ID from the comparison while still warning about another person with the same or a similar name.
+
+Matching is intentionally conservative and local-only (Python standard library; no new dependency or data-schema change):
+
+- Normalize with Unicode NFKC and `casefold()`, collapse repeated whitespace, treat common dash/maqaf punctuation as spaces, remove common apostrophe/geresh/gershayim/quotation marks, and treat other punctuation as separators.
+- A normalized exact match is reported even for short names.
+- Approximate matching uses `difflib.SequenceMatcher` with `autojunk=False`, threshold **0.86**, and a minimum normalized length of **6 characters on both names**. Short names therefore do not produce fuzzy warnings.
+- The warning lists up to four matching people with their names and short ID hints; it always explains that another person can still be saved.
+
+No automatic merge, deduplication, ID mutation, map reassignment, or storage schema change is performed.
