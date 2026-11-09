@@ -1177,6 +1177,15 @@ class MainWindow(QMainWindow):
                 return
             try:
                 self._people_store.restore_map_version(person_id, map_id, version_id)
+                if self._active_person_id == person_id and self._active_map_id == map_id:
+                    restored_record = self._people_store.read_map(person_id, map_id)
+                    self._restore_input(restored_record["input"])
+                    self._calculate()
+                    if self._active_record is None:
+                        raise ValueError("המפה שוחזרה, אך רענון התצוגה שלה נכשל")
+                    self._current_file = str(self._people_store.map_path(person_id, map_id))
+                    self._update_person_context()
+                    self.chart_caption.setText("המפה שוחזרה ונוצרה עבורה גרסה חדשה")
                 self._refresh_people(person_id)
                 populate()
             except Exception as exc:

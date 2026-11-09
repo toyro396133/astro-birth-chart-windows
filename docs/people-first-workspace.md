@@ -101,3 +101,8 @@ A version-changing operation uses a schema-2 journal while retaining schema-1 jo
 - Version history is read-only. There is no delete-history action. The Hebrew RTL history dialog labels each version and date, marks the current version, allows opening a historical snapshot for inspection, and confirms restore. Saving after opening a historical version creates a new current version rather than mutating the opened snapshot.
 
 The per-map version manifest has its own format/schema version (1); the people index and `.astrochart.json` schemas are unchanged.
+
+
+### Open-chart restore behavior
+
+If the restored map is also the active map in the chart editor, the editor inputs and computed view are recalculated from the newly restored current payload after the storage transaction succeeds. This prevents a hidden stale chart editor from later saving its pre-restore contents over the restored version.
