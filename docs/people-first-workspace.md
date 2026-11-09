@@ -10,7 +10,7 @@ This change makes the people list the application's first screen. Each person is
 
 The application stores people data under the current user's local application-data directory:
 
-- Windows: `%LOCALAPPDATA%\\AstroBirthChart\\people\\people.json`
+- Windows: `%LOCALAPPDATA%\AstroBirthChart\people\people.json`
 - Other platforms: `$XDG_DATA_HOME/AstroBirthChart/people`, or `~/.local/share/AstroBirthChart/people`
 
 The index is versioned (`astro-birth-chart-people`, schema 1) and contains only person/map metadata:
