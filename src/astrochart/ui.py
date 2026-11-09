@@ -1,4 +1,5 @@
 from datetime import date, time
+import inspect
 import json
 from pathlib import Path
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal, QSettings
@@ -6,8 +7,9 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QCompleter, QDateEdit, QDialog, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
-    QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
+    QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
+    QListWidget, QListWidgetItem,
 )
 from .domain import SIGNS, degree_in_sign
 from .engine import Calculator
@@ -29,6 +31,8 @@ from .wheel import Wheel, format_body_label
 from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
+from .people_storage import PeopleStore
+from .person_matching import find_similar_people
 from .chart_export import export_wheel_png, export_chart_pdf
 from .chart_tables_pdf import export_chart_tables_pdf
 from .aspect_explorer import AspectExplorerDialog
@@ -115,6 +119,9 @@ class MainWindow(QMainWindow):
         self._aspect_dialog = None
         self._active_record = None
         self._current_file = None
+        self._people_store = PeopleStore()
+        self._active_person_id = None
+        self._active_map_id = None
         self._display_settings = QSettings("AstroBirthChart", "AstroBirthChart")
         self._favorites = load_favorites()
         self._session_locations = {}
@@ -125,6 +132,12 @@ class MainWindow(QMainWindow):
         self._update_mode = None
         self._prepared_update = None
         self._install_after_download = False
+        self._syncing_birth_time_slider = False
+        self._live_birth_time_calculation = False
+        self._birth_time_recalc_pending = False
+        self._birth_time_timer = QTimer(self)
+        self._birth_time_timer.setInterval(350)
+        self._birth_time_timer.timeout.connect(self._run_pending_birth_time_calculation)
         self._build()
         self._apply_display_preferences(read_preferences(self._display_settings))
         QTimer.singleShot(1000, self._automatic_update_check)
@@ -134,7 +147,17 @@ class MainWindow(QMainWindow):
         root.setObjectName("rootSurface")
         root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.setCentralWidget(root)
-        main = QVBoxLayout(root)
+        outer = QVBoxLayout(root)
+        outer.setContentsMargins(0, 0, 0, 0)
+        self.page_stack = QStackedWidget(root)
+        self.people_page = QWidget()
+        self.people_page.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.chart_page = QWidget()
+        self.chart_page.setObjectName("chartPage")
+        self.chart_page.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.page_stack.addWidget(self.people_page)
+        self.page_stack.addWidget(self.chart_page)
+        main = QVBoxLayout(self.chart_page)
         main.setContentsMargins(13, 11, 13, 11)
         main.setSpacing(6)
 
@@ -186,6 +209,15 @@ class MainWindow(QMainWindow):
         preferences_action.triggered.connect(self._open_display_preferences)
         self.file_button.setMenu(self.file_menu)
         heading.addWidget(self.file_button)
+        self.person_context_label = QLabel("לא משויך — יש לבחור אדם לפני שמירה")
+        self.person_context_label.setObjectName("personContext")
+        self.person_context_label.setWordWrap(True)
+        heading.addWidget(self.person_context_label)
+        self.people_button = QPushButton("אנשים")
+        self.people_button.setObjectName("peopleHomeButton")
+        self.people_button.setToolTip("חזרה לרשימת האנשים ולמפות שלהם")
+        self.people_button.clicked.connect(self._show_people_page)
+        heading.addWidget(self.people_button)
         version = QLabel("v" + __version__)
         version.setObjectName("versionPill")
         heading.addWidget(version)
@@ -203,7 +235,7 @@ class MainWindow(QMainWindow):
         self.update_status = QLabel("")
         self.update_status.setObjectName("updateStatus")
         heading.addWidget(self.update_status)
-        main.addWidget(header)
+        outer.addWidget(header)
         # Updates are shown only after a metadata-only check finds a new version.
         self.update_panel = QFrame()
         self.update_panel.setObjectName("updatePanel")
@@ -230,14 +262,15 @@ class MainWindow(QMainWindow):
         self.install_button.setEnabled(False)
         self.install_button.clicked.connect(self._install_prepared)
         panel_row.addWidget(self.install_button)
-        main.addWidget(self.update_panel)
+        outer.addWidget(self.update_panel)
         self.update_panel.hide()
         self.update_details = QTextEdit()
         self.update_details.setReadOnly(True)
         self.update_details.setMaximumHeight(150)
         self.update_details.setObjectName("updateChanges")
-        main.addWidget(self.update_details)
+        outer.addWidget(self.update_details)
         self.update_details.hide()
+        outer.addWidget(self.page_stack, 1)
 
         # Clean, progressive-disclosure input card. Common fields stay visible;
         # coordinates and IANA zone remain one click away for power users.
@@ -317,6 +350,42 @@ class MainWindow(QMainWindow):
         form.addWidget(field_label("שעת לידה"), 1, 0)
         form.addWidget(self.hour, 1, 1)
 
+        self.birth_time_slider = QSlider(Qt.Orientation.Horizontal)
+        self.birth_time_slider.setObjectName("birthTimeSlider")
+        self.birth_time_slider.setRange(0, 1439)
+        self.birth_time_slider.setSingleStep(1)
+        self.birth_time_slider.setPageStep(15)
+        self.birth_time_slider.setTickInterval(60)
+        self.birth_time_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.birth_time_slider.setTracking(True)
+        self.birth_time_slider.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.birth_time_slider.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.birth_time_slider.setAccessibleName("מחוון שעת לידה")
+        self.birth_time_slider.setAccessibleDescription(
+            "בחירת שעה בדקות לאורך היממה, מ־00:00 בצד ימין עד 23:59 בצד שמאל. "
+            "החישוב מתעדכן בזמן הגרירה; שמירה מתבצעת רק בלחיצה מפורשת.")
+        self.birth_time_slider.setToolTip(
+            "רזולוציה של דקה לאורך כל היממה; ב־RTL חצות מימין ו־23:59 משמאל")
+        self.birth_time_value_label = QLabel("12:00")
+        self.birth_time_value_label.setObjectName("birthTimeValue")
+        self.birth_time_value_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.birth_time_value_label.setMinimumWidth(92)
+        self.birth_time_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider_label = field_label("התאמת שעת לידה")
+        slider_label.setBuddy(self.birth_time_slider)
+        slider_row = QHBoxLayout()
+        slider_row.setSpacing(10)
+        slider_row.addWidget(slider_label)
+        slider_row.addWidget(self.birth_time_slider, 1)
+        slider_row.addWidget(self.birth_time_value_label)
+        form.addLayout(slider_row, 2, 0, 1, 4)
+        self.birth_time_status = QLabel(
+            "הזזת המחוון מעדכנת את התצוגה בלבד; שמירה מתבצעת בלחיצה מפורשת.")
+        self.birth_time_status.setObjectName("birthTimeStatus")
+        self.birth_time_status.setWordWrap(True)
+        self.birth_time_status.setAccessibleName("מצב התאמת שעת לידה")
+        form.addWidget(self.birth_time_status, 3, 0, 1, 4)
+
         options = QHBoxLayout()
         options.setSpacing(16)
         self.unknown = QCheckBox("השעה אינה ידועה")
@@ -338,8 +407,8 @@ class MainWindow(QMainWindow):
         completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.city.currentTextChanged.connect(self._city_changed)
         self.city.setMaximumWidth(300)
-        form.addWidget(field_label("מקום לידה"), 2, 0)
-        form.addWidget(self.city, 2, 1)
+        form.addWidget(field_label("מקום לידה"), 4, 0)
+        form.addWidget(self.city, 4, 1)
         self.phase_label = field_label("יום או לילה")
         self.phase = QComboBox()
         for key, label in (
@@ -348,29 +417,29 @@ class MainWindow(QMainWindow):
             ("after_midnight", "לילה — אחרי חצות"),
         ):
             self.phase.addItem(label, key)
-        form.addWidget(self.phase_label, 2, 2)
-        form.addWidget(self.phase, 2, 3)
+        form.addWidget(self.phase_label, 4, 2)
+        form.addWidget(self.phase, 4, 3)
 
         self.advanced_toggle = QPushButton("＋ מיקום מתקדם")
         self.advanced_toggle.setObjectName("advancedToggle")
         self.advanced_toggle.setToolTip("עריכה ידנית של קווי רוחב/אורך ואזור זמן")
         self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.advanced_toggle.clicked.connect(lambda: self._toggle_advanced())
-        form.addWidget(self.advanced_toggle, 3, 0, 1, 2)
+        form.addWidget(self.advanced_toggle, 5, 0, 1, 2)
         self.conversion_label = QLabel("")
         self.conversion_label.setObjectName("conversionInfo")
         self.conversion_label.setWordWrap(True)
-        form.addWidget(self.conversion_label, 3, 2, 1, 2)
+        form.addWidget(self.conversion_label, 5, 2, 1, 2)
 
         footnote = QLabel("החישוב נשאר במחשב שלך — ללא העברת נתונים")
         footnote.setObjectName("helperText")
         footnote.setWordWrap(True)
-        form.addWidget(footnote, 4, 0, 1, 2)
+        form.addWidget(footnote, 6, 0, 1, 2)
         self.run = QPushButton("חשב מפת לידה")
         self.run.setObjectName("calculateButton")
         self.run.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.run.clicked.connect(self._calculate)
-        form.addWidget(self.run, 4, 2, 1, 2)
+        self.run.clicked.connect(lambda: self._calculate())
+        form.addWidget(self.run, 6, 2, 1, 2)
 
         self.advanced = QFrame()
         self.advanced.setObjectName("advancedPanel")
@@ -404,7 +473,7 @@ class MainWindow(QMainWindow):
             "שומר את הקואורדינטות ואזור הזמן במחשב זה בלבד")
         self.save_favorite_button.clicked.connect(self._save_favorite_location)
         adv.addWidget(self.save_favorite_button, 2, 0, 1, 4)
-        form.addWidget(self.advanced, 5, 0, 1, 4)
+        form.addWidget(self.advanced, 7, 0, 1, 4)
         self.advanced.setVisible(False)
         main.addWidget(form_box)
 
@@ -420,6 +489,11 @@ class MainWindow(QMainWindow):
         self.hebrew_day.valueChanged.connect(self._update_conversion)
         self.phase.currentIndexChanged.connect(self._phase_changed)
         self.hour.timeChanged.connect(self._update_conversion)
+        self.hour.timeChanged.connect(self._sync_birth_time_slider)
+        self.birth_time_slider.valueChanged.connect(self._birth_time_slider_changed)
+        self.birth_time_slider.sliderReleased.connect(self._finish_birth_time_adjustment)
+        self.unknown.toggled.connect(self._update_birth_time_controls)
+        self.approx_hour.toggled.connect(self._update_birth_time_controls)
         self.date_mode.currentIndexChanged.connect(self._date_mode_changed)
         self._city_changed(self.city.currentText())
         self._date_mode_changed()
@@ -545,8 +619,6 @@ class MainWindow(QMainWindow):
         split.setSizes([520, 610])
         main.addWidget(split, 1)
 
-        apply_theme(self)
-
         for signal in (
             self.day.dateChanged, self.hour.timeChanged, self.unknown.toggled,
             self.approx_hour.toggled, self.city.currentTextChanged,
@@ -557,6 +629,624 @@ class MainWindow(QMainWindow):
             self.phase.currentIndexChanged,
         ):
             signal.connect(self._invalidate_chart)
+
+        self._build_people_page()
+        self.page_stack.currentChanged.connect(self._sync_page_header)
+        self.page_stack.setCurrentWidget(self.people_page)
+        self._sync_page_header()
+        self._update_person_context()
+        self._sync_birth_time_slider()
+        self._update_birth_time_controls()
+        apply_theme(self)
+
+    def _build_people_page(self):
+        page = self.people_page
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(12)
+
+        page_heading = QHBoxLayout()
+        page_heading.setContentsMargins(4, 0, 4, 0)
+        page_heading.setSpacing(12)
+        page_brand = QVBoxLayout()
+        page_brand.setSpacing(2)
+        title = QLabel("האנשים שלי")
+        title.setObjectName("sectionTitle")
+        subtitle = QLabel("כל אדם הוא תיק נפרד; מפות הלידה נשמרות תחתיו")
+        subtitle.setObjectName("helperText")
+        page_brand.addWidget(title)
+        page_brand.addWidget(subtitle)
+        page_heading.addLayout(page_brand, 1)
+        self.new_person_button = QPushButton("＋ אדם חדש")
+        self.new_person_button.setObjectName("calculateButton")
+        self.new_person_button.clicked.connect(self._create_person)
+        page_heading.addWidget(self.new_person_button)
+        self.open_legacy_button = QPushButton("פתח מפה קיימת...")
+        self.open_legacy_button.setToolTip(
+            "פתיחת קובץ מפה מקומי ישן; לפני שמירה מחדש יש לשייך אותו לאדם")
+        self.open_legacy_button.clicked.connect(self._open_chart)
+        page_heading.addWidget(self.open_legacy_button)
+        layout.addLayout(page_heading)
+
+        toolbar = QHBoxLayout()
+        self.people_search = QLineEdit()
+        self.people_search.setObjectName("peopleSearch")
+        self.people_search.setPlaceholderText("חיפוש אדם לפי שם או הערות...")
+        self.people_search.setAccessibleName("חיפוש אנשים")
+        self.people_search.textChanged.connect(lambda *_: self._refresh_people())
+        toolbar.addWidget(self.people_search, 1)
+        self.people_count_label = QLabel("")
+        self.people_count_label.setObjectName("helperText")
+        toolbar.addWidget(self.people_count_label)
+        layout.addLayout(toolbar)
+
+        split = QSplitter(Qt.Orientation.Horizontal)
+        split.setChildrenCollapsible(False)
+        split.setHandleWidth(8)
+
+        people_card = QFrame()
+        people_card.setObjectName("panelCard")
+        people_layout = QVBoxLayout(people_card)
+        people_layout.setContentsMargins(12, 12, 12, 12)
+        people_layout.addWidget(QLabel("רשימת אנשים"))
+        self.people_list = QListWidget()
+        self.people_list.setObjectName("peopleList")
+        self.people_list.setAccessibleName("רשימת אנשים")
+        self.people_list.currentItemChanged.connect(self._on_person_selection)
+        people_layout.addWidget(self.people_list, 1)
+        split.addWidget(people_card)
+
+        detail_card = QFrame()
+        detail_card.setObjectName("panelCard")
+        detail_layout = QVBoxLayout(detail_card)
+        detail_layout.setContentsMargins(14, 12, 14, 12)
+        detail_layout.setSpacing(8)
+        self.person_name_label = QLabel("בחר אדם מהרשימה")
+        self.person_name_label.setObjectName("sectionTitle")
+        self.person_name_label.setAccessibleName("שם האדם הנבחר")
+        detail_layout.addWidget(self.person_name_label)
+        self.person_notes_label = QLabel("כאן יוצגו הפרטים וההערות")
+        self.person_notes_label.setObjectName("helperText")
+        self.person_notes_label.setWordWrap(True)
+        detail_layout.addWidget(self.person_notes_label)
+        self.person_map_count_label = QLabel("")
+        self.person_map_count_label.setObjectName("helperText")
+        detail_layout.addWidget(self.person_map_count_label)
+        detail_layout.addWidget(QLabel("מפות הלידה של האדם"))
+        self.people_maps = QTableWidget(0, 4)
+        self.people_maps.setObjectName("peopleMaps")
+        self.people_maps.setHorizontalHeaderLabels(["שם המפה", "תאריך", "מקום", "שעה"])
+        self.people_maps.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch)
+        self.people_maps.verticalHeader().setVisible(False)
+        self.people_maps.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.people_maps.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.people_maps.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.people_maps.setAlternatingRowColors(True)
+        self.people_maps.setMinimumHeight(260)
+        self.people_maps.cellDoubleClicked.connect(
+            lambda *_: self._open_selected_person_map())
+        self.people_maps.itemSelectionChanged.connect(self._update_people_actions)
+        detail_layout.addWidget(self.people_maps, 1)
+
+        actions = QHBoxLayout()
+        self.edit_person_button = QPushButton("עריכת פרטים")
+        self.edit_person_button.clicked.connect(self._edit_person)
+        actions.addWidget(self.edit_person_button)
+        self.new_chart_button = QPushButton("מפה חדשה לאדם")
+        self.new_chart_button.setObjectName("calculateButton")
+        self.new_chart_button.clicked.connect(self._new_chart_for_selected_person)
+        actions.addWidget(self.new_chart_button)
+        self.open_person_map_button = QPushButton("פתח מפה")
+        self.open_person_map_button.clicked.connect(self._open_selected_person_map)
+        actions.addWidget(self.open_person_map_button)
+        self.map_version_history_button = QPushButton("היסטוריית גרסאות")
+        self.map_version_history_button.setAccessibleName("היסטוריית גרסאות של המפה")
+        self.map_version_history_button.setToolTip(
+            "צפייה בגרסאות שמורות ושחזור גרסה קודמת בלי למחוק היסטוריה")
+        self.map_version_history_button.clicked.connect(self._show_map_version_history)
+        actions.addWidget(self.map_version_history_button)
+        self.primary_person_map_button = QPushButton("קבע כמפה ראשית")
+        self.primary_person_map_button.clicked.connect(self._set_primary_person_map)
+        actions.addWidget(self.primary_person_map_button)
+        detail_layout.addLayout(actions)
+        split.addWidget(detail_card)
+        split.setSizes([360, 780])
+        layout.addWidget(split, 1)
+        self._refresh_people()
+
+    def _sync_page_header(self, *_):
+        """Keep chart-only context actions visible only on the chart page."""
+        chart_active = self.page_stack.currentWidget() is self.chart_page
+        self.person_context_label.setVisible(chart_active)
+        self.people_button.setVisible(chart_active)
+
+    def _selected_person_id(self):
+        item = self.people_list.currentItem() if hasattr(self, "people_list") else None
+        return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _selected_person_map_id(self):
+        row = self.people_maps.currentRow() if hasattr(self, "people_maps") else -1
+        item = self.people_maps.item(row, 0) if row >= 0 else None
+        return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _refresh_people(self, select_person_id=None):
+        selected = select_person_id or self._selected_person_id()
+        try:
+            self._people_cache = self._people_store.list_people()
+        except Exception as exc:
+            self._people_cache = []
+            self.people_list.blockSignals(True)
+            self.people_list.clear()
+            recovery_item = QListWidgetItem("מאגר האנשים אינו זמין — נדרש שחזור נתונים")
+            recovery_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.people_list.addItem(recovery_item)
+            self.people_list.blockSignals(False)
+            self.people_list.setEnabled(False)
+            self.people_maps.setRowCount(0)
+            self.people_maps.setEnabled(False)
+            self.new_person_button.setEnabled(False)
+            self.new_chart_button.setEnabled(False)
+            self.people_count_label.setText("נדרשת התאוששות נתונים")
+            self.person_name_label.setText("המאגר אינו זמין")
+            self.person_notes_label.setText(
+                "קובצי המפות המקוריים נשמרו. אין ליצור או לשמור מפות עד לשחזור האינדקס.")
+            self.person_map_count_label.setText("המפות אינן מוצגות כדי למנוע אובדן נתונים")
+            QMessageBox.warning(self, "טעינת אנשים — נדרשת התאוששות", str(exc))
+            return
+        self.people_list.setEnabled(True)
+        self.people_maps.setEnabled(True)
+        self.new_person_button.setEnabled(True)
+        query = self.people_search.text().strip().casefold()
+        visible = [person for person in self._people_cache
+                   if not query or query in person["name"].casefold()
+                   or query in person["notes"].casefold()]
+        name_counts = {}
+        for person in visible:
+            key = person["name"].casefold()
+            name_counts[key] = name_counts.get(key, 0) + 1
+        self.people_list.blockSignals(True)
+        self.people_list.clear()
+        target_item = None
+        for person in visible:
+            map_count = len(person["maps"])
+            map_label = "מפה אחת" if map_count == 1 else f"{map_count} מפות"
+            label = f'{person["name"]} · {map_label}'
+            if name_counts[person["name"].casefold()] > 1:
+                label += f' · מזהה {person["id"][:6]}'
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, person["id"])
+            item.setToolTip(f'מזהה: {person["id"]}\n{person["notes"] or person["name"]}')
+            self.people_list.addItem(item)
+            if person["id"] == selected:
+                target_item = item
+        if target_item is not None:
+            self.people_list.setCurrentItem(target_item)
+        elif self.people_list.count():
+            self.people_list.setCurrentRow(0)
+        self.people_list.blockSignals(False)
+        self.people_count_label.setText(f"{len(self._people_cache)} אנשים")
+        self._on_person_selection(self.people_list.currentItem(), None)
+
+    def _on_person_selection(self, current, previous):
+        person_id = current.data(Qt.ItemDataRole.UserRole) if current else None
+        person = self._people_store.get_person(person_id) if person_id else None
+        self.people_maps.setRowCount(0)
+        if person is None:
+            self.person_name_label.setText("עדיין לא נבחר אדם")
+            self.person_notes_label.setText(
+                "צור אדם חדש או בחר אדם קיים. אפשר לשמור כמה מפות תחת אותו אדם.")
+            self.person_map_count_label.setText("אין מפות להצגה")
+        else:
+            self.person_name_label.setText(person["name"])
+            self.person_notes_label.setText(person["notes"] or "אין הערות לאדם זה")
+            self.person_map_count_label.setText(
+                "מפה אחת שמורה" if len(person["maps"]) == 1
+                else f'{len(person["maps"])} מפות שמורות')
+            for row, chart in enumerate(person["maps"]):
+                self.people_maps.insertRow(row)
+                name = ("★ " if chart["is_primary"] else "") + chart["name"]
+                values = [name, chart["civil_date"], chart["city"],
+                          chart["clock"] or "שעה לא ידועה"]
+                for column, value in enumerate(values):
+                    cell = QTableWidgetItem(value)
+                    if column == 0:
+                        cell.setData(Qt.ItemDataRole.UserRole, chart["id"])
+                    self.people_maps.setItem(row, column, cell)
+        self._update_people_actions()
+
+    def _update_people_actions(self):
+        has_person = self._selected_person_id() is not None
+        has_map = has_person and self._selected_person_map_id() is not None
+        self.edit_person_button.setEnabled(has_person)
+        self.new_chart_button.setEnabled(has_person)
+        self.open_person_map_button.setEnabled(has_map)
+        self.map_version_history_button.setEnabled(has_map)
+        self.primary_person_map_button.setEnabled(has_map)
+
+    def _person_form(self, title, name="", notes="", exclude_person_id=None):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("שם האדם"))
+        name_edit = QLineEdit(name)
+        name_edit.setObjectName("personNameEdit")
+        name_edit.setAccessibleName("שם האדם")
+        name_edit.setMaxLength(120)
+        layout.addWidget(name_edit)
+
+        similarity_warning = QLabel("")
+        similarity_warning.setObjectName("personSimilarityWarning")
+        similarity_warning.setAccessibleName("אזהרת שם זהה או דומה")
+        similarity_warning.setAccessibleDescription(
+            "האזהרה אינפורמטיבית בלבד. אפשר לשמור אדם נוסף גם אם השם זהה.")
+        similarity_warning.setTextFormat(Qt.TextFormat.PlainText)
+        similarity_warning.setWordWrap(True)
+        similarity_warning.setStyleSheet(
+            "QLabel#personSimilarityWarning { color: #805400; "
+            "background: #fff4d6; border: 1px solid #e4c36d; "
+            "border-radius: 6px; padding: 7px; }")
+        similarity_warning.hide()
+        layout.addWidget(similarity_warning)
+
+        try:
+            existing_people = self._people_store.list_people()
+            lookup_available = True
+        except Exception:
+            existing_people = []
+            lookup_available = False
+
+        def refresh_similarity_warning(value):
+            if not value.strip():
+                similarity_warning.clear()
+                similarity_warning.hide()
+                return
+            if not lookup_available:
+                similarity_warning.setText(
+                    "בדיקת שמות דומים אינה זמינה כרגע. אפשר להמשיך, "
+                    "אך שמירת האדם עדיין כפופה לתקינות מאגר הנתונים.")
+                similarity_warning.show()
+                return
+            matches = find_similar_people(
+                value, existing_people, exclude_person_id=exclude_person_id)
+            if not matches:
+                similarity_warning.clear()
+                similarity_warning.hide()
+                return
+            descriptions = []
+            for match in matches[:4]:
+                kind = ("שם זהה" if match["exact"]
+                        else f'שם דומה ({round(match["score"] * 100)}%)')
+                descriptions.append(
+                    f'{match["name"]} · {kind} · מזהה {str(match["person_id"])[:8]}')
+            if len(matches) > 4:
+                descriptions.append(f'ועוד {len(matches) - 4} אנשים')
+            similarity_warning.setText(
+                "נמצאו אנשים בעלי שם זהה או דומה:\n"
+                + "\n".join(descriptions)
+                + "\nאפשר לשמור אדם נוסף; האזהרה אינה חוסמת שמירה.")
+            similarity_warning.show()
+
+        name_edit.textChanged.connect(refresh_similarity_warning)
+        refresh_similarity_warning(name_edit.text())
+
+        layout.addWidget(QLabel("הערות (לא חובה)"))
+        notes_edit = QTextEdit()
+        notes_edit.setPlainText(notes)
+        notes_edit.setAccessibleName("הערות על האדם")
+        notes_edit.setMinimumHeight(90)
+        layout.addWidget(notes_edit)
+        buttons = QHBoxLayout()
+        save = QPushButton("שמור")
+        save.setObjectName("personFormSaveButton")
+        save.setDefault(True)
+        save.setAccessibleDescription("שמירת אדם; אזהרת דמיון אינה מונעת שמירה")
+        save.clicked.connect(dialog.accept)
+        cancel = QPushButton("ביטול")
+        cancel.setObjectName("personFormCancelButton")
+        cancel.clicked.connect(dialog.reject)
+        buttons.addStretch(1)
+        buttons.addWidget(save)
+        buttons.addWidget(cancel)
+        layout.addLayout(buttons)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return name_edit.text(), notes_edit.toPlainText()
+
+    def _create_person(self):
+        values = self._person_form("אדם חדש")
+        if values is None:
+            return
+        try:
+            person = self._people_store.create_person(*values)
+            self._refresh_people(person["id"])
+        except Exception as exc:
+            QMessageBox.warning(self, "יצירת אדם", str(exc))
+
+    def _edit_person(self):
+        person_id = self._selected_person_id()
+        person = self._people_store.get_person(person_id) if person_id else None
+        if person is None:
+            return
+        values = self._person_form("עריכת פרטי אדם", person["name"], person["notes"], person_id)
+        if values is None:
+            return
+        try:
+            self._people_store.update_person(person_id, *values)
+            self._refresh_people(person_id)
+            self._update_person_context()
+        except Exception as exc:
+            QMessageBox.warning(self, "עריכת אדם", str(exc))
+
+    def _new_chart_for_selected_person(self):
+        person_id = self._selected_person_id()
+        if person_id:
+            self._new_chart_for_person(person_id)
+
+    def _new_chart_for_person(self, person_id):
+        person = self._people_store.get_person(person_id)
+        if person is None:
+            QMessageBox.warning(self, "מפה חדשה", "יש לבחור אדם קיים")
+            return
+        self._active_person_id = person_id
+        self._active_map_id = None
+        self._current_file = None
+        self._active_chart = None
+        self._interpretation_chart = None
+        self._active_record = None
+        if self._aspect_dialog is not None:
+            self._aspect_dialog.close()
+        self._aspect_dialog = None
+        self.wheel.set_chart(None)
+        self.table.setRowCount(0)
+        self.aspects.clear()
+        self.warnings.clear()
+        # A genuinely new map starts from clean defaults, not the last chart
+        # that happened to be open in this window.
+        self.date_mode.setCurrentIndex(self.date_mode.findData("gregorian"))
+        self.day.setDate(QDate.currentDate())
+        self.hour.setTime(QTime(12, 0))
+        self.unknown.setChecked(False)
+        self.approx_hour.setChecked(False)
+        self.city.setCurrentText("ירושלים")
+        self._city_changed(self.city.currentText())
+        self.phase.setCurrentIndex(self.phase.findData("day"))
+        self._toggle_advanced(False)
+        self.chart_caption.setText("מפה חדשה — הזן פרטי לידה וחשב")
+        self._update_person_context()
+        self.page_stack.setCurrentWidget(self.chart_page)
+        self.setWindowTitle(f'AstroBirthChart — {person["name"]}')
+
+    def _show_people_page(self):
+        self._refresh_people(select_person_id=self._active_person_id)
+        self.page_stack.setCurrentWidget(self.people_page)
+        self.setWindowTitle("AstroBirthChart — האנשים שלי")
+
+    def _update_person_context(self):
+        person = self._people_store.get_person(self._active_person_id) if self._active_person_id else None
+        if person is None:
+            self._active_person_id = None
+            self._active_map_id = None
+            self.person_context_label.setText("לא משויך — יש לבחור אדם לפני שמירה")
+        else:
+            self.person_context_label.setText(f'אדם: {person["name"]}')
+
+    def _choose_person_for_save(self):
+        people = self._people_store.list_people()
+        if not people:
+            values = self._person_form("יצירת אדם לפני שמירת מפה")
+            if values is None:
+                return None
+            person = self._people_store.create_person(*values)
+            self._refresh_people(person["id"])
+            return person["id"]
+        person_ids_by_label = {}
+        labels = []
+        for person in people:
+            label = f'{person["name"]} · מזהה {person["id"]}'
+            labels.append(label)
+            person_ids_by_label[label] = person["id"]
+        create_label = "＋ יצירת אדם חדש"
+        labels.append(create_label)
+        selected, accepted = QInputDialog.getItem(
+            self, "בחירת אדם", "למי לשייך את המפה לפני השמירה?", labels, 0, False)
+        if not accepted:
+            return None
+        if selected == create_label:
+            values = self._person_form("יצירת אדם לפני שמירת מפה")
+            if values is None:
+                return None
+            person = self._people_store.create_person(*values)
+            self._refresh_people(person["id"])
+            return person["id"]
+        return person_ids_by_label.get(selected)
+
+    def _open_selected_person_map(self):
+        person_id = self._selected_person_id()
+        map_id = self._selected_person_map_id()
+        if not person_id or not map_id:
+            return
+        try:
+            record = self._people_store.read_map(person_id, map_id)
+            self._restore_input(record["input"])
+            self._calculate()
+            if self._active_record is None:
+                raise ValueError("חישוב מחדש של המפה השמורה נכשל")
+            self._active_person_id = person_id
+            self._active_map_id = map_id
+            self._current_file = str(self._people_store.map_path(person_id, map_id))
+            self._update_person_context()
+            self.page_stack.setCurrentWidget(self.chart_page)
+            person = self._people_store.get_person(person_id)
+            self.chart_caption.setText(f'המפה נפתחה מתוך {person["name"]}')
+        except Exception as exc:
+            QMessageBox.warning(self, "פתיחת מפה", str(exc))
+
+    def _set_primary_person_map(self):
+        person_id = self._selected_person_id()
+        map_id = self._selected_person_map_id()
+        if not person_id or not map_id:
+            return
+        try:
+            self._people_store.set_primary_map(person_id, map_id)
+            self._refresh_people(person_id)
+        except Exception as exc:
+            QMessageBox.warning(self, "מפה ראשית", str(exc))
+
+    def _show_map_version_history(self):
+        person_id = self._selected_person_id()
+        map_id = self._selected_person_map_id()
+        if not person_id or not map_id:
+            return
+        try:
+            history = self._people_store.list_map_versions(person_id, map_id)
+        except Exception as exc:
+            QMessageBox.warning(self, "היסטוריית גרסאות", str(exc))
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("היסטוריית גרסאות מפה")
+        dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        dialog.setMinimumSize(590, 360)
+        layout = QVBoxLayout(dialog)
+        description = QLabel(
+            "כל גרסה נשמרת בנפרד. שחזור יוצר גרסה חדשה ואינו מוחק גרסאות קודמות.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        table = QTableWidget(0, 4)
+        table.setObjectName("mapVersionHistoryTable")
+        table.setAccessibleName("גרסאות שמורות של המפה")
+        table.setHorizontalHeaderLabels(["גרסה", "תאריך ושעה", "מקור", "מצב"])
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setAlternatingRowColors(True)
+        layout.addWidget(table, 1)
+
+        buttons = QHBoxLayout()
+        preview_button = QPushButton("פתח גרסה")
+        preview_button.setObjectName("openMapVersionButton")
+        preview_button.setAccessibleDescription(
+            "פתיחת תוכן הגרסה בחלון המפה; שמירה לאחר מכן תיצור גרסה חדשה")
+        restore_button = QPushButton("שחזר גרסה")
+        restore_button.setObjectName("restoreMapVersionButton")
+        restore_button.setAccessibleDescription(
+            "שחזור יוצר גרסה חדשה ואינו מוחק את ההיסטוריה")
+        close_button = QPushButton("סגור")
+        buttons.addWidget(preview_button)
+        buttons.addWidget(restore_button)
+        buttons.addStretch(1)
+        buttons.addWidget(close_button)
+        layout.addLayout(buttons)
+
+        def selected_version():
+            row = table.currentRow()
+            item = table.item(row, 0) if row >= 0 else None
+            return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+        def selected_is_current():
+            version_id = selected_version()
+            return any(
+                version["id"] == version_id and version["is_current"]
+                for version in history["versions"]
+            )
+
+        def update_buttons():
+            has_selection = selected_version() is not None
+            preview_button.setEnabled(has_selection)
+            restore_button.setEnabled(has_selection and not selected_is_current())
+
+        def populate(select_version_id=None):
+            nonlocal history
+            history = self._people_store.list_map_versions(person_id, map_id)
+            number_by_id = {item["id"]: item["number"] for item in history["versions"]}
+            table.setRowCount(0)
+            selected_row = 0
+            for row, version in enumerate(history["versions"]):
+                table.insertRow(row)
+                source = (
+                    f'שוחזרה מגרסה {number_by_id.get(version["restored_from"], "?")}'
+                    if version["restored_from"] else "שמירה"
+                )
+                values = [
+                    f'גרסה {version["number"]}',
+                    version["created_at"],
+                    source,
+                    "נוכחית" if version["is_current"] else "קודמת",
+                ]
+                for column, value in enumerate(values):
+                    cell = QTableWidgetItem(value)
+                    if column == 0:
+                        cell.setData(Qt.ItemDataRole.UserRole, version["id"])
+                    table.setItem(row, column, cell)
+                if version["id"] == (select_version_id or history["current_version_id"]):
+                    selected_row = row
+            if table.rowCount():
+                table.setCurrentCell(selected_row, 0)
+            update_buttons()
+
+        def preview():
+            version_id = selected_version()
+            if not version_id:
+                return
+            try:
+                record = self._people_store.read_map_version(person_id, map_id, version_id)
+                self._restore_input(record["input"])
+                self._calculate()
+                if self._active_record is None:
+                    raise ValueError("חישוב מחדש של גרסת המפה נכשל")
+                self._active_person_id = person_id
+                self._active_map_id = map_id
+                self._current_file = str(self._people_store.map_path(person_id, map_id))
+                self._update_person_context()
+                version = next(item for item in history["versions"] if item["id"] == version_id)
+                self.chart_caption.setText(
+                    f'נפתחה תצוגת גרסה {version["number"]}; שמירה תיצור גרסה חדשה')
+                self.page_stack.setCurrentWidget(self.chart_page)
+                dialog.accept()
+            except Exception as exc:
+                QMessageBox.warning(self, "פתיחת גרסת מפה", str(exc))
+
+        def restore():
+            version_id = selected_version()
+            if not version_id or selected_is_current():
+                return
+            answer = QMessageBox.question(
+                dialog,
+                "שחזור גרסת מפה",
+                "השחזור יהפוך את תוכן הגרסה שנבחרה לגרסה הנוכחית באמצעות יצירת גרסה חדשה. "
+                "כל הגרסאות הקודמות יישארו שמורות. להמשיך?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            try:
+                self._people_store.restore_map_version(person_id, map_id, version_id)
+                if self._active_person_id == person_id and self._active_map_id == map_id:
+                    restored_record = self._people_store.read_map(person_id, map_id)
+                    self._restore_input(restored_record["input"])
+                    self._calculate()
+                    if self._active_record is None:
+                        raise ValueError("המפה שוחזרה, אך רענון התצוגה שלה נכשל")
+                    self._current_file = str(self._people_store.map_path(person_id, map_id))
+                    self._update_person_context()
+                    self.chart_caption.setText("המפה שוחזרה ונוצרה עבורה גרסה חדשה")
+                self._refresh_people(person_id)
+                populate()
+            except Exception as exc:
+                QMessageBox.warning(self, "שחזור גרסת מפה", str(exc))
+
+        table.itemSelectionChanged.connect(update_buttons)
+        preview_button.clicked.connect(preview)
+        restore_button.clicked.connect(restore)
+        close_button.clicked.connect(dialog.reject)
+        populate()
+        dialog.exec()
 
     def _apply_display_preferences(self, preferences):
         """Adjust layout only; the computed astronomical chart remains unchanged."""
@@ -613,8 +1303,85 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "הגדרות תצוגה", str(exc))
 
+    def _sync_birth_time_slider(self, *_):
+        """Mirror manual time edits into the minute-resolution RTL slider."""
+        if not hasattr(self, "birth_time_slider"):
+            return
+        clock = self.hour.time()
+        minutes = clock.hour() * 60 + clock.minute()
+        self.birth_time_slider.blockSignals(True)
+        try:
+            self.birth_time_slider.setValue(minutes)
+        finally:
+            self.birth_time_slider.blockSignals(False)
+        self._update_birth_time_controls()
+
+    def _update_birth_time_controls(self, *_):
+        if not hasattr(self, "birth_time_slider"):
+            return
+        unknown = self.unknown.isChecked()
+        estimated = self.approx_hour.isChecked() and not unknown
+        self.birth_time_slider.setEnabled(not unknown)
+        if unknown:
+            self.birth_time_value_label.setText("שעה לא ידועה")
+            self.birth_time_slider.setAccessibleDescription(
+                "שעת הלידה אינה ידועה. המחוון מושבת כדי לא להציג שעה מדויקת שלא נמסרה.")
+            self.birth_time_status.setText(
+                "שעת הלידה אינה ידועה; המחוון מושבת והחישוב נשאר במצב דגימה, ללא אופק, MC או בתים.")
+        else:
+            clock = self.hour.time().toString("HH:mm")
+            self.birth_time_value_label.setText(
+                clock + (" · משוערת" if estimated else ""))
+            self.birth_time_slider.setAccessibleDescription(
+                ("שעת לידה משוערת. " if estimated else "שעת לידה. ")
+                + "בחירה בדקות לאורך היממה; התוצאה מתעדכנת בתצוגה בלבד עד לשמירה מפורשת.")
+            self.birth_time_status.setText(
+                ("השעה מסומנת כמשוערת; שינוי המחוון נשאר אומדן ואינו הופך אותה לשעה ודאית. "
+                 if estimated else "")
+                + "הזזת המחוון מעדכנת את התצוגה בלבד; שמירה מתבצעת בלחיצה מפורשת.")
+
+    def _birth_time_slider_changed(self, value):
+        if self.unknown.isChecked():
+            self._update_birth_time_controls()
+            return
+        minutes = int(value)
+        self._syncing_birth_time_slider = True
+        try:
+            self.hour.setTime(QTime(minutes // 60, minutes % 60))
+        finally:
+            self._syncing_birth_time_slider = False
+        self._update_birth_time_controls()
+        self._birth_time_recalc_pending = True
+        if not self._birth_time_timer.isActive():
+            self._birth_time_timer.start()
+
+    def _run_pending_birth_time_calculation(self):
+        if self._birth_time_timer.isActive():
+            self._birth_time_timer.stop()
+        if not self._birth_time_recalc_pending:
+            return
+        self._birth_time_recalc_pending = False
+        self._live_birth_time_calculation = True
+        try:
+            self._calculate(live=True)
+        finally:
+            self._live_birth_time_calculation = False
+
+    def _finish_birth_time_adjustment(self):
+        if self._birth_time_timer.isActive():
+            self._birth_time_timer.stop()
+        if self._birth_time_recalc_pending:
+            self._run_pending_birth_time_calculation()
+
     def _invalidate_chart(self, *args):
         """A form change invalidates all chart data, interpretation and exports."""
+        if not self._syncing_birth_time_slider:
+            if not self._live_birth_time_calculation:
+                self._birth_time_recalc_pending = False
+                if self._birth_time_timer.isActive():
+                    self._birth_time_timer.stop()
+            if hasattr(self, "birth_time_status"):
+                self._update_birth_time_controls()
         if self._active_chart is None and self._interpretation_chart is None:
             return
         self._active_chart = None
@@ -820,6 +1587,8 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.update_status.setText("המתן לסיום בדיקת/הורדת העדכון")
             return
+        self._birth_time_recalc_pending = False
+        self._birth_time_timer.stop()
         self._clear_prepared_update()
         super().closeEvent(event)
 
@@ -890,6 +1659,7 @@ class MainWindow(QMainWindow):
     def _unknown_changed(self, checked):
         self.hour.setEnabled(not checked)
         self.approx_hour.setEnabled(not checked)
+        self._update_birth_time_controls()
         self._update_conversion()
 
     def _date_mode_changed(self, *args):
@@ -909,6 +1679,7 @@ class MainWindow(QMainWindow):
         self.approx_hour.setChecked(calendar_mode)
         self._fill_hebrew_months()
         self._update_conversion()
+        self._update_birth_time_controls()
 
     def _phase_changed(self, *args):
         key = self.phase.currentData()
@@ -916,6 +1687,7 @@ class MainWindow(QMainWindow):
                      "after_midnight": (1, 0)}
         if key in suggested:
             self.hour.setTime(QTime(*suggested[key]))
+        self._update_birth_time_controls()
         self._update_conversion()
 
     def _resolved_input(self):
@@ -994,7 +1766,7 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.warning(self, "שמירת מיקום מועדף", str(exc))
 
-    def _calculate(self):
+    def _calculate(self, *, live=False):
         self._invalidate_chart()
         self._active_record = None
         try:
@@ -1036,8 +1808,22 @@ class MainWindow(QMainWindow):
             record = make_record(self._capture_input(), __version__)
             self._show_chart(chart)
             self._active_record = record
+            if live:
+                self.birth_time_status.setText(
+                    "התצוגה עודכנה ל־" + self.hour.time().toString("HH:mm")
+                    + (" (משוערת)" if chart.time_certainty == "estimated" else "")
+                    + "; השינוי נשמר רק בלחיצה מפורשת על שמירה.")
+            else:
+                self._update_birth_time_controls()
+            return True
         except Exception as exc:
-            QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
+            if live:
+                self.birth_time_status.setText(
+                    "לא ניתן לחשב את השעה " + self.hour.time().toString("HH:mm")
+                    + ": " + str(exc) + ". השעה, התאריך ואזור הזמן לא הוזזו אוטומטית.")
+            else:
+                QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
+            return False
 
     def _show_chart(self, chart):
         if self._aspect_dialog is not None:
@@ -1163,6 +1949,8 @@ class MainWindow(QMainWindow):
         }
 
     def _require_current_chart(self):
+        if self._birth_time_recalc_pending:
+            self._finish_birth_time_adjustment()
         if self._active_chart is None or self._active_record is None:
             raise ValueError("יש לחשב מפה תקינה לפני שמירה או ייצוא")
         if self._capture_input() != self._active_record["input"]:
@@ -1172,18 +1960,37 @@ class MainWindow(QMainWindow):
     def _save_chart(self, save_as=False):
         try:
             chart, record = self._require_current_chart()
-            selected = None if save_as else self._current_file
-            if not selected:
-                selected, _ = QFileDialog.getSaveFileName(
-                    self, "שמור מפה מקומית", "", "AstroBirthChart (*.astrochart.json);;JSON (*.json)")
-            if not selected:
-                return
-            path = Path(selected)
-            if not path.name.endswith(".json"):
-                path = path.with_name(path.name + ".astrochart.json")
-            save_record(path, record)
-            self._current_file = str(path)
-            self.chart_caption.setText("המפה נשמרה במחשב")
+            person = (self._people_store.get_person(self._active_person_id)
+                      if self._active_person_id else None)
+            if person is None:
+                person_id = self._choose_person_for_save()
+                if not person_id:
+                    return
+                self._active_person_id = person_id
+                self._active_map_id = None
+                person = self._people_store.get_person(person_id)
+            existing = next((item for item in person["maps"]
+                             if item["id"] == self._active_map_id), None)
+            if save_as or existing is None:
+                default_name = (f'מפה — {record["input"]["city"]} — '
+                                f'{record["input"]["civil_date"]}')
+                name, accepted = QInputDialog.getText(
+                    self, "שם המפה", "תן שם למפה השמורה תחת האדם:", 
+                    QLineEdit.EchoMode.Normal, default_name)
+                if not accepted:
+                    return
+                if not name.strip():
+                    raise ValueError("יש לתת שם למפה לפני השמירה")
+                saved = self._people_store.save_map(self._active_person_id, name, record)
+            else:
+                saved = self._people_store.update_map(
+                    self._active_person_id, existing["id"], existing["name"], record)
+            self._active_map_id = saved["id"]
+            self._current_file = str(self._people_store.map_path(
+                self._active_person_id, saved["id"]))
+            self._update_person_context()
+            self._refresh_people(select_person_id=self._active_person_id)
+            self.chart_caption.setText(f'המפה נשמרה תחת {person["name"]}')
         except Exception as exc:
             QMessageBox.warning(self, "שמירת מפה", str(exc))
 
@@ -1223,6 +2030,8 @@ class MainWindow(QMainWindow):
             self.mixed_choice.setCurrentIndex(index)
         self.unknown.setChecked(values["unknown_time"])
         self.approx_hour.setChecked(values["estimated_time"])
+        self._sync_birth_time_slider()
+        self._update_birth_time_controls()
 
     def _open_chart(self):
         selected, _ = QFileDialog.getOpenFileName(
@@ -1238,13 +2047,19 @@ class MainWindow(QMainWindow):
             self._calculate()
             if self._active_record is None:
                 raise ValueError("חישוב מחדש של הקובץ נכשל")
+            # Legacy standalone files remain openable. They are not silently
+            # assigned to a person; a person must be selected before re-saving.
+            self._active_person_id = None
+            self._active_map_id = None
             self._current_file = selected
+            self._update_person_context()
+            self.page_stack.setCurrentWidget(self.chart_page)
             if (record["app_version"] != __version__ or
                     record["tzdata_version"] != self._active_record["tzdata_version"]):
                 QMessageBox.information(
                     self, "חישוב מחדש",
                     "גרסת התוכנה או נתוני אזורי הזמן השתנתה. המפה חושבה מחדש; "
-                    "לא הובטח שחזור מספרי זהה לקובץ הקודם.")
+                    "לא הובטח שחזור מספרי זהה לקובץ הקודם. הקובץ הישן לא שויך לאדם.")
         except Exception as exc:
             QMessageBox.warning(self, "פתיחת מפה", str(exc))
 
@@ -1272,7 +2087,20 @@ class MainWindow(QMainWindow):
             elif kind == "png":
                 export_wheel_png(self.wheel, destination)
             elif kind == "pdf_tables":
-                export_chart_tables_pdf(chart, destination)
+                # PR #37's metadata-aware exporter is optional until the shared
+                # PDF branch is reconciled; keep this branch compatible meanwhile.
+                try:
+                    parameters = inspect.signature(export_chart_tables_pdf).parameters
+                except (TypeError, ValueError):
+                    parameters = {}
+                supports_metadata = ("metadata" in parameters or any(
+                    parameter.kind == inspect.Parameter.VAR_KEYWORD
+                    for parameter in parameters.values()))
+                if supports_metadata:
+                    export_chart_tables_pdf(
+                        chart, destination, metadata=record["input"])
+                else:
+                    export_chart_tables_pdf(chart, destination)
             else:
                 export_chart_pdf(self.wheel, chart, destination)
             self.chart_caption.setText("הייצוא הושלם במחשב")

@@ -143,6 +143,18 @@ QLabel#conversionInfo {
     font-size: 11px;
     font-weight: 600;
 }
+QSlider#birthTimeSlider { min-height: 24px; }
+QSlider#birthTimeSlider::groove:horizontal {
+    height: 6px; background: #dbe6f2; border-radius: 3px;
+}
+QSlider#birthTimeSlider::handle:horizontal {
+    width: 16px; margin: -7px 0; background: #ffffff;
+    border: 2px solid #347ad1; border-radius: 9px;
+}
+QLabel#birthTimeValue {
+    color: #244f85; font-weight: 700; font-size: 12px;
+}
+QLabel#birthTimeStatus { color: #526984; font-size: 10px; }
 QLabel#noteTitle {
     color: #526984;
     font-size: 11px;
@@ -322,6 +334,51 @@ QScrollBar::handle:vertical {
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     height: 0px;
+}
+QListWidget#peopleList, QTableWidget#peopleMaps {
+    color: #263b53;
+    background-color: #ffffff;
+    alternate-background-color: #f6f9fe;
+    border: 1px solid #e5ecf6;
+    border-radius: 9px;
+    selection-background-color: #dcecff;
+    selection-color: #193a62;
+    outline: 0;
+}
+QListWidget#peopleList::item {
+    padding: 10px 9px;
+    border-bottom: 1px solid #edf1f7;
+}
+QListWidget#peopleList::item:selected {
+    background-color: #e4efff;
+    color: #193a62;
+    border-right: 3px solid #347ad1;
+}
+QTableWidget#peopleMaps QHeaderView::section {
+    background-color: #eff5fc;
+    border: none;
+    border-left: 1px solid #e1e9f4;
+    border-bottom: 1px solid #dee9f6;
+    color: #385474;
+    font-size: 11px;
+    font-weight: 750;
+    padding: 5px 4px;
+}
+QFrame#appHeader QLabel#personContext {
+    color: #d8e8f8;
+    font-size: 10px;
+}
+QFrame#appHeader QPushButton#peopleHomeButton {
+    color: #e5f0ff;
+    background-color: #284866;
+    border: 1px solid #57708d;
+    border-radius: 8px;
+    min-height: 28px;
+    padding: 4px 12px;
+}
+QFrame#appHeader QPushButton#peopleHomeButton:hover {
+    background-color: #376080;
+    border-color: #8ac2f2;
 }
 """
 

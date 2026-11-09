@@ -1,6 +1,7 @@
 """Actual Windows GUI interaction and rendered screenshots; uses test data only."""
 import json
 import sys
+import tempfile
 from datetime import date
 from copy import deepcopy
 from pathlib import Path
@@ -12,6 +13,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFrame, QWidget
 
 from astrochart.ui import MainWindow
+from astrochart.people_storage import PeopleStore
 from astrochart.interpretation_dialog import RuleInterpretationDialog
 from astrochart.interpretation import interpret_chart
 from astrochart.synthesis import synthesize, FUNCTIONS
@@ -43,16 +45,28 @@ def save_n1_example(name, content):
 def main():
     app = QApplication([])
     app.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    temp_people = tempfile.TemporaryDirectory(prefix="astrochart-people-qa-")
     window = MainWindow()
-    window.day.setDate(QDate(2024, 7, 1))
-    window.hour.setTime(QTime(12, 30))
-    window.city.setCurrentText("ירושלים")
+    window._people_store = PeopleStore(temp_people.name)
+    window._refresh_people()
+    assert window.page_stack.currentWidget() is window.people_page
+    assert window.people_list.count() == 0
+    qa_person = window._people_store.create_person("בדיקת ממשק")
+    window._refresh_people(qa_person["id"])
     window.resize(1024, 790)
     window.show()
     QTest.qWait(200)
+    assert window.people_list.count() == 1
+    snapshot(window, "people-home.png")
+    window._new_chart_for_person(qa_person["id"])
+    window.day.setDate(QDate(2024, 7, 1))
+    window.hour.setTime(QTime(12, 30))
+    window.city.setCurrentText("ירושלים")
+    QTest.qWait(100)
     # Visual redesign is built from real native Qt widgets, not a mockup.
     header = window.findChild(QFrame, "appHeader")
     assert header is not None
+    assert window.update_button.isVisible(), "Update controls must remain available on the people home"
     assert "מפת לידה אסטרונומית" in header.findChild(
         __import__("PySide6.QtWidgets", fromlist=["QLabel"]).QLabel, "appTitle").text()
     assert window.styleSheet() and "panelCard" in window.styleSheet()
@@ -323,6 +337,7 @@ def main():
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print("GUI_QA_PASSED", output)
     window.close()
+    temp_people.cleanup()
     app.quit()
 
 

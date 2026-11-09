@@ -230,7 +230,9 @@ def test_copy_selected_row_as_text(window):
 def test_update_notes_are_visible_before_downloading(window):
     release = Release("9.9.9", "https://example.invalid/release",
                       "a" * 64, 74_000_000, "גרסה v9.9.9\n- תוספת: יומן שינויים")
+    assert window.page_stack.currentWidget() is window.people_page
     window._on_update_checked((release, "portable"))
+    assert window.update_panel.isVisible()
     assert window.update_details.isVisible()
     assert window.update_details.isReadOnly()
     assert "יומן שינויים" in window.update_details.toPlainText()
