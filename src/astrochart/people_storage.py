@@ -465,6 +465,7 @@ class PeopleStore:
                     save_record(target, new_record)
             except (OSError, ValueError):
                 save_record(target, new_record)
+            self._fsync_directory(target.parent)
         elif current_exists == journal["old_index_exists"] and (
             (not current_exists) or current_index == old_index
         ):
@@ -475,6 +476,7 @@ class PeopleStore:
             else:
                 self._ensure_directory(target.parent)
                 save_record(target, old_record)
+                self._fsync_directory(target.parent)
         else:
             raise ValueError(
                 "נמצא שינוי חיצוני המתנגש ביומן ההתאוששות. "
@@ -506,6 +508,7 @@ class PeopleStore:
         try:
             self._ensure_directory(target.parent)
             save_record(target, new_record)
+            self._fsync_directory(target.parent)
             self._write(new_index)
             self._remove_file(self.journal_path)
             self._fsync_directory(self.directory)
