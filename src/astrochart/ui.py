@@ -1,4 +1,5 @@
 from datetime import date, time
+import inspect
 import json
 from pathlib import Path
 from PySide6.QtCore import QDate, Qt, QTime, QTimer, QThread, Signal, QSettings
@@ -6,7 +7,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QComboBox, QCompleter, QDateEdit, QDialog, QDoubleSpinBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHeaderView, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox,
-    QPushButton, QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
+    QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStackedWidget, QTableWidget,
     QTableWidgetItem, QTextEdit, QTimeEdit, QVBoxLayout, QWidget,
     QListWidget, QListWidgetItem,
 )
@@ -131,6 +132,12 @@ class MainWindow(QMainWindow):
         self._update_mode = None
         self._prepared_update = None
         self._install_after_download = False
+        self._syncing_birth_time_slider = False
+        self._live_birth_time_calculation = False
+        self._birth_time_recalc_pending = False
+        self._birth_time_timer = QTimer(self)
+        self._birth_time_timer.setInterval(350)
+        self._birth_time_timer.timeout.connect(self._run_pending_birth_time_calculation)
         self._build()
         self._apply_display_preferences(read_preferences(self._display_settings))
         QTimer.singleShot(1000, self._automatic_update_check)
@@ -343,6 +350,42 @@ class MainWindow(QMainWindow):
         form.addWidget(field_label("שעת לידה"), 1, 0)
         form.addWidget(self.hour, 1, 1)
 
+        self.birth_time_slider = QSlider(Qt.Orientation.Horizontal)
+        self.birth_time_slider.setObjectName("birthTimeSlider")
+        self.birth_time_slider.setRange(0, 1439)
+        self.birth_time_slider.setSingleStep(1)
+        self.birth_time_slider.setPageStep(15)
+        self.birth_time_slider.setTickInterval(60)
+        self.birth_time_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.birth_time_slider.setTracking(True)
+        self.birth_time_slider.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.birth_time_slider.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.birth_time_slider.setAccessibleName("מחוון שעת לידה")
+        self.birth_time_slider.setAccessibleDescription(
+            "בחירת שעה בדקות לאורך היממה, מ־00:00 בצד ימין עד 23:59 בצד שמאל. "
+            "החישוב מתעדכן בזמן הגרירה; שמירה מתבצעת רק בלחיצה מפורשת.")
+        self.birth_time_slider.setToolTip(
+            "רזולוציה של דקה לאורך כל היממה; ב־RTL חצות מימין ו־23:59 משמאל")
+        self.birth_time_value_label = QLabel("12:00")
+        self.birth_time_value_label.setObjectName("birthTimeValue")
+        self.birth_time_value_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.birth_time_value_label.setMinimumWidth(92)
+        self.birth_time_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        slider_label = field_label("התאמת שעת לידה")
+        slider_label.setBuddy(self.birth_time_slider)
+        slider_row = QHBoxLayout()
+        slider_row.setSpacing(10)
+        slider_row.addWidget(slider_label)
+        slider_row.addWidget(self.birth_time_slider, 1)
+        slider_row.addWidget(self.birth_time_value_label)
+        form.addLayout(slider_row, 2, 0, 1, 4)
+        self.birth_time_status = QLabel(
+            "הזזת המחוון מעדכנת את התצוגה בלבד; שמירה מתבצעת בלחיצה מפורשת.")
+        self.birth_time_status.setObjectName("birthTimeStatus")
+        self.birth_time_status.setWordWrap(True)
+        self.birth_time_status.setAccessibleName("מצב התאמת שעת לידה")
+        form.addWidget(self.birth_time_status, 3, 0, 1, 4)
+
         options = QHBoxLayout()
         options.setSpacing(16)
         self.unknown = QCheckBox("השעה אינה ידועה")
@@ -364,8 +407,8 @@ class MainWindow(QMainWindow):
         completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.city.currentTextChanged.connect(self._city_changed)
         self.city.setMaximumWidth(300)
-        form.addWidget(field_label("מקום לידה"), 2, 0)
-        form.addWidget(self.city, 2, 1)
+        form.addWidget(field_label("מקום לידה"), 4, 0)
+        form.addWidget(self.city, 4, 1)
         self.phase_label = field_label("יום או לילה")
         self.phase = QComboBox()
         for key, label in (
@@ -374,29 +417,29 @@ class MainWindow(QMainWindow):
             ("after_midnight", "לילה — אחרי חצות"),
         ):
             self.phase.addItem(label, key)
-        form.addWidget(self.phase_label, 2, 2)
-        form.addWidget(self.phase, 2, 3)
+        form.addWidget(self.phase_label, 4, 2)
+        form.addWidget(self.phase, 4, 3)
 
         self.advanced_toggle = QPushButton("＋ מיקום מתקדם")
         self.advanced_toggle.setObjectName("advancedToggle")
         self.advanced_toggle.setToolTip("עריכה ידנית של קווי רוחב/אורך ואזור זמן")
         self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.advanced_toggle.clicked.connect(lambda: self._toggle_advanced())
-        form.addWidget(self.advanced_toggle, 3, 0, 1, 2)
+        form.addWidget(self.advanced_toggle, 5, 0, 1, 2)
         self.conversion_label = QLabel("")
         self.conversion_label.setObjectName("conversionInfo")
         self.conversion_label.setWordWrap(True)
-        form.addWidget(self.conversion_label, 3, 2, 1, 2)
+        form.addWidget(self.conversion_label, 5, 2, 1, 2)
 
         footnote = QLabel("החישוב נשאר במחשב שלך — ללא העברת נתונים")
         footnote.setObjectName("helperText")
         footnote.setWordWrap(True)
-        form.addWidget(footnote, 4, 0, 1, 2)
+        form.addWidget(footnote, 6, 0, 1, 2)
         self.run = QPushButton("חשב מפת לידה")
         self.run.setObjectName("calculateButton")
         self.run.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.run.clicked.connect(self._calculate)
-        form.addWidget(self.run, 4, 2, 1, 2)
+        self.run.clicked.connect(lambda: self._calculate())
+        form.addWidget(self.run, 6, 2, 1, 2)
 
         self.advanced = QFrame()
         self.advanced.setObjectName("advancedPanel")
@@ -430,7 +473,7 @@ class MainWindow(QMainWindow):
             "שומר את הקואורדינטות ואזור הזמן במחשב זה בלבד")
         self.save_favorite_button.clicked.connect(self._save_favorite_location)
         adv.addWidget(self.save_favorite_button, 2, 0, 1, 4)
-        form.addWidget(self.advanced, 5, 0, 1, 4)
+        form.addWidget(self.advanced, 7, 0, 1, 4)
         self.advanced.setVisible(False)
         main.addWidget(form_box)
 
@@ -446,6 +489,11 @@ class MainWindow(QMainWindow):
         self.hebrew_day.valueChanged.connect(self._update_conversion)
         self.phase.currentIndexChanged.connect(self._phase_changed)
         self.hour.timeChanged.connect(self._update_conversion)
+        self.hour.timeChanged.connect(self._sync_birth_time_slider)
+        self.birth_time_slider.valueChanged.connect(self._birth_time_slider_changed)
+        self.birth_time_slider.sliderReleased.connect(self._finish_birth_time_adjustment)
+        self.unknown.toggled.connect(self._update_birth_time_controls)
+        self.approx_hour.toggled.connect(self._update_birth_time_controls)
         self.date_mode.currentIndexChanged.connect(self._date_mode_changed)
         self._city_changed(self.city.currentText())
         self._date_mode_changed()
@@ -587,6 +635,8 @@ class MainWindow(QMainWindow):
         self.page_stack.setCurrentWidget(self.people_page)
         self._sync_page_header()
         self._update_person_context()
+        self._sync_birth_time_slider()
+        self._update_birth_time_controls()
         apply_theme(self)
 
     def _build_people_page(self):
@@ -1253,8 +1303,85 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "הגדרות תצוגה", str(exc))
 
+    def _sync_birth_time_slider(self, *_):
+        """Mirror manual time edits into the minute-resolution RTL slider."""
+        if not hasattr(self, "birth_time_slider"):
+            return
+        clock = self.hour.time()
+        minutes = clock.hour() * 60 + clock.minute()
+        self.birth_time_slider.blockSignals(True)
+        try:
+            self.birth_time_slider.setValue(minutes)
+        finally:
+            self.birth_time_slider.blockSignals(False)
+        self._update_birth_time_controls()
+
+    def _update_birth_time_controls(self, *_):
+        if not hasattr(self, "birth_time_slider"):
+            return
+        unknown = self.unknown.isChecked()
+        estimated = self.approx_hour.isChecked() and not unknown
+        self.birth_time_slider.setEnabled(not unknown)
+        if unknown:
+            self.birth_time_value_label.setText("שעה לא ידועה")
+            self.birth_time_slider.setAccessibleDescription(
+                "שעת הלידה אינה ידועה. המחוון מושבת כדי לא להציג שעה מדויקת שלא נמסרה.")
+            self.birth_time_status.setText(
+                "שעת הלידה אינה ידועה; המחוון מושבת והחישוב נשאר במצב דגימה, ללא אופק, MC או בתים.")
+        else:
+            clock = self.hour.time().toString("HH:mm")
+            self.birth_time_value_label.setText(
+                clock + (" · משוערת" if estimated else ""))
+            self.birth_time_slider.setAccessibleDescription(
+                ("שעת לידה משוערת. " if estimated else "שעת לידה. ")
+                + "בחירה בדקות לאורך היממה; התוצאה מתעדכנת בתצוגה בלבד עד לשמירה מפורשת.")
+            self.birth_time_status.setText(
+                ("השעה מסומנת כמשוערת; שינוי המחוון נשאר אומדן ואינו הופך אותה לשעה ודאית. "
+                 if estimated else "")
+                + "הזזת המחוון מעדכנת את התצוגה בלבד; שמירה מתבצעת בלחיצה מפורשת.")
+
+    def _birth_time_slider_changed(self, value):
+        if self.unknown.isChecked():
+            self._update_birth_time_controls()
+            return
+        minutes = int(value)
+        self._syncing_birth_time_slider = True
+        try:
+            self.hour.setTime(QTime(minutes // 60, minutes % 60))
+        finally:
+            self._syncing_birth_time_slider = False
+        self._update_birth_time_controls()
+        self._birth_time_recalc_pending = True
+        if not self._birth_time_timer.isActive():
+            self._birth_time_timer.start()
+
+    def _run_pending_birth_time_calculation(self):
+        if self._birth_time_timer.isActive():
+            self._birth_time_timer.stop()
+        if not self._birth_time_recalc_pending:
+            return
+        self._birth_time_recalc_pending = False
+        self._live_birth_time_calculation = True
+        try:
+            self._calculate(live=True)
+        finally:
+            self._live_birth_time_calculation = False
+
+    def _finish_birth_time_adjustment(self):
+        if self._birth_time_timer.isActive():
+            self._birth_time_timer.stop()
+        if self._birth_time_recalc_pending:
+            self._run_pending_birth_time_calculation()
+
     def _invalidate_chart(self, *args):
         """A form change invalidates all chart data, interpretation and exports."""
+        if not self._syncing_birth_time_slider:
+            if not self._live_birth_time_calculation:
+                self._birth_time_recalc_pending = False
+                if self._birth_time_timer.isActive():
+                    self._birth_time_timer.stop()
+            if hasattr(self, "birth_time_status"):
+                self._update_birth_time_controls()
         if self._active_chart is None and self._interpretation_chart is None:
             return
         self._active_chart = None
@@ -1530,6 +1657,7 @@ class MainWindow(QMainWindow):
     def _unknown_changed(self, checked):
         self.hour.setEnabled(not checked)
         self.approx_hour.setEnabled(not checked)
+        self._update_birth_time_controls()
         self._update_conversion()
 
     def _date_mode_changed(self, *args):
@@ -1549,6 +1677,7 @@ class MainWindow(QMainWindow):
         self.approx_hour.setChecked(calendar_mode)
         self._fill_hebrew_months()
         self._update_conversion()
+        self._update_birth_time_controls()
 
     def _phase_changed(self, *args):
         key = self.phase.currentData()
@@ -1556,6 +1685,7 @@ class MainWindow(QMainWindow):
                      "after_midnight": (1, 0)}
         if key in suggested:
             self.hour.setTime(QTime(*suggested[key]))
+        self._update_birth_time_controls()
         self._update_conversion()
 
     def _resolved_input(self):
@@ -1634,7 +1764,7 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.warning(self, "שמירת מיקום מועדף", str(exc))
 
-    def _calculate(self):
+    def _calculate(self, *, live=False):
         self._invalidate_chart()
         self._active_record = None
         try:
@@ -1676,8 +1806,22 @@ class MainWindow(QMainWindow):
             record = make_record(self._capture_input(), __version__)
             self._show_chart(chart)
             self._active_record = record
+            if live:
+                self.birth_time_status.setText(
+                    "התצוגה עודכנה ל־" + self.hour.time().toString("HH:mm")
+                    + (" (משוערת)" if chart.time_certainty == "estimated" else "")
+                    + "; השינוי נשמר רק בלחיצה מפורשת על שמירה.")
+            else:
+                self._update_birth_time_controls()
+            return True
         except Exception as exc:
-            QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
+            if live:
+                self.birth_time_status.setText(
+                    "לא ניתן לחשב את השעה " + self.hour.time().toString("HH:mm")
+                    + ": " + str(exc) + ". השעה, התאריך ואזור הזמן לא הוזזו אוטומטית.")
+            else:
+                QMessageBox.warning(self, "לא ניתן לחשב", str(exc))
+            return False
 
     def _show_chart(self, chart):
         if self._aspect_dialog is not None:
@@ -1803,6 +1947,8 @@ class MainWindow(QMainWindow):
         }
 
     def _require_current_chart(self):
+        if self._birth_time_recalc_pending:
+            self._finish_birth_time_adjustment()
         if self._active_chart is None or self._active_record is None:
             raise ValueError("יש לחשב מפה תקינה לפני שמירה או ייצוא")
         if self._capture_input() != self._active_record["input"]:
@@ -1882,6 +2028,8 @@ class MainWindow(QMainWindow):
             self.mixed_choice.setCurrentIndex(index)
         self.unknown.setChecked(values["unknown_time"])
         self.approx_hour.setChecked(values["estimated_time"])
+        self._sync_birth_time_slider()
+        self._update_birth_time_controls()
 
     def _open_chart(self):
         selected, _ = QFileDialog.getOpenFileName(
@@ -1937,7 +2085,20 @@ class MainWindow(QMainWindow):
             elif kind == "png":
                 export_wheel_png(self.wheel, destination)
             elif kind == "pdf_tables":
-                export_chart_tables_pdf(chart, destination)
+                # PR #37's metadata-aware exporter is optional until the shared
+                # PDF branch is reconciled; keep this branch compatible meanwhile.
+                try:
+                    parameters = inspect.signature(export_chart_tables_pdf).parameters
+                except (TypeError, ValueError):
+                    parameters = {}
+                supports_metadata = ("metadata" in parameters or any(
+                    parameter.kind == inspect.Parameter.VAR_KEYWORD
+                    for parameter in parameters.values()))
+                if supports_metadata:
+                    export_chart_tables_pdf(
+                        chart, destination, metadata=record["input"])
+                else:
+                    export_chart_tables_pdf(chart, destination)
             else:
                 export_chart_pdf(self.wheel, chart, destination)
             self.chart_caption.setText("הייצוא הושלם במחשב")

@@ -143,6 +143,18 @@ QLabel#conversionInfo {
     font-size: 11px;
     font-weight: 600;
 }
+QSlider#birthTimeSlider { min-height: 24px; }
+QSlider#birthTimeSlider::groove:horizontal {
+    height: 6px; background: #dbe6f2; border-radius: 3px;
+}
+QSlider#birthTimeSlider::handle:horizontal {
+    width: 16px; margin: -7px 0; background: #ffffff;
+    border: 2px solid #347ad1; border-radius: 9px;
+}
+QLabel#birthTimeValue {
+    color: #244f85; font-weight: 700; font-size: 12px;
+}
+QLabel#birthTimeStatus { color: #526984; font-size: 10px; }
 QLabel#noteTitle {
     color: #526984;
     font-size: 11px;

@@ -115,3 +115,17 @@ Recovery applies schema-specific journal limits. Legacy schema-1 journals retain
 When a version manifest exists, the set of regular `*.astrochart.json` snapshots in its version directory must match the manifest exactly. Missing snapshots, unlisted/orphan snapshots, and unexpected files or directories stop history access with a recovery-required error. Original manifest, payload, and snapshot files are preserved; the application does not guess, delete, or overwrite orphan data. Only recognized atomic-write temporary files (`.astrochart-*.tmp`) are excluded, and the normal recovery cleanup removes them.
 
 Restore transactions are fault-injected at snapshot, payload, manifest, and index phases. Recovery is verified with a fresh `PeopleStore`: pre-index failures restore the old state, while a committed index completes the new restore version and its `restored_from` link. Historical preview followed by Save is tested as a new version under the same Person ID and Map ID; existing snapshots remain byte-identical.
+
+
+## Real-time birth-time adjustment slider — implementation 4
+
+The chart input form includes an RTL horizontal time slider synchronized with the existing HH:mm field:
+
+- The range covers the complete local civil day, from 00:00 at the right edge to 23:59 at the left edge, in one-minute steps. Keyboard arrows/page keys and the time field remain available; the slider exposes an accessible name and description.
+- Dragging updates the time field and recalculates the chart through the existing MainWindow._calculate and Calculator.calculate path. Recalculation is throttled to at most one pass every 350 ms while dragging, with a final pass on release. It is an in-memory preview only.
+- Moving the slider never changes the selected civil date, city, coordinates, or IANA timezone. A date/city/timezone edit cancels a pending slider tick; a subsequent slider movement uses the newly selected context.
+- If **שעת הלידה אינה ידועה** is selected, the slider is disabled and the value label says that the hour is unknown. A slider value never changes the stored clock from null or changes the chart's unknown uncertainty. The user must deliberately change the existing unknown-time control before choosing a time.
+- If **שעה בקירוב** is selected, the slider remains enabled but the value and result stay explicitly estimated. Adjusting it never clears the estimated flag or upgrades the chart to known precision.
+- Local wall-clock times are still validated by the existing IANA local_to_utc conversion. A nonexistent spring-forward time and an ambiguous fall-back time are rejected (not shifted or guessed); the slider status displays the existing Hebrew error and preserves the selected date, time, and zone.
+- No people index, current map payload, version manifest, journal, or snapshot is written during slider movement. Only explicit Save invokes the existing versioned update_map path, preserving Person ID and Map ID and appending one immutable version for changed input. Closing or leaving the chart without Save discards the in-memory adjustment.
+- The PDF table export call forwards input metadata when the metadata-aware exporter from PR #37 is present, while remaining compatible with the current PR #39/base exporter until the shared PDF change is reconciled.
