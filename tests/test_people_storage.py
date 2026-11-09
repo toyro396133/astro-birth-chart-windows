@@ -652,6 +652,8 @@ def test_legacy_map_is_lazily_migrated_as_version_one_without_payload_change(tmp
     store._version_manifest_path(person["id"], entry["id"]).unlink()
     version_directory = store._version_directory(person["id"], entry["id"])
     if version_directory.exists():
+        for snapshot in version_directory.iterdir():
+            snapshot.unlink()
         version_directory.rmdir()
     assert store.read_map(person["id"], entry["id"]) == sample_record()
     history = store.list_map_versions(person["id"], entry["id"])
@@ -693,6 +695,7 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
     real_manifest = store._write_version_manifest
     real_write = store._write
     target = store.map_path(person["id"], entry["id"]) if entry else None
+    person_directory = store.maps_path / person["id"]
     manifest_path = store._version_manifest_path(person["id"], entry["id"]) if entry else None
     injected = {"done": False}
 
@@ -705,7 +708,10 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
 
     def fail_after_payload(path, record):
         result = real_save(path, record)
-        if phase == "payload" and path == target and not injected["done"]:
+        is_live_payload = (
+            path.parent == person_directory and path.name.endswith(".astrochart.json")
+        )
+        if phase == "payload" and is_live_payload and not injected["done"]:
             injected["done"] = True
             raise OSError("injected after payload")
         return result

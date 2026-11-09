@@ -1000,8 +1000,9 @@ class PeopleStore:
             metadata = self._map_metadata(
                 name, record, map_id, entry["created_at"], now, entry["is_primary"])
             if record == old_record:
-                entry.update(metadata)
-                if any(entry[key] != metadata[key] for key in metadata):
+                metadata_changed = any(entry.get(key) != value for key, value in metadata.items())
+                if metadata_changed:
+                    entry.update(metadata)
                     person["updated_at"] = now
                     self._commit_map_transaction(
                         person_id=person_id, map_id=map_id,
