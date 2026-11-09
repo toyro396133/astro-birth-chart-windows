@@ -807,7 +807,10 @@ class PeopleStore:
         try:
             self._write_version_snapshot(person_id, map_id, version_id, new_version_record)
             self._ensure_directory(target.parent)
-            self._save_record(target, new_record)
+            # Lazy migration of a legacy map must not rewrite its current
+            # payload; only a changed payload is replaced during a new version.
+            if old_record != new_record or not self._lexists(target):
+                self._save_record(target, new_record)
             self._write_version_manifest(person_id, map_id, new_manifest)
             self._write(new_index)
             self._remove_file(self.journal_path)
