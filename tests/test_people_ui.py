@@ -46,7 +46,7 @@ def sample_record():
 
 
 def set_current_chart(window, record=None):
-    record = record or sample_record()
+    record = record or make_record(window._capture_input(), ui.__version__)
     window._active_chart = Chart(
         [BodyPosition("שמש", 12.0, False)], [], 14.0, 23.0, False, [])
     window._active_record = record
