@@ -64,7 +64,7 @@ def main():
     window.city.setCurrentText("ירושלים")
     QTest.qWait(100)
     # Visual redesign is built from real native Qt widgets, not a mockup.
-    header = window.findChild(QFrame, "appHeader")
+    header = window.chart_page.findChild(QFrame, "appHeader")
     assert header is not None
     assert "מפת לידה אסטרונומית" in header.findChild(
         __import__("PySide6.QtWidgets", fromlist=["QLabel"]).QLabel, "appTitle").text()
