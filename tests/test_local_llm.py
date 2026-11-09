@@ -198,3 +198,67 @@ def test_user_declines_then_no_ai_request(monkeypatch):
     assert dialog.n2_view.toPlainText() == dialog.narrative_n2_readable
     dialog.close()
     app.processEvents()
+
+
+def test_explicit_gui_generation_is_asynchronous_and_does_not_replace_n2(monkeypatch):
+    pytest.importorskip("PySide6")
+    import time
+    from PySide6.QtWidgets import QApplication, QMessageBox
+    import astrochart.interpretation_dialog as dialog_module
+    from astrochart.domain import BodyPosition, Chart
+
+    monkeypatch.setattr(dialog_module.QMessageBox, "question",
+                        lambda *args: QMessageBox.StandardButton.Yes)
+    calls = []
+    def generated(report, port):
+        calls.append((report["time_mode"], port))
+        return "ניסוח בדיקה מקומי."
+    monkeypatch.setattr(dialog_module, "generate_local_n2", generated)
+    app = QApplication.instance() or QApplication([])
+    chart = Chart([BodyPosition("שמש", 12.0, False)], [], None, None, False, [])
+    dialog = dialog_module.RuleInterpretationDialog(chart)
+    original_n2 = dialog.n2_view.toPlainText()
+    dialog.local_port.setValue(8088)
+    dialog._start_local_generation()
+    end = time.monotonic() + 4
+    while dialog._local_worker is not None and time.monotonic() < end:
+        app.processEvents()
+        time.sleep(0.01)
+    assert dialog._local_worker is None
+    assert calls == [("known", 8088)]
+    assert "ניסוח בדיקה מקומי." in dialog.local_view.toPlainText()
+    assert "לא אומת אוטומטית" in dialog.local_view.toPlainText()
+    assert dialog.n2_view.toPlainText() == original_n2
+    assert dialog.local_copy_button.isEnabled()
+    dialog.close()
+    app.processEvents()
+
+
+def test_failed_gui_generation_displays_unchanged_n2(monkeypatch):
+    pytest.importorskip("PySide6")
+    import time
+    from PySide6.QtWidgets import QApplication, QMessageBox
+    import astrochart.interpretation_dialog as dialog_module
+    from astrochart.domain import BodyPosition, Chart
+
+    monkeypatch.setattr(dialog_module.QMessageBox, "question",
+                        lambda *args: QMessageBox.StandardButton.Yes)
+    def generated(report, port):
+        raise local_llm.LocalModelError("שרת לא זמין")
+    monkeypatch.setattr(dialog_module, "generate_local_n2", generated)
+    app = QApplication.instance() or QApplication([])
+    chart = Chart([BodyPosition("שמש", 12.0, False)], [], None, None, False, [])
+    dialog = dialog_module.RuleInterpretationDialog(chart)
+    original_n2 = dialog.n2_view.toPlainText()
+    dialog._start_local_generation()
+    end = time.monotonic() + 4
+    while dialog._local_worker is not None and time.monotonic() < end:
+        app.processEvents()
+        time.sleep(0.01)
+    assert dialog._local_worker is None
+    assert "שרת לא זמין" in dialog.local_status.text()
+    assert original_n2 in dialog.local_view.toPlainText()
+    assert dialog.n2_view.toPlainText() == original_n2
+    assert not dialog.local_copy_button.isEnabled()
+    dialog.close()
+    app.processEvents()
