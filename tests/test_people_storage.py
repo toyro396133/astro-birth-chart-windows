@@ -38,7 +38,8 @@ def test_empty_people_store_and_stable_ids_allow_identical_names(tmp_path):
 
     renamed = store.update_person(first["id"], "דוד לוי", "פרטים מעודכנים\nשורה שנייה")
     assert renamed["id"] == first["id"]
-    assert store.get_person(first["id"])["name"] == "דוד לוי"\n    assert "שורה שנייה" in store.get_person(first["id"])["notes"]
+    assert store.get_person(first["id"])["name"] == "דוד לוי"
+    assert "שורה שנייה" in store.get_person(first["id"])["notes"]
     assert store.get_person(second["id"])["name"] == "דוד כהן"
 
 
