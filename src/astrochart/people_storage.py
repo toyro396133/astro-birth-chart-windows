@@ -66,7 +66,9 @@ def _valid_timestamp(value: object, field: str) -> str:
     if not isinstance(value, str) or len(value) > 40:
         raise ValueError(f"תאריך {field} אינו תקין")
     try:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("timestamp must include a timezone")
     except ValueError as exc:
         raise ValueError(f"תאריך {field} אינו תקין") from exc
     return value
@@ -83,6 +85,7 @@ def _validate_document(document: object) -> dict:
     if not isinstance(people, list) or len(people) > MAX_PEOPLE:
         raise ValueError("רשימת האנשים אינה תקינה או גדולה מדי")
     seen_people = set()
+    seen_map_ids = set()
     for person in people:
         if not isinstance(person, dict) or set(person) != {
             "id", "name", "notes", "created_at", "updated_at", "maps"
@@ -108,9 +111,10 @@ def _validate_document(document: object) -> dict:
             }:
                 raise ValueError("רשומת מפה אינה תקינה")
             map_id = _valid_id(chart["id"], "מפה")
-            if map_id in seen_maps:
-                raise ValueError("מזהה מפה כפול אצל אותו אדם")
+            if map_id in seen_maps or map_id in seen_map_ids:
+                raise ValueError("מזהה מפה כפול בקובץ")
             seen_maps.add(map_id)
+            seen_map_ids.add(map_id)
             _valid_text(chart["name"], "שם מפה", 120, required=True)
             _valid_timestamp(chart["created_at"], "יצירת מפה")
             _valid_timestamp(chart["updated_at"], "עדכון מפה")
@@ -126,9 +130,11 @@ def _validate_document(document: object) -> dict:
                     raise ValueError("שעת המפה אינה תקינה") from exc
             if type(chart["unknown_time"]) is not bool or type(chart["is_primary"]) is not bool:
                 raise ValueError("דגלי המפה אינם תקינים")
+            if chart["unknown_time"] != (chart["clock"] is None):
+                raise ValueError("דגל השעה אינו תואם לשעת המפה")
             primary_count += int(chart["is_primary"])
-        if primary_count > 1:
-            raise ValueError("לאדם יכולה להיות מפה ראשית אחת בלבד")
+        if maps and primary_count != 1:
+            raise ValueError("לאדם עם מפות חייבת להיות מפה ראשית אחת בלבד")
     return document
 
 
