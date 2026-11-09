@@ -1,3 +1,4 @@
+import copy
 import errno
 import json
 import multiprocessing
@@ -706,18 +707,45 @@ def test_corrupt_or_missing_version_metadata_fails_closed_without_overwrite(tmp_
     store = PeopleStore(tmp_path)
     person = store.create_person("היסטוריה פגומה")
     entry = store.save_map(person["id"], "מפה", sample_record())
+    payload_path = store.map_path(person["id"], entry["id"])
+    original_payload = payload_path.read_bytes()
     manifest_path = store._version_manifest_path(person["id"], entry["id"])
-    original = manifest_path.read_bytes()
-    manifest_path.write_text("{broken", encoding="utf-8")
+    original_manifest = manifest_path.read_bytes()
+    version_directory = store._version_directory(person["id"], entry["id"])
+    original_snapshots = {
+        path: path.read_bytes() for path in version_directory.glob("*.astrochart.json")
+    }
+
+    manifest_path.write_bytes(b"{broken")
     with pytest.raises(ValueError, match="היסטוריית הגרסאות"):
         store.list_map_versions(person["id"], entry["id"])
-    assert manifest_path.read_text(encoding="utf-8") == "{broken"
-    manifest_path.write_bytes(original)
+    assert manifest_path.read_bytes() == b"{broken"
+    assert payload_path.read_bytes() == original_payload
+    assert {path: path.read_bytes() for path in original_snapshots} == original_snapshots
+
+    manifest_path.write_bytes(original_manifest)
     first = store.list_map_versions(person["id"], entry["id"])["versions"][0]
-    store._version_snapshot_path(person["id"], entry["id"], first["id"]).unlink()
-    with pytest.raises((OSError, ValueError)):
+    store.update_map(
+        person["id"], entry["id"], "מפה מעודכנת",
+        sample_record("2024-07-02", "חיפה", "13:15"))
+    history = store.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == 2
+    missing_snapshot = store._version_snapshot_path(
+        person["id"], entry["id"], first["id"])
+    missing_snapshot.unlink()
+
+    payload_before = payload_path.read_bytes()
+    manifest_before = manifest_path.read_bytes()
+    remaining_snapshots = {
+        path: path.read_bytes() for path in version_directory.glob("*.astrochart.json")
+    }
+    with pytest.raises(ValueError, match="חסרים"):
         store.list_map_versions(person["id"], entry["id"])
-    assert manifest_path.is_file()
+
+    assert payload_path.read_bytes() == payload_before
+    assert manifest_path.read_bytes() == manifest_before
+    assert {path: path.read_bytes() for path in remaining_snapshots} == remaining_snapshots
+    assert not missing_snapshot.exists()
 
 
 @pytest.mark.parametrize("operation", ["save", "update", "restore"])
@@ -899,6 +927,65 @@ def test_large_schema2_journal_recovers_after_interruption_in_fresh_store(tmp_pa
     assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
 
 
+@pytest.mark.parametrize("bad_schema_version", [
+    pytest.param(2.0, id="float-two"),
+    pytest.param(True, id="boolean"),
+    pytest.param("2", id="string"),
+    pytest.param(None, id="null"),
+    pytest.param(3, id="unsupported-integer"),
+])
+def test_schema2_journal_rejects_non_integer_or_unsupported_version_without_mutation(
+        tmp_path, monkeypatch, bad_schema_version):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("יומן גרסאות עם schema פגום")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    store.list_map_versions(person["id"], entry["id"])
+
+    real_atomic = store._atomic_write_text
+
+    def interrupt_after_durable_journal(path, payload, prefix):
+        result = real_atomic(path, payload, prefix)
+        if path == store.journal_path:
+            raise OSError("simulated interruption after valid schema-2 journal")
+        return result
+
+    monkeypatch.setattr(store, "_atomic_write_text", interrupt_after_durable_journal)
+    monkeypatch.setattr(store, "_recover_transaction", lambda: None)
+    with pytest.raises(OSError, match="valid schema-2 journal"):
+        store.update_map(
+            person["id"], entry["id"], "מפה חדשה",
+            sample_record("2024-07-03", "חיפה", "14:00"))
+    monkeypatch.undo()
+
+    valid_journal = json.loads(store.journal_path.read_text(encoding="utf-8"))
+    assert type(valid_journal["schema_version"]) is int
+    assert valid_journal["schema_version"] == store.JOURNAL_SCHEMA
+    valid_journal["schema_version"] = bad_schema_version
+    store.journal_path.write_text(
+        json.dumps(valid_journal, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+    payload_path = store.map_path(person["id"], entry["id"])
+    manifest_path = store._version_manifest_path(person["id"], entry["id"])
+    version_directory = store._version_directory(person["id"], entry["id"])
+    preserved_paths = [
+        store.journal_path, store.index_path, payload_path, manifest_path,
+        *version_directory.glob("*.astrochart.json"),
+    ]
+    preserved_bytes = {path: path.read_bytes() for path in preserved_paths}
+    malformed_journal = json.loads(store.journal_path.read_text(encoding="utf-8"))
+
+    fresh = PeopleStore(tmp_path)
+    with pytest.raises(ValueError, match="גרסת יומן"):
+        fresh._recover_version_transaction(malformed_journal)
+    with pytest.raises(ValueError, match="גרסת יומן"):
+        fresh.list_people()
+
+    assert {path: path.read_bytes() for path in preserved_paths} == preserved_bytes
+    assert fresh.journal_path.is_file()
+
+
 def test_legacy_schema1_journal_keeps_original_size_limit(tmp_path):
     store = PeopleStore(tmp_path)
     person = store.create_person("יומן ישן מוגבל")
@@ -926,6 +1013,67 @@ def test_legacy_schema1_journal_keeps_original_size_limit(tmp_path):
         store.list_people()
     assert store.index_path.read_bytes() == before_index
     assert store.journal_path.read_text(encoding="utf-8") == payload
+
+def test_valid_schema1_journal_rolls_back_interrupted_legacy_update_in_fresh_store(
+        tmp_path, monkeypatch):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("התאוששות יומן schema 1")
+    original_record = sample_record()
+    entry = store.save_map(person["id"], "מפה ותיקה", original_record)
+    payload_path = store.map_path(person["id"], entry["id"])
+    original_payload = payload_path.read_bytes()
+    old_index_exists, old_index = store._read_index_document()
+    old_index_bytes = store.index_path.read_bytes()
+
+    # Simulate a map written by an older application build: no version
+    # manifest or snapshots exist, so the next transaction uses journal v1.
+    manifest_path = store._version_manifest_path(person["id"], entry["id"])
+    version_directory = store._version_directory(person["id"], entry["id"])
+    manifest_path.unlink()
+    for snapshot in version_directory.iterdir():
+        snapshot.unlink()
+    version_directory.rmdir()
+
+    new_record = sample_record("2024-07-03", "חיפה", "14:00")
+    new_index = copy.deepcopy(old_index)
+    new_person = next(item for item in new_index["people"] if item["id"] == person["id"])
+    new_entry = next(item for item in new_person["maps"] if item["id"] == entry["id"])
+    updated_at = people_storage._now()
+    new_entry.update(store._map_metadata(
+        new_entry["name"], new_record, entry["id"], new_entry["created_at"],
+        updated_at, new_entry["is_primary"]))
+    new_person["updated_at"] = updated_at
+
+    monkeypatch.setattr(
+        store, "_write",
+        lambda _document: (_ for _ in ()).throw(
+            OSError("simulated legacy index commit interruption")))
+    monkeypatch.setattr(store, "_recover_transaction", lambda: None)
+    with pytest.raises(OSError, match="legacy index commit interruption"):
+        store._commit_map_transaction(
+            person_id=person["id"], map_id=entry["id"],
+            old_index_exists=old_index_exists, old_index=old_index,
+            new_index=new_index, old_record=original_record, new_record=new_record,
+        )
+
+    journal = json.loads(store.journal_path.read_text(encoding="utf-8"))
+    assert journal["schema_version"] == 1
+    assert store.journal_path.stat().st_size <= people_storage.MAX_JOURNAL_SCHEMA_1_BYTES
+    assert payload_path.read_bytes() != original_payload
+    assert store.index_path.read_bytes() == old_index_bytes
+    monkeypatch.undo()
+
+    recovered = PeopleStore(tmp_path)
+    recovered.list_people()
+    assert recovered.index_path.read_bytes() == old_index_bytes
+    assert recovered.map_path(person["id"], entry["id"]).read_bytes() == original_payload
+    assert recovered.read_map(person["id"], entry["id"]) == original_record
+    assert not recovered.journal_path.exists()
+    assert not manifest_path.exists()
+    assert not version_directory.exists()
+    assert not list(recovered.directory.glob(".people-*.tmp"))
+    assert not list(recovered.directory.glob(".people-journal-*.tmp"))
+
 
 def test_interrupted_version_update_recovers_from_journal_in_fresh_store(tmp_path, monkeypatch):
     store = PeopleStore(tmp_path)
@@ -1024,6 +1172,8 @@ def test_manifest_with_orphan_snapshot_fails_closed_and_preserves_files(
     store = PeopleStore(tmp_path)
     person = store.create_person("snapshot יתום עם manifest")
     entry = store.save_map(person["id"], "מפה", sample_record())
+    payload_path = store.map_path(person["id"], entry["id"])
+    payload_bytes = payload_path.read_bytes()
     history = store.list_map_versions(person["id"], entry["id"])
     first = history["versions"][0]
     snapshot_path = store._version_snapshot_path(person["id"], entry["id"], first["id"])
@@ -1043,6 +1193,7 @@ def test_manifest_with_orphan_snapshot_fails_closed_and_preserves_files(
     with pytest.raises(ValueError, match="יתומים"):
         store.list_map_versions(person["id"], entry["id"])
 
+    assert payload_path.read_bytes() == payload_bytes
     assert manifest_path.read_bytes() == manifest_bytes
     assert snapshot_path.read_bytes() == snapshot_bytes
     assert orphan_path.read_bytes() == orphan_bytes

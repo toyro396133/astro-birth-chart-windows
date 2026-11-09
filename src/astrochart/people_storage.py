@@ -490,20 +490,28 @@ class PeopleStore:
             journal = json.loads(self.journal_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise ValueError("יומן התאוששות פגום; הנתונים המקוריים נשמרו") from exc
-        schema_version = journal.get("schema_version") if isinstance(journal, dict) else None
-        if type(schema_version) is int and schema_version == 1:
+        if not isinstance(journal, dict):
+            raise ValueError("מבנה יומן ההתאוששות אינו מוכר; הנתונים נשמרו")
+        schema_version = journal.get("schema_version")
+        # bool is an int subclass in Python and JSON 2.0 is a float. Neither
+        # is a valid journal schema discriminator: accept exact integers only.
+        if type(schema_version) is not int:
+            raise ValueError("גרסת יומן ההתאוששות אינה נתמכת; הנתונים נשמרו")
+        if schema_version == 1:
             if journal_size > MAX_JOURNAL_SCHEMA_1_BYTES:
                 raise ValueError("יומן ההתאוששות גדול מדי")
-        elif type(schema_version) is int and schema_version == self.JOURNAL_SCHEMA:
+        elif schema_version == self.JOURNAL_SCHEMA:
             if journal_size > MAX_JOURNAL_SCHEMA_2_BYTES:
                 raise ValueError("יומן ההתאוששות גדול מדי")
+        else:
+            raise ValueError("גרסת יומן ההתאוששות אינה נתמכת; הנתונים נשמרו")
 
         expected = {
             "format", "schema_version", "person_id", "map_id",
             "old_index_exists", "old_index", "new_index",
             "old_record", "new_record",
         }
-        if (isinstance(journal, dict) and journal.get("schema_version") == self.JOURNAL_SCHEMA):
+        if schema_version == self.JOURNAL_SCHEMA:
             self._recover_version_transaction(journal)
             return
         if not isinstance(journal, dict) or set(journal) != expected:
@@ -770,7 +778,9 @@ class PeopleStore:
         }
         if set(journal) != expected or journal.get("format") != self.JOURNAL_FORMAT:
             raise ValueError("מבנה יומן גרסאות אינו מוכר; הנתונים נשמרו")
-        if journal["operation"] != "map_version" or journal["schema_version"] != self.JOURNAL_SCHEMA:
+        if (journal["operation"] != "map_version"
+                or type(journal["schema_version"]) is not int
+                or journal["schema_version"] != self.JOURNAL_SCHEMA):
             raise ValueError("סוג או גרסת יומן גרסאות אינם נתמכים; הנתונים נשמרו")
         person_id = _valid_id(journal["person_id"], "אדם")
         map_id = _valid_id(journal["map_id"], "מפה")
