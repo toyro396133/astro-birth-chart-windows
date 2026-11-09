@@ -30,6 +30,7 @@ from .theme import apply_theme
 from .report import format_chart_report
 from .chart_storage import make_record, read_record, save_record, export_results
 from .chart_export import export_wheel_png, export_chart_pdf
+from .chart_tables_pdf import export_chart_tables_pdf
 from .aspect_explorer import AspectExplorerDialog
 from .display_preferences import (
     DisplayPreferences, read_preferences, save_preferences,
@@ -174,7 +175,7 @@ class MainWindow(QMainWindow):
             ("ייצא כטקסט...", lambda: self._export_chart("txt")),
             ("ייצא גלגל PNG...", lambda: self._export_chart("png")),
             ("ייצא דוח PDF...", lambda: self._export_chart("pdf")),
-            ("ייצא PDF — מפה בלבד...", lambda: self._export_chart("pdf_wheel")),
+            ("ייצא PDF — טבלת מזלות והיבטים...", lambda: self._export_chart("pdf_tables")),
         ):
             action = self.file_menu.addAction(text)
             action.triggered.connect(fn)
@@ -1251,9 +1252,9 @@ class MainWindow(QMainWindow):
         try:
             chart, record = self._require_current_chart()
             suffix = {"json": ".json", "txt": ".txt",
-                      "png": ".png", "pdf": ".pdf", "pdf_wheel": ".pdf"}[kind]
+                      "png": ".png", "pdf": ".pdf", "pdf_tables": ".pdf"}[kind]
             filters = {"json": "JSON (*.json)", "txt": "Text (*.txt)",
-                        "png": "PNG (*.png)", "pdf": "PDF (*.pdf)", "pdf_wheel": "PDF (*.pdf)"}
+                        "png": "PNG (*.png)", "pdf": "PDF (*.pdf)", "pdf_tables": "PDF (*.pdf)"}
             selected, _ = QFileDialog.getSaveFileName(
                 self, "ייצא מפה", "", filters[kind])
             if not selected:
@@ -1270,9 +1271,10 @@ class MainWindow(QMainWindow):
                 destination.write_text(format_chart_report(chart), encoding="utf-8")
             elif kind == "png":
                 export_wheel_png(self.wheel, destination)
+            elif kind == "pdf_tables":
+                export_chart_tables_pdf(chart, destination)
             else:
-                export_chart_pdf(self.wheel, chart, destination,
-                                 include_report=(kind != "pdf_wheel"))
+                export_chart_pdf(self.wheel, chart, destination)
             self.chart_caption.setText("הייצוא הושלם במחשב")
         except Exception as exc:
             QMessageBox.warning(self, "ייצוא מפה", str(exc))
