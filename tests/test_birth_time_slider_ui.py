@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytest
 from PySide6.QtCore import QDate, QTime, Qt
 from PySide6.QtTest import QTest
@@ -8,8 +6,9 @@ from PySide6.QtWidgets import QApplication
 import astrochart.ui as ui
 from astrochart.chart_storage import make_record
 from astrochart.domain import BodyPosition, Chart
+from astrochart.engine import Calculator
 from astrochart.people_storage import PeopleStore
-from astrochart.timeconv import full_local_day, local_to_utc
+from skyfield.api import load
 
 
 @pytest.fixture
@@ -30,26 +29,26 @@ def window(tmp_path, monkeypatch):
     app.processEvents()
 
 
-class FastCalculator:
-    """Use the production UI/calculation path and real IANA wall-time conversion.
+class FastCalculator(Calculator):
+    """Run Calculator.calculate/_positions/uncertainty logic with only JPL calls stubbed.
 
-    Only the slow Skyfield ephemeris lookup is replaced with a deterministic
-    chart row; DST validation still uses the production local_to_utc function.
+    A real Skyfield timescale and the production IANA/DST conversion remain in
+    use. The sole seam is position(), which normally reads the external JPL
+    ephemeris; deterministic longitudes keep these UI tests fast and offline.
     """
     def __init__(self):
+        self.timescale = load.timescale(builtin=True)
         self.calls = []
+        self.position_calls = []
+
+    def position(self, moment, target):
+        self.position_calls.append((moment, target))
+        base = sum(target.encode("utf-8")) % 360
+        return (base + moment.timestamp() / 86400 * 0.01) % 360
 
     def calculate(self, day, clock, zone, latitude, longitude, unknown_time=False):
         self.calls.append((day, clock, zone, latitude, longitude, unknown_time))
-        if unknown_time:
-            full_local_day(day, zone)
-            chart = Chart([BodyPosition("שמש", 12.0, False)], [],
-                          None, None, True, [])
-            chart.time_certainty = "unknown"
-            return chart
-        local_to_utc(datetime.combine(day, clock), zone)
-        return Chart([BodyPosition("שמש", 12.0, False)], [],
-                     14.0, 23.0, False, [])
+        return super().calculate(day, clock, zone, latitude, longitude, unknown_time)
 
 
 def _persisted_bytes(store):
@@ -100,6 +99,7 @@ def test_slider_live_recalculation_uses_existing_pipeline_without_storage_writes
     assert window._calculate()
     assert window._active_record["input"]["clock"] == window.hour.time().toString("HH:mm")
     assert len(calculator.calls) == 1
+    assert len(calculator.position_calls) >= 30
 
     window.birth_time_slider.setValue(12 * 60 + 31)
     QTest.qWait(420)
@@ -160,15 +160,16 @@ def test_explicit_save_appends_one_version_and_close_without_save_is_byte_preser
         assert (version_dir / name).read_bytes() == data
 
     after_save = _persisted_bytes(store)
+    calls_before_cancel = len(window.calc.calls)
     window.birth_time_slider.setValue(12 * 60 + 45)
-    QTest.qWait(420)
-    QApplication.processEvents()
-    assert _persisted_bytes(store) == after_save
-    assert window._active_person_id == person_id
-    assert window._active_map_id == map_id
+    assert window._birth_time_recalc_pending
 
+    # Closing before the debounce expires cancels the preview without a write.
     window.close()
     QApplication.processEvents()
+    assert not window._birth_time_recalc_pending
+    assert not window._birth_time_timer.isActive()
+    assert len(window.calc.calls) == calls_before_cancel
     assert _persisted_bytes(store) == after_save
 
 

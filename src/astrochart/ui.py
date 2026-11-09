@@ -1587,6 +1587,8 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.update_status.setText("המתן לסיום בדיקת/הורדת העדכון")
             return
+        self._birth_time_recalc_pending = False
+        self._birth_time_timer.stop()
         self._clear_prepared_update()
         super().closeEvent(event)
 
