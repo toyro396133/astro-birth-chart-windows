@@ -40,7 +40,7 @@ The existing `chart_storage` validation and atomic file writer are reused. The i
 - The existing chart record schema is unchanged.
 - Existing map calculation, uncertainty handling, PDF/PNG/text/JSON exports, updater, and Windows packaging remain separate.
 - The feature is local-only: no network calls, cloud account, telemetry, or remote storage.
-- This phase does not yet add duplicate-name warnings, map version history/diff, multi-map comparison, bulk import, or backup/restore. Those remain later roadmap items.
+- Duplicate-name warnings are implemented in the section above, and immutable map version history is implemented in the section below. Multi-map comparison, bulk import, and backup/restore remain later roadmap items.
 
 ## Tests added or updated
 
