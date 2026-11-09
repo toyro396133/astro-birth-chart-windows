@@ -289,7 +289,7 @@ class PeopleStore:
                     import msvcrt
                     lock_stream.seek(0, os.SEEK_END)
                     if lock_stream.tell() == 0:
-                        lock_stream.write(b"\\0")
+                        lock_stream.write(b"\0")
                         lock_stream.flush()
                         os.fsync(lock_stream.fileno())
                     lock_stream.seek(0)
@@ -315,7 +315,7 @@ class PeopleStore:
         descriptor, temporary = tempfile.mkstemp(
             prefix=prefix, suffix=".tmp", dir=path.parent)
         try:
-            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\\n") as stream:
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
                 stream.write(payload)
                 stream.flush()
                 os.fsync(stream.fileno())
@@ -381,7 +381,7 @@ class PeopleStore:
 
     def _write(self, document: dict) -> None:
         _validate_document(document)
-        payload = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\\n"
+        payload = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
         if len(payload.encode("utf-8")) > MAX_INDEX_BYTES:
             raise ValueError("קובץ האנשים גדול מדי")
         self._atomic_write_text(self.index_path, payload, ".people-")
@@ -496,7 +496,7 @@ class PeopleStore:
             "old_record": old_record,
             "new_record": new_record,
         }
-        payload = json.dumps(journal, ensure_ascii=False, indent=2, allow_nan=False) + "\\n"
+        payload = json.dumps(journal, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
         self._atomic_write_text(self.journal_path, payload, ".people-journal-")
         target = self.map_path(person_id, map_id)
         try:
