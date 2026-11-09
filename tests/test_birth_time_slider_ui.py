@@ -160,16 +160,42 @@ def test_explicit_save_appends_one_version_and_close_without_save_is_byte_preser
         assert (version_dir / name).read_bytes() == data
 
     after_save = _persisted_bytes(store)
-    calls_before_cancel = len(window.calc.calls)
+    calls_before_preview = len(window.calc.calls)
     window.birth_time_slider.setValue(12 * 60 + 45)
     assert window._birth_time_recalc_pending
 
-    # Closing before the debounce expires cancels the preview without a write.
+    # A live preview on an already-saved map recalculates but never writes.
+    QTest.qWait(420)
+    QApplication.processEvents()
+    assert not window._birth_time_recalc_pending
+    assert len(window.calc.calls) == calls_before_preview + 1
+    assert window._active_record["input"]["clock"] == "12:45"
+    assert _persisted_bytes(store) == after_save
+    preview_history = store.list_map_versions(person_id, map_id)
+    assert [item["number"] for item in preview_history["versions"]] == [1, 2]
+    assert preview_history["current_version_id"] == history["current_version_id"]
+
+    # Releasing the slider flushes a pending minute immediately through the
+    # same production calculation path, still without touching storage.
+    calls_before_release = len(window.calc.calls)
+    window.birth_time_slider.setValue(12 * 60 + 46)
+    assert window._birth_time_recalc_pending
+    window.birth_time_slider.sliderReleased.emit()
+    assert not window._birth_time_recalc_pending
+    assert len(window.calc.calls) == calls_before_release + 1
+    assert window._active_record["input"]["clock"] == "12:46"
+    assert _persisted_bytes(store) == after_save
+
+    # Closing with one more pending preview cancels it; persisted history stays
+    # byte-identical and no extra calculation or version is committed.
+    calls_before_close = len(window.calc.calls)
+    window.birth_time_slider.setValue(12 * 60 + 47)
+    assert window._birth_time_recalc_pending
     window.close()
     QApplication.processEvents()
     assert not window._birth_time_recalc_pending
     assert not window._birth_time_timer.isActive()
-    assert len(window.calc.calls) == calls_before_cancel
+    assert len(window.calc.calls) == calls_before_close
     assert _persisted_bytes(store) == after_save
 
 
