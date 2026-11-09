@@ -49,13 +49,15 @@ def _valid_id(value: object, field: str) -> str:
     return value
 
 
-def _valid_text(value: object, field: str, maximum: int, *, required=False) -> str:
+def _valid_text(value: object, field: str, maximum: int, *, required=False,
+                multiline=False) -> str:
     if not isinstance(value, str) or len(value) > maximum:
         raise ValueError(f"שדה {field} אינו תקין")
     value = value.strip()
     if required and not value:
         raise ValueError(f"חובה למלא {field}")
-    if any(ord(char) < 32 and char not in "\t" for char in value):
+    allowed = "\t\r\n" if multiline else ""
+    if any(ord(char) < 32 and char not in allowed for char in value):
         raise ValueError(f"שדה {field} מכיל תווי בקרה")
     return value
 
@@ -91,7 +93,7 @@ def _validate_document(document: object) -> dict:
             raise ValueError("מזהה אדם כפול בקובץ")
         seen_people.add(person_id)
         _valid_text(person["name"], "שם אדם", 120, required=True)
-        _valid_text(person["notes"], "הערות", 4000)
+        _valid_text(person["notes"], "הערות", 4000, multiline=True)
         _valid_timestamp(person["created_at"], "יצירה")
         _valid_timestamp(person["updated_at"], "עדכון")
         maps = person["maps"]
@@ -177,7 +179,7 @@ class PeopleStore:
 
     def create_person(self, name: str, notes: str = "") -> dict:
         name = _valid_text(name, "שם אדם", 120, required=True)
-        notes = _valid_text(notes, "הערות", 4000)
+        notes = _valid_text(notes, "הערות", 4000, multiline=True)
         document = self._read()
         if len(document["people"]) >= MAX_PEOPLE:
             raise ValueError("הגעת למכסת האנשים המקומית")
