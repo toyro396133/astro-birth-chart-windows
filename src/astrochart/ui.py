@@ -716,14 +716,22 @@ class MainWindow(QMainWindow):
         visible = [person for person in self._people_cache
                    if not query or query in person["name"].casefold()
                    or query in person["notes"].casefold()]
+        name_counts = {}
+        for person in visible:
+            key = person["name"].casefold()
+            name_counts[key] = name_counts.get(key, 0) + 1
         self.people_list.blockSignals(True)
         self.people_list.clear()
         target_item = None
         for person in visible:
-            label = f'{person["name"]} · {len(person["maps"])} מפות'
+            map_count = len(person["maps"])
+            map_label = "מפה אחת" if map_count == 1 else f"{map_count} מפות"
+            label = f'{person["name"]} · {map_label}'
+            if name_counts[person["name"].casefold()] > 1:
+                label += f' · מזהה {person["id"][:6]}'
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, person["id"])
-            item.setToolTip(person["notes"] or person["name"])
+            item.setToolTip(f'מזהה: {person["id"]}\n{person["notes"] or person["name"]}')
             self.people_list.addItem(item)
             if person["id"] == selected:
                 target_item = item
@@ -747,7 +755,9 @@ class MainWindow(QMainWindow):
         else:
             self.person_name_label.setText(person["name"])
             self.person_notes_label.setText(person["notes"] or "אין הערות לאדם זה")
-            self.person_map_count_label.setText(f'{len(person["maps"])} מפות שמורות')
+            self.person_map_count_label.setText(
+                "מפה אחת שמורה" if len(person["maps"]) == 1
+                else f'{len(person["maps"])} מפות שמורות')
             for row, chart in enumerate(person["maps"]):
                 self.people_maps.insertRow(row)
                 name = ("★ " if chart["is_primary"] else "") + chart["name"]
