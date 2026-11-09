@@ -29,16 +29,16 @@ def test_empty_people_store_and_stable_ids_allow_identical_names(tmp_path):
     store = PeopleStore(tmp_path)
     assert store.list_people() == []
 
-    first = store.create_person("דוד כהן", "אדם ראשון")
+    first = store.create_person("דוד כהן", "אדם ראשון\nפרטים נוספים")
     second = store.create_person("דוד כהן", "אדם אחר")
 
     assert first["id"] != second["id"]
     assert store.get_person(first["id"])["name"] == "דוד כהן"
     assert len(store.list_people()) == 2
 
-    renamed = store.update_person(first["id"], "דוד לוי", "פרטים מעודכנים")
+    renamed = store.update_person(first["id"], "דוד לוי", "פרטים מעודכנים\nשורה שנייה")
     assert renamed["id"] == first["id"]
-    assert store.get_person(first["id"])["name"] == "דוד לוי"
+    assert store.get_person(first["id"])["name"] == "דוד לוי"\n    assert "שורה שנייה" in store.get_person(first["id"])["notes"]
     assert store.get_person(second["id"])["name"] == "דוד כהן"
 
 
