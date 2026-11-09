@@ -59,6 +59,11 @@ def test_people_page_is_the_initial_entry_and_supports_empty_state(window):
     assert window.people_list.count() == 0
     assert "עדיין לא נבחר אדם" in window.person_name_label.text()
     assert not window.new_chart_button.isEnabled()
+    # The shared application header owns the brand and update controls; the
+    # people page adds a light section heading instead of a second dark header.
+    assert len(window.findChildren(ui.QFrame, "appHeader")) == 1
+    assert window.update_button.isVisible()
+    assert window.auto_update.isVisible()
 
 
 def test_create_person_and_select_existing_person(window, monkeypatch):
