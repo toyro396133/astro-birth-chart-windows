@@ -3,6 +3,7 @@ import json
 import multiprocessing
 import os
 import subprocess
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -31,6 +32,25 @@ def sample_record(day="2024-07-01", city="ירושלים", clock="12:30"):
         "longitude": 35.2137,
         "zone": "Asia/Jerusalem",
     }, "0.6.2")
+
+
+def _add_large_people_index(store, *, count=340, notes_length=3600):
+    """Build a valid index large enough to exercise schema-specific journal limits."""
+    document = store._read_unlocked()
+    now = people_storage._now()
+    notes = "א" * notes_length
+    for index in range(count):
+        document["people"].append({
+            "id": uuid.uuid4().hex,
+            "name": f"אדם לבדיקת גודל {index}",
+            "notes": notes,
+            "created_at": now,
+            "updated_at": now,
+            "maps": [],
+        })
+    store._write(document)
+    assert store.index_path.stat().st_size < people_storage.MAX_INDEX_BYTES
+    return document
 
 
 def test_empty_people_store_and_stable_ids_allow_identical_names(tmp_path):
@@ -644,6 +664,26 @@ def test_restore_old_version_appends_new_version_without_mutating_history(tmp_pa
     assert sum(item["is_primary"] for item in saved_person["maps"]) == 1
 
 
+
+def test_restoring_current_version_is_a_byte_preserving_noop(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("שחזור הגרסה הנוכחית")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    history = store.list_map_versions(person["id"], entry["id"])
+    current_id = history["current_version_id"]
+    payload_before = store.map_path(person["id"], entry["id"]).read_bytes()
+    manifest_before = store._version_manifest_path(person["id"], entry["id"]).read_bytes()
+    index_before = store.index_path.read_bytes()
+    snapshot_before = store._version_snapshot_path(person["id"], entry["id"], current_id).read_bytes()
+
+    restored = store.restore_map_version(person["id"], entry["id"], current_id)
+
+    assert restored["id"] == entry["id"]
+    assert store.map_path(person["id"], entry["id"]).read_bytes() == payload_before
+    assert store._version_manifest_path(person["id"], entry["id"]).read_bytes() == manifest_before
+    assert store.index_path.read_bytes() == index_before
+    assert store._version_snapshot_path(person["id"], entry["id"], current_id).read_bytes() == snapshot_before
+
 def test_legacy_map_is_lazily_migrated_as_version_one_without_payload_change(tmp_path):
     store = PeopleStore(tmp_path)
     person = store.create_person("מפה ישנה")
@@ -680,28 +720,47 @@ def test_corrupt_or_missing_version_metadata_fails_closed_without_overwrite(tmp_
     assert manifest_path.is_file()
 
 
-@pytest.mark.parametrize("operation", ["save", "update"])
+@pytest.mark.parametrize("operation", ["save", "update", "restore"])
 @pytest.mark.parametrize("phase", ["snapshot", "payload", "manifest", "index"])
 def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch, operation, phase):
     store = PeopleStore(tmp_path)
     person = store.create_person(f"כשל {operation} {phase}")
+    entry = None
+    selected_version_id = None
     original_record = sample_record()
-    entry = store.save_map(person["id"], "מפה מקורית", original_record) if operation == "update" else None
-    if entry:
-        store.list_map_versions(person["id"], entry["id"])
-    new_record = sample_record("2024-07-03", "תל אביב", "14:00")
+    original_metadata = None
+    original_manifest_bytes = None
+    original_snapshot_bytes = {}
+    if operation != "save":
+        entry = store.save_map(person["id"], "מפה מקורית", original_record)
+        first_history = store.list_map_versions(person["id"], entry["id"])
+        if operation == "restore":
+            selected_version_id = first_history["versions"][0]["id"]
+            original_record = sample_record("2024-07-03", "תל אביב", "14:00")
+            store.update_map(person["id"], entry["id"], "מפה מקורית", original_record)
+            store.list_map_versions(person["id"], entry["id"])
+        original_metadata = store.get_person(person["id"])["maps"][0]
+        manifest_path = store._version_manifest_path(person["id"], entry["id"])
+        original_manifest_bytes = manifest_path.read_bytes()
+        version_directory = store._version_directory(person["id"], entry["id"])
+        original_snapshot_bytes = {
+            path.name: path.read_bytes()
+            for path in version_directory.glob("*.astrochart.json")
+        }
+    new_record = (
+        sample_record() if operation == "restore"
+        else sample_record("2024-07-03", "תל אביב", "14:00")
+    )
     real_snapshot = store._write_version_snapshot
     real_save = store._save_record
     real_manifest = store._write_version_manifest
     real_write = store._write
-    target = store.map_path(person["id"], entry["id"]) if entry else None
     person_directory = store.maps_path / person["id"]
-    manifest_path = store._version_manifest_path(person["id"], entry["id"]) if entry else None
     injected = {"done": False}
 
     def fail_after_snapshot(*args, **kwargs):
         result = real_snapshot(*args, **kwargs)
-        if not injected["done"]:
+        if phase == "snapshot" and not injected["done"]:
             injected["done"] = True
             raise OSError("injected after snapshot")
         return result
@@ -718,7 +777,7 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
 
     def fail_after_manifest(pid, mid, manifest):
         result = real_manifest(pid, mid, manifest)
-        if phase == "manifest" and (manifest_path is None or store._version_manifest_path(pid, mid) == manifest_path) and not injected["done"]:
+        if phase == "manifest" and not injected["done"]:
             injected["done"] = True
             raise OSError("injected after manifest")
         return result
@@ -742,30 +801,118 @@ def test_version_transaction_failure_recovers_consistently(tmp_path, monkeypatch
     with pytest.raises(OSError, match="injected after"):
         if operation == "save":
             store.save_map(person["id"], "מפה חדשה", new_record)
-        else:
+        elif operation == "update":
             store.update_map(person["id"], entry["id"], "מפה מעודכנת", new_record)
+        else:
+            store.restore_map_version(person["id"], entry["id"], selected_version_id)
 
     monkeypatch.undo()
     recovered = PeopleStore(tmp_path)
-    stored_person = next(item for item in recovered.list_people() if item["id"] == person["id"])
+    stored_person = recovered.get_person(person["id"])
     if phase == "index":
+        assert stored_person is not None
         assert len(stored_person["maps"]) == 1
         map_id = stored_person["maps"][0]["id"] if operation == "save" else entry["id"]
         assert recovered.read_map(person["id"], map_id) == new_record
-        assert recovered.list_map_versions(person["id"], map_id)["versions"][-1]["is_current"]
+        history = recovered.list_map_versions(person["id"], map_id)
+        expected_versions = {"save": 1, "update": 2, "restore": 3}[operation]
+        assert len(history["versions"]) == expected_versions
+        assert history["versions"][-1]["is_current"]
+        if operation == "restore":
+            assert history["versions"][-1]["restored_from"] == selected_version_id
+        assert sum(item["is_primary"] for item in stored_person["maps"]) == 1
     elif operation == "save":
         assert stored_person["maps"] == []
         assert not list(recovered.maps_path.rglob("*.astrochart.json"))
-    else:
-        assert recovered.read_map(person["id"], entry["id"]) == original_record
-        history = recovered.list_map_versions(person["id"], entry["id"])
-        assert len(history["versions"]) == 1 and history["versions"][0]["is_current"]
-    assert not recovered.journal_path.exists()
-    assert not list(recovered.directory.rglob(".astrochart-*.tmp"))
-    if operation == "save" and phase != "index":
         assert not list(recovered.maps_path.rglob("*.versions.json"))
         assert not list(recovered.maps_path.rglob("*.versions"))
+    else:
+        assert recovered.read_map(person["id"], entry["id"]) == original_record
+        assert recovered.get_person(person["id"])["maps"][0] == original_metadata
+        assert recovered._version_manifest_path(person["id"], entry["id"]).read_bytes() == original_manifest_bytes
+        history = recovered.list_map_versions(person["id"], entry["id"])
+        expected_versions = 1 if operation == "update" else 2
+        assert len(history["versions"]) == expected_versions
+        assert history["current_version_id"] == json.loads(original_manifest_bytes)["current_version_id"]
+    if operation != "save":
+        version_directory = recovered._version_directory(person["id"], entry["id"])
+        for filename, content in original_snapshot_bytes.items():
+            assert (version_directory / filename).read_bytes() == content
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.rglob(".people-*.tmp"))
+    assert not list(recovered.directory.rglob(".people-journal-*.tmp"))
+    assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
 
+
+def test_large_schema2_journal_recovers_after_interruption_in_fresh_store(tmp_path, monkeypatch):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("יומן גרסאות גדול")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    store.list_map_versions(person["id"], entry["id"])
+    original_record = store.read_map(person["id"], entry["id"])
+    original_manifest = store._version_manifest_path(person["id"], entry["id"]).read_bytes()
+    _add_large_people_index(store)
+    real_atomic = store._atomic_write_text
+    observed = {}
+
+    def interrupt_after_large_journal(path, payload, prefix):
+        if path == store.journal_path:
+            size = len(payload.encode("utf-8"))
+            observed["size"] = size
+            assert people_storage.MAX_JOURNAL_SCHEMA_1_BYTES < size
+            assert size <= people_storage.MAX_JOURNAL_SCHEMA_2_BYTES
+            result = real_atomic(path, payload, prefix)
+            raise OSError("interrupted after large schema-2 journal")
+        return real_atomic(path, payload, prefix)
+
+    monkeypatch.setattr(store, "_atomic_write_text", interrupt_after_large_journal)
+    monkeypatch.setattr(store, "_recover_transaction", lambda: None)
+    with pytest.raises(OSError, match="large schema-2 journal"):
+        store.update_map(
+            person["id"], entry["id"], "גרסה חדשה",
+            sample_record("2024-07-03", "תל אביב", "14:00"))
+    assert observed["size"] > people_storage.MAX_JOURNAL_SCHEMA_1_BYTES
+    assert store.journal_path.is_file()
+    monkeypatch.undo()
+
+    recovered = PeopleStore(tmp_path)
+    assert recovered.read_map(person["id"], entry["id"]) == original_record
+    assert recovered._version_manifest_path(person["id"], entry["id"]).read_bytes() == original_manifest
+    history = recovered.list_map_versions(person["id"], entry["id"])
+    assert len(history["versions"]) == 1 and history["versions"][0]["is_current"]
+    assert not recovered.journal_path.exists()
+    assert not list(recovered.directory.rglob(".people-*.tmp"))
+    assert not list(recovered.directory.rglob(".people-journal-*.tmp"))
+    assert not list(recovered.maps_path.rglob(".astrochart-*.tmp"))
+
+
+def test_legacy_schema1_journal_keeps_original_size_limit(tmp_path):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("יומן ישן מוגבל")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    large_index = _add_large_people_index(store)
+    journal = {
+        "format": store.JOURNAL_FORMAT,
+        "schema_version": 1,
+        "person_id": person["id"],
+        "map_id": entry["id"],
+        "old_index_exists": True,
+        "old_index": large_index,
+        "new_index": large_index,
+        "old_record": sample_record(),
+        "new_record": sample_record(),
+    }
+    payload = json.dumps(journal, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+    size = len(payload.encode("utf-8"))
+    assert people_storage.MAX_JOURNAL_SCHEMA_1_BYTES < size
+    assert size <= people_storage.MAX_JOURNAL_SCHEMA_2_BYTES
+    before_index = store.index_path.read_bytes()
+    store.journal_path.write_text(payload, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="יומן ההתאוששות גדול מדי"):
+        store.list_people()
+    assert store.index_path.read_bytes() == before_index
+    assert store.journal_path.read_text(encoding="utf-8") == payload
 
 def test_interrupted_version_update_recovers_from_journal_in_fresh_store(tmp_path, monkeypatch):
     store = PeopleStore(tmp_path)
@@ -856,6 +1003,36 @@ def test_missing_manifest_with_orphan_snapshots_fails_closed(tmp_path):
     with pytest.raises(ValueError, match="snapshots ללא אינדקס"):
         store.list_map_versions(person["id"], entry["id"])
     assert snapshot.read_bytes() == original
+
+
+@pytest.mark.parametrize("corrupt_orphan", [False, True])
+def test_manifest_with_orphan_snapshot_fails_closed_and_preserves_files(
+        tmp_path, corrupt_orphan):
+    store = PeopleStore(tmp_path)
+    person = store.create_person("snapshot יתום עם manifest")
+    entry = store.save_map(person["id"], "מפה", sample_record())
+    history = store.list_map_versions(person["id"], entry["id"])
+    first = history["versions"][0]
+    snapshot_path = store._version_snapshot_path(person["id"], entry["id"], first["id"])
+    snapshot_bytes = snapshot_path.read_bytes()
+    manifest_path = store._version_manifest_path(person["id"], entry["id"])
+    manifest_bytes = manifest_path.read_bytes()
+    orphan_id = "f" * 32
+    if orphan_id == first["id"]:
+        orphan_id = "e" * 32
+    orphan_path = store._version_snapshot_path(person["id"], entry["id"], orphan_id)
+    if corrupt_orphan:
+        orphan_path.write_bytes(b"{broken orphan snapshot")
+    else:
+        store._save_record(orphan_path, sample_record("2024-07-03", "תל אביב", "14:00"))
+    orphan_bytes = orphan_path.read_bytes()
+
+    with pytest.raises(ValueError, match="יתומים"):
+        store.list_map_versions(person["id"], entry["id"])
+
+    assert manifest_path.read_bytes() == manifest_bytes
+    assert snapshot_path.read_bytes() == snapshot_bytes
+    assert orphan_path.read_bytes() == orphan_bytes
 
 
 @pytest.mark.parametrize("operation", ["save", "update"])

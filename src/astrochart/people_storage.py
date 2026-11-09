@@ -27,6 +27,10 @@ MAX_INDEX_BYTES = 4 * 1024 * 1024
 MAX_PEOPLE = 5000
 MAX_MAPS_PER_PERSON = 1000
 MAX_MAP_VERSIONS = 1000
+# Keep legacy schema-1 recovery bounded at its original writer limit.
+MAX_JOURNAL_SCHEMA_1_BYTES = MAX_INDEX_BYTES + 2 * 262144 + 65536
+# Schema-2 writer and recovery share this exact upper bound.
+MAX_JOURNAL_SCHEMA_2_BYTES = MAX_INDEX_BYTES + 2 * 262144 + 2 * 1024 * 1024
 VERSION_FORMAT = "astro-birth-chart-map-versions"
 VERSION_SCHEMA_VERSION = 1
 _ID = re.compile(r"^[0-9a-f]{32}$")
@@ -479,11 +483,20 @@ class PeopleStore:
             self._cleanup_temporary_files()
             return
         try:
-            if self.journal_path.stat().st_size > MAX_INDEX_BYTES + 2 * 262144 + 65536:
+            journal_size = self.journal_path.stat().st_size
+            # Read only up to the largest schema-2 size accepted by the writer.
+            if journal_size > MAX_JOURNAL_SCHEMA_2_BYTES:
                 raise ValueError("יומן ההתאוששות גדול מדי")
             journal = json.loads(self.journal_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise ValueError("יומן התאוששות פגום; הנתונים המקוריים נשמרו") from exc
+        schema_version = journal.get("schema_version") if isinstance(journal, dict) else None
+        if type(schema_version) is int and schema_version == 1:
+            if journal_size > MAX_JOURNAL_SCHEMA_1_BYTES:
+                raise ValueError("יומן ההתאוששות גדול מדי")
+        elif type(schema_version) is int and schema_version == self.JOURNAL_SCHEMA:
+            if journal_size > MAX_JOURNAL_SCHEMA_2_BYTES:
+                raise ValueError("יומן ההתאוששות גדול מדי")
 
         expected = {
             "format", "schema_version", "person_id", "map_id",
@@ -621,7 +634,42 @@ class PeopleStore:
             manifest = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise ValueError("לא ניתן לקרוא את היסטוריית הגרסאות; הקובץ המקורי נשמר") from exc
-        return self._validate_version_manifest(manifest, person_id, map_id)
+        manifest = self._validate_version_manifest(manifest, person_id, map_id)
+        directory = self._version_directory(person_id, map_id)
+        expected_names = {
+            f'{version["id"]}.astrochart.json' for version in manifest["versions"]
+        }
+        actual_names = set()
+        if self._lexists(directory):
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    candidate = Path(entry.path)
+                    self._assert_safe_path(candidate)
+                    if (entry.is_file(follow_symlinks=False)
+                            and entry.name.startswith(".astrochart-")
+                            and entry.name.endswith(".tmp")):
+                        # Known atomic-write temporaries are removed by the
+                        # normal recovery cleanup path; no other file is ignored.
+                        continue
+                    if not entry.is_file(follow_symlinks=False):
+                        raise ValueError(
+                            "נמצא פריט לא צפוי בתיקיית snapshots; הנתונים נשמרו")
+                    if not entry.name.endswith(".astrochart.json"):
+                        raise ValueError(
+                            "נמצא קובץ לא צפוי בתיקיית snapshots; הנתונים נשמרו")
+                    actual_names.add(entry.name)
+        missing = expected_names - actual_names
+        orphaned = actual_names - expected_names
+        if missing or orphaned:
+            details = []
+            if missing:
+                details.append("חסרים: " + ", ".join(sorted(missing)))
+            if orphaned:
+                details.append("יתומים: " + ", ".join(sorted(orphaned)))
+            raise ValueError(
+                "תיקיית snapshots אינה תואמת ל-manifest (" + "; ".join(details) +
+                "); נדרשת התאוששות והקבצים המקוריים נשמרו")
+        return manifest
 
     def _write_version_manifest(self, person_id: str, map_id: str, manifest: dict) -> None:
         manifest = self._validate_version_manifest(manifest, person_id, map_id)
@@ -810,7 +858,7 @@ class PeopleStore:
             "new_version_record": new_version_record,
         }
         payload = json.dumps(journal, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-        if len(payload.encode("utf-8")) > MAX_INDEX_BYTES + 2 * 262144 + 2 * 1024 * 1024:
+        if len(payload.encode("utf-8")) > MAX_JOURNAL_SCHEMA_2_BYTES:
             raise ValueError("יומן גרסאות המפה גדול מדי")
         target = self.map_path(person_id, map_id)
         self._atomic_write_text(self.journal_path, payload, ".people-journal-")
@@ -847,7 +895,7 @@ class PeopleStore:
             "new_record": new_record,
         }
         payload = json.dumps(journal, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-        if len(payload.encode("utf-8")) > MAX_INDEX_BYTES + 2 * 262144 + 65536:
+        if len(payload.encode("utf-8")) > MAX_JOURNAL_SCHEMA_1_BYTES:
             raise ValueError("יומן ההתאוששות גדול מדי")
         target = self.map_path(person_id, map_id)
         self._atomic_write_text(self.journal_path, payload, ".people-journal-")

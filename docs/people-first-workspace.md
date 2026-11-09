@@ -106,3 +106,12 @@ The per-map version manifest has its own format/schema version (1); the people i
 ### Open-chart restore behavior
 
 If the restored map is also the active map in the chart editor, the editor inputs and computed view are recalculated from the newly restored current payload after the storage transaction succeeds. This prevents a hidden stale chart editor from later saving its pre-restore contents over the restored version.
+
+
+### Recovery bounds and snapshot-directory reconciliation
+
+Recovery applies schema-specific journal limits. Legacy schema-1 journals retain the original `MAX_INDEX_BYTES + 2*262144 + 65536` limit; schema-2 version journals use the same `MAX_INDEX_BYTES + 2*262144 + 2*1024*1024` limit in both the writer and recovery reader. A journal beyond its schema's limit, malformed journal, or unsupported schema fails closed and remains available for diagnosis.
+
+When a version manifest exists, the set of regular `*.astrochart.json` snapshots in its version directory must match the manifest exactly. Missing snapshots, unlisted/orphan snapshots, and unexpected files or directories stop history access with a recovery-required error. Original manifest, payload, and snapshot files are preserved; the application does not guess, delete, or overwrite orphan data. Only recognized atomic-write temporary files (`.astrochart-*.tmp`) are excluded, and the normal recovery cleanup removes them.
+
+Restore transactions are fault-injected at snapshot, payload, manifest, and index phases. Recovery is verified with a fresh `PeopleStore`: pre-index failures restore the old state, while a committed index completes the new restore version and its `restored_from` link. Historical preview followed by Save is tested as a new version under the same Person ID and Map ID; existing snapshots remain byte-identical.

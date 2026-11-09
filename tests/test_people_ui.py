@@ -455,10 +455,13 @@ def test_map_version_restore_creates_new_version_and_preserves_map_link(window, 
     assert saved_person["maps"][0]["id"] == entry["id"]
 
 
-def test_opening_historical_version_previews_without_changing_current_payload(window, monkeypatch):
-    person = window._people_store.create_person("תצוגת גרסה")
+def test_opening_historical_version_previews_then_save_appends_version_without_mutating_snapshots(
+        window, monkeypatch):
+    person = window._people_store.create_person("תצוגת גרסה ושמירה")
     entry = window._people_store.save_map(person["id"], "מפה", sample_record())
     first = window._people_store.list_map_versions(person["id"], entry["id"])["versions"][0]
+    first_path = window._people_store._version_snapshot_path(person["id"], entry["id"], first["id"])
+    first_bytes = first_path.read_bytes()
     changed = make_record({
         "date_mode": "gregorian", "civil_date": "2024-07-03",
         "clock": "14:00", "gregorian_date": "2024-07-03",
@@ -468,6 +471,10 @@ def test_opening_historical_version_previews_without_changing_current_payload(wi
         "zone": "Asia/Jerusalem",
     }, ui.__version__)
     window._people_store.update_map(person["id"], entry["id"], "מפה", changed)
+    history_before_preview = window._people_store.list_map_versions(person["id"], entry["id"])
+    second = history_before_preview["versions"][-1]
+    second_path = window._people_store._version_snapshot_path(person["id"], entry["id"], second["id"])
+    second_bytes = second_path.read_bytes()
     original_current = window._people_store.read_map(person["id"], entry["id"])
 
     def calculate_preview():
@@ -492,11 +499,22 @@ def test_opening_historical_version_previews_without_changing_current_payload(wi
     assert window.page_stack.currentWidget() is window.chart_page
     assert "גרסה 1" in window.chart_caption.text()
     assert window._people_store.read_map(person["id"], entry["id"]) == original_current
-    history = window._people_store.list_map_versions(person["id"], entry["id"])
-    assert len(history["versions"]) == 2
-    assert history["versions"][-1]["is_current"]
-    assert history["versions"][0]["id"] == first["id"]
+    assert first_path.read_bytes() == first_bytes
+    assert second_path.read_bytes() == second_bytes
 
+    # Exercise the real Save action after preview; only the chart-input guard is
+    # isolated from Qt widget state in this focused storage/UI integration test.
+    monkeypatch.setattr(window, "_require_current_chart", lambda: (object(), sample_record()))
+    window._save_chart()
+    saved_history = window._people_store.list_map_versions(person["id"], entry["id"])
+    assert [item["number"] for item in saved_history["versions"]] == [1, 2, 3]
+    assert saved_history["versions"][-1]["is_current"]
+    assert window._people_store.read_map(person["id"], entry["id"]) == sample_record()
+    assert first_path.read_bytes() == first_bytes
+    assert second_path.read_bytes() == second_bytes
+    saved_person = window._people_store.get_person(person["id"])
+    assert saved_person["id"] == person["id"]
+    assert saved_person["maps"][0]["id"] == entry["id"]
 
 def test_restoring_version_refreshes_same_map_when_chart_is_already_open(window, monkeypatch):
     person = window._people_store.create_person("שחזור מפה פתוחה")
