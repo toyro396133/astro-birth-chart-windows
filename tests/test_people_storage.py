@@ -1014,8 +1014,12 @@ def test_legacy_schema1_journal_keeps_original_size_limit(tmp_path):
     assert store.index_path.read_bytes() == before_index
     assert store.journal_path.read_text(encoding="utf-8") == payload
 
-def test_valid_schema1_journal_rolls_back_interrupted_legacy_update_in_fresh_store(
-        tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "interrupt_after_index", [False, True],
+    ids=["rollback-before-index-commit", "redo-after-index-commit"],
+)
+def test_valid_schema1_journal_recovers_interrupted_legacy_update_in_fresh_store(
+        tmp_path, monkeypatch, interrupt_after_index):
     store = PeopleStore(tmp_path)
     person = store.create_person("התאוששות יומן schema 1")
     original_record = sample_record()
@@ -1044,10 +1048,14 @@ def test_valid_schema1_journal_rolls_back_interrupted_legacy_update_in_fresh_sto
         updated_at, new_entry["is_primary"]))
     new_person["updated_at"] = updated_at
 
-    monkeypatch.setattr(
-        store, "_write",
-        lambda _document: (_ for _ in ()).throw(
-            OSError("simulated legacy index commit interruption")))
+    real_write = store._write
+
+    def interrupt_index_commit(document):
+        if interrupt_after_index:
+            real_write(document)
+        raise OSError("simulated legacy index commit interruption")
+
+    monkeypatch.setattr(store, "_write", interrupt_index_commit)
     monkeypatch.setattr(store, "_recover_transaction", lambda: None)
     with pytest.raises(OSError, match="legacy index commit interruption"):
         store._commit_map_transaction(
@@ -1059,15 +1067,27 @@ def test_valid_schema1_journal_rolls_back_interrupted_legacy_update_in_fresh_sto
     journal = json.loads(store.journal_path.read_text(encoding="utf-8"))
     assert journal["schema_version"] == 1
     assert store.journal_path.stat().st_size <= people_storage.MAX_JOURNAL_SCHEMA_1_BYTES
-    assert payload_path.read_bytes() != original_payload
-    assert store.index_path.read_bytes() == old_index_bytes
+    new_payload = payload_path.read_bytes()
+    assert new_payload != original_payload
+    if interrupt_after_index:
+        committed_index_bytes = store.index_path.read_bytes()
+        assert committed_index_bytes != old_index_bytes
+        expected_record = new_record
+        expected_payload = new_payload
+        expected_index = committed_index_bytes
+    else:
+        assert store.index_path.read_bytes() == old_index_bytes
+        expected_record = original_record
+        expected_payload = original_payload
+        expected_index = old_index_bytes
     monkeypatch.undo()
 
+    # A new process/store performs the legacy journal rollback or redo.
     recovered = PeopleStore(tmp_path)
     recovered.list_people()
-    assert recovered.index_path.read_bytes() == old_index_bytes
-    assert recovered.map_path(person["id"], entry["id"]).read_bytes() == original_payload
-    assert recovered.read_map(person["id"], entry["id"]) == original_record
+    assert recovered.index_path.read_bytes() == expected_index
+    assert recovered.map_path(person["id"], entry["id"]).read_bytes() == expected_payload
+    assert recovered.read_map(person["id"], entry["id"]) == expected_record
     assert not recovered.journal_path.exists()
     assert not manifest_path.exists()
     assert not version_directory.exists()
