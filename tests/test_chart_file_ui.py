@@ -6,18 +6,22 @@ import astrochart.ui as ui
 from astrochart import __version__
 from astrochart.chart_storage import make_record, read_record
 from astrochart.domain import BodyPosition, Chart
+from astrochart.people_storage import PeopleStore
 
 
 @pytest.fixture
-def window(monkeypatch):
+def window(tmp_path, monkeypatch):
     monkeypatch.setattr(ui, "auto_updates_enabled", lambda: False)
     monkeypatch.setattr(ui, "auto_install_enabled", lambda: False)
+    monkeypatch.setattr(ui, "PeopleStore", lambda: PeopleStore(tmp_path / "people"))
     app = QApplication.instance() or QApplication([])
     # An unexpected UI error must fail CI rather than open a blocking modal.
     def unexpected_dialog(*args):
         raise AssertionError("Unexpected QMessageBox.warning: " + str(args[-1]))
     monkeypatch.setattr(ui.QMessageBox, "warning", unexpected_dialog)
     win = ui.MainWindow()
+    person = win._people_store.create_person("בדיקת קבצים")
+    win._new_chart_for_person(person["id"])
     win.show()
     app.processEvents()
     win._show_chart(Chart([BodyPosition("שמש", 12.0, False)],
@@ -29,12 +33,16 @@ def window(monkeypatch):
 
 
 def test_local_save_and_structured_exports(tmp_path, window, monkeypatch):
-    path = tmp_path / "saved.astrochart.json"
-    monkeypatch.setattr(ui.QFileDialog, "getSaveFileName",
-                        lambda *args: (str(path), ""))
+    monkeypatch.setattr(ui.QInputDialog, "getText",
+                        lambda *args: ("מפה שמורה", True))
     window._save_chart(False)
-    assert read_record(path)["input"] == window._capture_input()
-    assert window._current_file == str(path)
+    person = window._people_store.get_person(window._active_person_id)
+    assert len(person["maps"]) == 1
+    saved_map = person["maps"][0]
+    assert read_record(window._people_store.map_path(
+        person["id"], saved_map["id"]))["input"] == window._capture_input()
+    assert window._current_file == str(window._people_store.map_path(
+        person["id"], saved_map["id"]))
 
     structured = tmp_path / "export.json"
     monkeypatch.setattr(ui.QFileDialog, "getSaveFileName",
