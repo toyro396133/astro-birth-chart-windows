@@ -1529,18 +1529,37 @@ class MainWindow(QMainWindow):
     def _save_chart(self, save_as=False):
         try:
             chart, record = self._require_current_chart()
-            selected = None if save_as else self._current_file
-            if not selected:
-                selected, _ = QFileDialog.getSaveFileName(
-                    self, "שמור מפה מקומית", "", "AstroBirthChart (*.astrochart.json);;JSON (*.json)")
-            if not selected:
-                return
-            path = Path(selected)
-            if not path.name.endswith(".json"):
-                path = path.with_name(path.name + ".astrochart.json")
-            save_record(path, record)
-            self._current_file = str(path)
-            self.chart_caption.setText("המפה נשמרה במחשב")
+            person = (self._people_store.get_person(self._active_person_id)
+                      if self._active_person_id else None)
+            if person is None:
+                person_id = self._choose_person_for_save()
+                if not person_id:
+                    return
+                self._active_person_id = person_id
+                self._active_map_id = None
+                person = self._people_store.get_person(person_id)
+            existing = next((item for item in person["maps"]
+                             if item["id"] == self._active_map_id), None)
+            if save_as or existing is None:
+                default_name = (f'מפה — {record["input"]["city"]} — '
+                                f'{record["input"]["civil_date"]}')
+                name, accepted = QInputDialog.getText(
+                    self, "שם המפה", "תן שם למפה השמורה תחת האדם:", 
+                    QLineEdit.EchoMode.Normal, default_name)
+                if not accepted:
+                    return
+                if not name.strip():
+                    raise ValueError("יש לתת שם למפה לפני השמירה")
+                saved = self._people_store.save_map(self._active_person_id, name, record)
+            else:
+                saved = self._people_store.update_map(
+                    self._active_person_id, existing["id"], existing["name"], record)
+            self._active_map_id = saved["id"]
+            self._current_file = str(self._people_store.map_path(
+                self._active_person_id, saved["id"]))
+            self._update_person_context()
+            self._refresh_people(select_person_id=self._active_person_id)
+            self.chart_caption.setText(f'המפה נשמרה תחת {person["name"]}')
         except Exception as exc:
             QMessageBox.warning(self, "שמירת מפה", str(exc))
 
@@ -1595,13 +1614,19 @@ class MainWindow(QMainWindow):
             self._calculate()
             if self._active_record is None:
                 raise ValueError("חישוב מחדש של הקובץ נכשל")
+            # Legacy standalone files remain openable. They are not silently
+            # assigned to a person; a person must be selected before re-saving.
+            self._active_person_id = None
+            self._active_map_id = None
             self._current_file = selected
+            self._update_person_context()
+            self.page_stack.setCurrentWidget(self.chart_page)
             if (record["app_version"] != __version__ or
                     record["tzdata_version"] != self._active_record["tzdata_version"]):
                 QMessageBox.information(
                     self, "חישוב מחדש",
                     "גרסת התוכנה או נתוני אזורי הזמן השתנתה. המפה חושבה מחדש; "
-                    "לא הובטח שחזור מספרי זהה לקובץ הקודם.")
+                    "לא הובטח שחזור מספרי זהה לקובץ הקודם. הקובץ הישן לא שויך לאדם.")
         except Exception as exc:
             QMessageBox.warning(self, "פתיחת מפה", str(exc))
 
