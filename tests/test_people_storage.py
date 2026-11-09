@@ -92,7 +92,7 @@ def test_map_cannot_be_saved_or_read_without_a_valid_person_link(tmp_path):
 
 def test_corrupt_people_index_is_not_silently_reset_or_overwritten(tmp_path):
     store = PeopleStore(tmp_path)
-    store.directory.mkdir(parents=True)
+    store.directory.mkdir(parents=True, exist_ok=True)
     store.index_path.write_text("{broken", encoding="utf-8")
     with pytest.raises(ValueError, match="הקובץ המקורי נשמר"):
         store.list_people()
