@@ -260,11 +260,13 @@ class PeopleStore:
         entry = next((item for item in person["maps"] if item["id"] == map_id), None)
         if entry is None:
             raise KeyError("המפה אינה משויכת לאדם זה")
+        now = _now()
+        metadata = self._map_metadata(
+            name, record, map_id, entry["created_at"], now, entry["is_primary"])
         target = self.map_path(person_id, map_id)
         save_record(target, record)
-        entry.update(self._map_metadata(
-            name, record, map_id, entry["created_at"], _now(), entry["is_primary"]))
-        person["updated_at"] = _now()
+        entry.update(metadata)
+        person["updated_at"] = now
         self._write(document)
         return copy.deepcopy(entry)
 
