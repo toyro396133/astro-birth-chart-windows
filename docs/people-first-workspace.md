@@ -55,3 +55,10 @@ The existing `chart_storage` validation and atomic file writer are reused. The i
 - Windows GUI smoke now captures the people-first home screen before entering the chart editor.
 
 Windows CI is the authoritative execution environment for the full suite and frozen GUI/build checks. Results must be reported against the final PR HEAD; tests not yet executed must remain NOT_RUN.
+
+## Storage integrity and recovery
+
+All PeopleStore reads and mutations are serialized with a per-store process lock (Windows byte-range lock or POSIX flock), plus a thread lock. A map save/update writes a durable transaction journal containing the old index/payload and intended new index/payload before replacing either live file. The payload is flushed first, then the index; recovery either completes an already-committed index transaction or restores the previous payload when the index commit did not occur. A leftover journal is reconciled before the next read or mutation. Temporary files from interrupted atomic writes are cleaned during recovery.
+
+The store rejects symbolic links and Windows reparse points/junctions at the store root, index, maps directory, person directory and map payload, and verifies canonical containment beneath the configured store root. If people.json is missing while map payloads still exist, the application enters an explicit recovery-required state; it does not show an empty store or rewrite/delete the original map files.
+
