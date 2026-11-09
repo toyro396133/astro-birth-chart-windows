@@ -68,6 +68,8 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "GUI process failed with code $($proc.ExitCode)" }
       - name: Functional GUI interaction and visual snapshots (Windows)
         run: python tests/inspect_gui.py
+      - name: Generate polished sample PDF for design review (synthetic data)
+        run: python scripts/preview_chart_tables_pdf.py
       - uses: actions/upload-artifact@v6
         with:
           name: AstroBirthChart-GUI-QA
@@ -104,17 +106,35 @@ jobs:
       - name: Validate actual installation, upgrade and Windows uninstall
         shell: pwsh
         run: .\scripts\test_installer.ps1
+      - name: Check if this PR introduces a new release version
+        id: delta_gate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content dist/AstroBirthChart/version.json -Raw | ConvertFrom-Json).version
+          $latest = gh api repos/toyro396133/astro-birth-chart-windows/releases/latest --jq .tag_name
+          if ($LASTEXITCODE -ne 0) { throw "Cannot read latest release tag" }
+          if ($latest -eq "v$version") {
+            "enabled=false" >> $env:GITHUB_OUTPUT
+            Write-Host "No version bump. Keep installer QA; skip release delta only."
+          } else {
+            "enabled=true" >> $env:GITHUB_OUTPUT
+          }
       - name: Build smaller registered-install Setup delta
+        if: steps.delta_gate.outputs.enabled == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: .\scripts\build_setup_delta.ps1
       - name: Verify genuine previous-to-current Setup delta, tamper rejection and uninstall
+        if: steps.delta_gate.outputs.enabled == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: .\scripts\test_setup_delta.ps1
       - uses: actions/upload-artifact@v6
+        if: steps.delta_gate.outputs.enabled == 'true'
         with:
           name: AstroBirthChart-Windows-Setup-Delta
           path: dist/installer/AstroBirthChart-Setup-Delta-from-v*-to-v*.exe

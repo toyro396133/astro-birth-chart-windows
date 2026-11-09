@@ -85,3 +85,47 @@ def test_many_aspects_generate_multiple_pages(tmp_path):
     assert data.startswith(b"%PDF-")
     # A4 print layout should paginate instead of clipping after one page.
     assert data.count(b"/Type /Page\n") >= 2 or data.count(b"/Type /Page ") >= 2
+
+
+
+def test_header_uses_real_metadata_and_handles_unknown_input():
+    from astrochart.chart_tables_pdf import _header_details, _status_note
+    entries = _header_details({
+        "civil_date": "2026-05-07", "city": "ירושלים",
+        "clock": "15:45", "estimated_time": True})
+    assert entries == [("תאריך", "07.05.2026"), ("מקום", "ירושלים"),
+                       ("שעה", "15:45 (משוערת)")]
+    assert _header_details(None) == []
+    assert _header_details({"civil_date": "bad", "city": ""}) == []
+    unknown = example_chart()
+    unknown.time_certainty = "unknown"
+    assert "אינה ידועה" in _status_note(unknown)[1]
+
+
+def test_polished_pdf_accepts_real_metadata_without_creating_a_report(tmp_path):
+    QApplication.instance() or QApplication([])
+    chart = example_chart()
+    output = tmp_path / "designed.pdf"
+    export_chart_tables_pdf(chart, output, metadata={
+        "civil_date": "2026-05-07", "clock": "09:15",
+        "city": "ירושלים", "unknown_time": False})
+    data = output.read_bytes()
+    assert data.startswith(b"%PDF-")
+    assert len(data) > 2000
+
+
+def test_large_multiline_rows_and_uncertain_status_paginate_without_truncation(tmp_path):
+    QApplication.instance() or QApplication([])
+    chart = example_chart()
+    chart.time_certainty = "estimated"
+    chart.aspects = [Aspect(
+        "גוף ראשון עם תיאור ארוך", "גוף שני עם תיאור ארוך",
+        "ריבוע", 90, 1.2, certainty="estimated")
+        for _ in range(80)]
+    path = tmp_path / "many-aspects.pdf"
+    export_chart_tables_pdf(chart, path, metadata={
+        "civil_date": "2026-05-07", "city": "ירושלים",
+        "clock": "09:15", "estimated_time": True})
+    raw = path.read_bytes()
+    assert raw.startswith(b"%PDF-")
+    assert raw.count(b"/Type /Page\n") >= 2 or raw.count(b"/Type /Page ") >= 2

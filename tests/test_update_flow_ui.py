@@ -275,10 +275,10 @@ def test_tables_pdf_menu_exports_positions_and_aspects_not_wheel(window, monkeyp
                         lambda *_: (str(target), "PDF (*.pdf)"))
     calls = []
     monkeypatch.setattr(ui, "export_chart_tables_pdf",
-                        lambda *args: calls.append(args))
+                        lambda *args, **kwargs: calls.append((args, kwargs)))
     monkeypatch.setattr(ui, "export_chart_pdf",
                         lambda *args, **kw: pytest.fail("wheel/report exporter should not run"))
     window._export_chart("pdf_tables")
-    assert calls == [(chart, target)]
+    assert calls == [((chart, target), {"metadata": window._active_record["input"]})]
     assert any("טבלת מזלות והיבטים" in action.text()
                for action in window.file_menu.actions())
