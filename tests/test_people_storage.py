@@ -213,15 +213,29 @@ def test_update_map_restores_old_payload_and_metadata_when_index_commit_fails(
 def test_save_map_rolls_back_after_real_index_replace_failure(tmp_path, monkeypatch):
     store = PeopleStore(tmp_path)
     person = store.create_person("בדיקת replace")
-    real_replace = os.replace
 
-    def fail_people_index(source, destination):
-        if Path(destination) == store.index_path:
-            raise OSError("simulated os.replace failure")
-        return real_replace(source, destination)
+    if os.name == "nt":
+        real_replace = store._move_file_ex_w
 
-    monkeypatch.setattr(people_storage.os, "replace", fail_people_index)
-    with pytest.raises(OSError, match="simulated os.replace"):
+        def fail_people_index(source, destination, flags):
+            if Path(destination) == store.index_path:
+                raise OSError("simulated MoveFileExW failure")
+            return real_replace(source, destination, flags)
+
+        monkeypatch.setattr(store, "_move_file_ex_w", fail_people_index)
+        failure_message = "simulated MoveFileExW"
+    else:
+        real_replace = os.replace
+
+        def fail_people_index(source, destination):
+            if Path(destination) == store.index_path:
+                raise OSError("simulated os.replace failure")
+            return real_replace(source, destination)
+
+        monkeypatch.setattr(people_storage.os, "replace", fail_people_index)
+        failure_message = "simulated os.replace"
+
+    with pytest.raises(OSError, match=failure_message):
         store.save_map(person["id"], "מפה", sample_record())
 
     monkeypatch.undo()
